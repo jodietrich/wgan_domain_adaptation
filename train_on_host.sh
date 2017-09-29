@@ -8,9 +8,9 @@
 # Author: Christian F. Baumgartner (c.f.baumgartner@gmail.com)
 
 ## SET THE FOLLOWING VARIABLES ACCORDING TO YOUR SYSTEM ##
-CUDA_HOME=/scratch_net/bmicdl03/libs/cuda-8.0-bmic
-PROJECT_HOME=/scratch_net/bmicdl03/code/python/wgan_domain_adapt/
-VIRTUAL_ENV_PATH=/scratch_net/bmicdl03/code/python/environments/tensorflow-gpu/
+CUDA_HOME=/scratch_net/brossa/libs/cuda-8.0-bmic
+PROJECT_HOME=/scratch_net/brossa/jdietric/PycharmProjects/WGAN_domain_adapt/
+VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_ganda_gpu
 
 ## SGE Variables:
 #
@@ -31,7 +31,7 @@ VIRTUAL_ENV_PATH=/scratch_net/bmicdl03/code/python/environments/tensorflow-gpu/
 #$ -j y
 #
 # logging directory. preferably on your scratch
-#$ -o /scratch_net/bmicdl03/logs/gan/  ## <---------------- CHANGE TO MATCH YOUR SYSTEM
+#$ -o /scratch_net/brossa/jdietric/logs/gan/  ## <---------------- CHANGE TO MATCH YOUR SYSTEM
 #
 ## send mail on job's end and abort
 #$ -m a
