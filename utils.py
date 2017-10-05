@@ -1,5 +1,6 @@
 # Authors:
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
+# Lisa M. Koch (lisa.margret.koch@gmail.com)
 
 import nibabel as nib
 import numpy as np
@@ -16,9 +17,6 @@ def makefolder(folder):
         os.makedirs(folder)
         return True
     return False
-
-def list_mean(l):
-    return sum(l)/len(l)
 
 def load_nii(img_path):
 
@@ -58,3 +56,13 @@ def get_latest_model_checkpoint_path(folder, name):
 
     return os.path.join(folder, name + '-' + str(latest_iteration))
 
+
+# Useful shortcut for making struct like contructs
+# Example:
+# mystruct = Bunch(a=1, b=2)
+# print(mystruct.a)
+# >>> 1
+
+class Bunch:
+    def __init__(self, **kwds):
+        self.__dict__.update(kwds)

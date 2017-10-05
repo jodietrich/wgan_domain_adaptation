@@ -14,6 +14,7 @@ import config.system as sys_config
 import model
 from tfwrapper import utils as tf_utils
 import utils
+import adni_data_loader
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
@@ -25,13 +26,29 @@ sys_config.setup_GPU_environment()
 
 # from experiments import dcgan_improved_train as exp_config
 # from experiments import dcgan_fcn_improved_train as exp_config
-from experiments import dcgan_fcn_bn_improved_train as exp_config
+from experiments import mri_dcgan_fcn_bn_improved_train as exp_config
 
 #######################################################################
 
 log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
 
-from data import mnist_invert as data
+# import data
+data = adni_data_loader.load_and_maybe_process_data(
+    input_folder=exp_config.data_root,
+    preprocessing_folder=exp_config.preproc_folder,
+    size=exp_config.image_size,
+    target_resolution=exp_config.target_resolution,
+    label_list = exp_config.label_list,
+    force_overwrite=False
+)
+
+images_train = data['images_train']
+
+# not yet needed
+# labels_train = data['diagnosis_train']
+
+# separate 1.5T and 3T data
+
 
 def run_training():
 

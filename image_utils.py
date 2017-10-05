@@ -1,5 +1,6 @@
 # Authors:
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
+# Lisa M. Koch (lisa.margret.koch@gmail.com)
 
 import numpy as np
 from skimage import measure
