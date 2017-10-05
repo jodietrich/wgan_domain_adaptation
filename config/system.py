@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 # Full paths are required because otherwise the code will not know where to look
 # when it is executed on one of the clusters.
 
-project_root = '/scratch_net/brossa/jdietric/PycharmProjects/WGAN_domain_adapt'
+project_root = '/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt'
 local_hostnames = ['brossa']
 
 ##################################################################################

@@ -9,7 +9,7 @@
 
 ## SET THE FOLLOWING VARIABLES ACCORDING TO YOUR SYSTEM ##
 CUDA_HOME=/scratch_net/brossa/jdietric/libs/cuda-8.0
-PROJECT_HOME=/scratch_net/brossa/jdietric/PycharmProjects/WGAN_domain_adapt/
+PROJECT_HOME=/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt/
 VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 
 ## SGE Variables:
@@ -25,7 +25,7 @@ VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 
 # Host and gpu settings
 #$ -l gpu
-#$ -l hostname=bmicgpu01  ## <-------------- Comment in or out to force a specific machine
+##$ -l hostname=bmicgpu01  ## <-------------- Comment in or out to force a specific machine
 
 ## stderr and stdout are merged together to stdout
 #$ -j y
