@@ -6,7 +6,8 @@ import os
 experiment_name = 'dcgan_fcn_bn_improved_train_fcn_mri_1'
 
 # paths
-preproc_folder = os.path.join(sys_config.project_root,'data/adni')
+data_root = sys_config.data_root
+preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
 
 # Model settings
 model_handle = model_zoo.DCGAN_FCN_bn

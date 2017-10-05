@@ -42,13 +42,17 @@ data = adni_data_loader.load_and_maybe_process_data(
     force_overwrite=False
 )
 
+# separate 3T and 1.5T images
 images_train = data['images_train']
+indices_3 = [f==3 for f in list(data['field_strength_train'])]
+images_train_3T = images_train[0]
 
 # not yet needed
 # labels_train = data['diagnosis_train']
 
 # separate 1.5T and 3T data
-
+print(images_train_3T)
+# print(list(images_train['field_strength_train']))
 
 def run_training():
 
