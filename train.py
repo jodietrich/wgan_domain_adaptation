@@ -15,6 +15,7 @@ import model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
+import data_sampler
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
@@ -42,17 +43,31 @@ data = adni_data_loader.load_and_maybe_process_data(
     force_overwrite=False
 )
 
-# separate 3T and 1.5T images
 images_train = data['images_train']
-indices_3 = [f==3 for f in list(data['field_strength_train'])]
-images_train_3T = images_train[0]
+images_val = data['images_val']
 
-# not yet needed
-# labels_train = data['diagnosis_train']
+print(images_train[[0,5,6]])
 
 # separate 1.5T and 3T data
-print(images_train_3T)
-# print(list(images_train['field_strength_train']))
+source_images_train = []
+target_images_train = []
+source_images_val = []
+target_images_val = []
+
+for i in range(0, len(images_train)):
+    field_str = data['field_strength_train'][i]
+    if field_str == exp_config.source_field_strength:
+        source_images_train.append(images_train[i])
+    elif field_str == exp_config.target_field_strength:
+        target_images_train.append(images_train[i])
+
+for i in range(0, len(images_val)):
+    field_str = data['field_strength_val'][i]
+    if field_str == exp_config.source_field_strength:
+        source_images_val.append(images_val[i])
+    elif field_str == exp_config.target_field_strength:
+        target_images_val.append(images_val[i])
+
 
 def run_training():
 
@@ -62,8 +77,8 @@ def run_training():
 
     nets = exp_config.model_handle
 
-    x_sampler = data.SourceDataSampler()
-    z_sampler = data.TargetDataSampler()
+    x_sampler = data_sampler.MriDataSampler(source_images_train, source_images_val)
+    z_sampler = data_sampler.MriDataSampler(target_images_train, target_images_val)
 
 
     with tf.Graph().as_default():
