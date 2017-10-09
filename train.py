@@ -15,7 +15,9 @@ import model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
-import data_sampler
+import data_utils
+
+import random
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
@@ -46,7 +48,6 @@ data = adni_data_loader.load_and_maybe_process_data(
 images_train = data['images_train']
 images_val = data['images_val']
 
-print(images_train[[0,5,6]])
 
 # separate 1.5T and 3T data
 source_images_train = []
@@ -77,8 +78,8 @@ def run_training():
 
     nets = exp_config.model_handle
 
-    x_sampler = data_sampler.MriDataSampler(source_images_train, source_images_val)
-    z_sampler = data_sampler.MriDataSampler(target_images_train, target_images_val)
+    x_sampler = data_utils.DataSampler(source_images_train, source_images_val)
+    z_sampler = data_utils.DataSampler(target_images_train, target_images_val)
 
 
     with tf.Graph().as_default():
