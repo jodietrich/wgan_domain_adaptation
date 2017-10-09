@@ -39,8 +39,3 @@ class DataSampler(object):
 
     def data2img(self, data):
         return np.reshape(data, [data.shape[0]] + self.shape)
-
-
-# separates the given data into two datasets
-def separate_data():
-    pass

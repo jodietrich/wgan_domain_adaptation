@@ -86,11 +86,11 @@ def run_training():
 
         # Generate placeholders for the images and labels.
 
-        im_s = exp_config.data_shape
+        im_s = exp_config.image_size
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
-        x_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], 1], name='x')
-        z_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], 1], name='z')
+        x_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='x')
+        z_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='z')
 
         x_pl_ = nets.generator(z_pl, training_placeholder)
 
