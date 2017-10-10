@@ -48,7 +48,6 @@ data = adni_data_loader.load_and_maybe_process_data(
 images_train = data['images_train']
 images_val = data['images_val']
 
-
 # separate 1.5T and 3T data
 source_images_train = []
 target_images_train = []
@@ -94,14 +93,15 @@ def run_training():
 
         x_pl_ = nets.generator(z_pl, training_placeholder)
 
-        tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid(x_pl_)
-        )
-
-        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid(x_pl)
-        )
-
-        tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid(z_pl)
-        )
+        # I commented this out because it does not work for 3d images
+        # tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid(x_pl_)
+        # )
+        #
+        # tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid(x_pl)
+        # )
+        #
+        # tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid(z_pl)
+        # )
 
 
         d_pl = nets.discriminator(x_pl, training_placeholder, scope_reuse=False)

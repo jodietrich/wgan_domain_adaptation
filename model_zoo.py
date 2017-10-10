@@ -4,80 +4,80 @@
 import tensorflow as tf
 from tfwrapper import layers
 
-class DCGAN:
-
-    @staticmethod
-    def discriminator(x, training, scope_name='discriminator', scope_reuse=False):
-
-        with tf.variable_scope(scope_name) as scope:
-
-            if scope_reuse:
-                scope.reuse_variables()
-
-            layer1 = layers.conv2D_layer(x, 'dlayer1', kernel_size=(4, 4), strides=(2, 2), num_filters=64, activation=layers.leaky_relu, weight_init='simple')
-            layer2 = layers.conv2D_layer(layer1, 'dlayer2', kernel_size=(4,4), strides=(2,2), num_filters=128, activation=layers.leaky_relu, weight_init='simple')
-            layer3 = layers.dense_layer(layer2, 'dlayer3', hidden_units=1024, activation=layers.leaky_relu, weight_init='simple')
-            layer4 = layers.dense_layer(layer3, 'dlayer4', hidden_units=1, activation=tf.identity, weight_init='simple')
-
-            return layer4
-
-
-    @staticmethod
-    def generator(z, training, scope_name='generator'):
-
-        with tf.variable_scope(scope_name):
-
-            bs = tf.shape(z)[0]
-
-            layer1 = layers.dense_layer_bn(z, 'glayer1', hidden_units=1024, activation=tf.nn.relu, weight_init='simple', training=training)
-            layer2 = layers.dense_layer_bn(layer1, 'glayer2', hidden_units=7*7*128, activation=tf.nn.relu, weight_init='simple', training=training)
-            layer2 = tf.reshape(layer2, tf.stack([bs, 7, 7, 128]))
-
-            layer3 = layers.deconv2D_layer_bn(layer2, 'glayer3', kernel_size=(4,4), strides=(2,2), num_filters=64, activation=tf.nn.relu, weight_init='simple', training=training)
-            layer4 = layers.deconv2D_layer(layer3, 'glayer4', kernel_size=(4,4), strides=(2,2), num_filters=1, activation=tf.sigmoid, weight_init='simple')
-
-            return layer4
-
-
-class DCGAN_FCN:
-    @staticmethod
-    def discriminator(x, training, scope_name='discriminator', scope_reuse=False):
-        with tf.variable_scope(scope_name) as scope:
-            if scope_reuse:
-                scope.reuse_variables()
-
-            layer1 = layers.conv2D_layer(x, 'dlayer1', kernel_size=(4, 4), strides=(2, 2), num_filters=64,
-                                         activation=layers.leaky_relu, weight_init='simple')
-            layer2 = layers.conv2D_layer(layer1, 'dlayer2', kernel_size=(4, 4), strides=(2, 2), num_filters=128,
-                                         activation=layers.leaky_relu, weight_init='simple')
-            layer3 = layers.dense_layer(layer2, 'dlayer3', hidden_units=1024, activation=layers.leaky_relu,
-                                        weight_init='simple')
-            layer4 = layers.dense_layer(layer3, 'dlayer4', hidden_units=1, activation=tf.identity,
-                                        weight_init='simple')
-
-            return layer4
-
-    @staticmethod
-    def generator(z, training, scope_name='generator'):
-        with tf.variable_scope(scope_name):
-
-            layer1 = layers.conv2D_layer(z, 'glayer1', num_filters=64, activation=tf.nn.relu,
-                                           weight_init='simple', training=training)
-
-            layer2 = layers.max_pool_layer2d(layer1)
-
-            layer3 = layers.conv2D_layer(layer2, 'glayer3', num_filters=128, activation=tf.nn.relu,
-                                           weight_init='simple', training=training)
-
-            layer4 = layers.deconv2D_layer(layer3, 'glayer4', kernel_size=(4, 4), strides=(2, 2), num_filters=64, weight_init='simple')
-
-            layer5 = layers.conv2D_layer(layer4, 'glayer5', num_filters=128, activation=tf.nn.relu,
-                                         weight_init='simple')
-
-            layer6 = layers.conv2D_layer(layer5, 'glayer6', num_filters=1, kernel_size=(1,1), strides=(1,1), activation=tf.sigmoid)
-
-
-            return layer6
+# class DCGAN:
+#
+#     @staticmethod
+#     def discriminator(x, training, scope_name='discriminator', scope_reuse=False):
+#
+#         with tf.variable_scope(scope_name) as scope:
+#
+#             if scope_reuse:
+#                 scope.reuse_variables()
+#
+#             layer1 = layers.conv2D_layer(x, 'dlayer1', kernel_size=(4, 4), strides=(2, 2), num_filters=64, activation=layers.leaky_relu, weight_init='simple')
+#             layer2 = layers.conv2D_layer(layer1, 'dlayer2', kernel_size=(4,4), strides=(2,2), num_filters=128, activation=layers.leaky_relu, weight_init='simple')
+#             layer3 = layers.dense_layer(layer2, 'dlayer3', hidden_units=1024, activation=layers.leaky_relu, weight_init='simple')
+#             layer4 = layers.dense_layer(layer3, 'dlayer4', hidden_units=1, activation=tf.identity, weight_init='simple')
+#
+#             return layer4
+#
+#
+#     @staticmethod
+#     def generator(z, training, scope_name='generator'):
+#
+#         with tf.variable_scope(scope_name):
+#
+#             bs = tf.shape(z)[0]
+#
+#             layer1 = layers.dense_layer_bn(z, 'glayer1', hidden_units=1024, activation=tf.nn.relu, weight_init='simple', training=training)
+#             layer2 = layers.dense_layer_bn(layer1, 'glayer2', hidden_units=7*7*128, activation=tf.nn.relu, weight_init='simple', training=training)
+#             layer2 = tf.reshape(layer2, tf.stack([bs, 7, 7, 128]))
+#
+#             layer3 = layers.deconv2D_layer_bn(layer2, 'glayer3', kernel_size=(4,4), strides=(2,2), num_filters=64, activation=tf.nn.relu, weight_init='simple', training=training)
+#             layer4 = layers.deconv2D_layer(layer3, 'glayer4', kernel_size=(4,4), strides=(2,2), num_filters=1, activation=tf.sigmoid, weight_init='simple')
+#
+#             return layer4
+#
+#
+# class DCGAN_FCN:
+#     @staticmethod
+#     def discriminator(x, training, scope_name='discriminator', scope_reuse=False):
+#         with tf.variable_scope(scope_name) as scope:
+#             if scope_reuse:
+#                 scope.reuse_variables()
+#
+#             layer1 = layers.conv2D_layer(x, 'dlayer1', kernel_size=(4, 4), strides=(2, 2), num_filters=64,
+#                                          activation=layers.leaky_relu, weight_init='simple')
+#             layer2 = layers.conv2D_layer(layer1, 'dlayer2', kernel_size=(4, 4), strides=(2, 2), num_filters=128,
+#                                          activation=layers.leaky_relu, weight_init='simple')
+#             layer3 = layers.dense_layer(layer2, 'dlayer3', hidden_units=1024, activation=layers.leaky_relu,
+#                                         weight_init='simple')
+#             layer4 = layers.dense_layer(layer3, 'dlayer4', hidden_units=1, activation=tf.identity,
+#                                         weight_init='simple')
+#
+#             return layer4
+#
+#     @staticmethod
+#     def generator(z, training, scope_name='generator'):
+#         with tf.variable_scope(scope_name):
+#
+#             layer1 = layers.conv2D_layer(z, 'glayer1', num_filters=64, activation=tf.nn.relu,
+#                                            weight_init='simple', training=training)
+#
+#             layer2 = layers.max_pool_layer2d(layer1)
+#
+#             layer3 = layers.conv2D_layer(layer2, 'glayer3', num_filters=128, activation=tf.nn.relu,
+#                                            weight_init='simple', training=training)
+#
+#             layer4 = layers.deconv2D_layer(layer3, 'glayer4', kernel_size=(4, 4), strides=(2, 2), num_filters=64, weight_init='simple')
+#
+#             layer5 = layers.conv2D_layer(layer4, 'glayer5', num_filters=128, activation=tf.nn.relu,
+#                                          weight_init='simple')
+#
+#             layer6 = layers.conv2D_layer(layer5, 'glayer6', num_filters=1, kernel_size=(1,1), strides=(1,1), activation=tf.sigmoid)
+#
+#
+#             return layer6
 
 
 class DCGAN_FCN_bn:
@@ -87,38 +87,50 @@ class DCGAN_FCN_bn:
             if scope_reuse:
                 scope.reuse_variables()
 
-            layer1 = layers.conv2D_layer(x, 'dlayer1', kernel_size=(4, 4), strides=(2, 2), num_filters=64,
-                                         activation=layers.leaky_relu, weight_init='simple')
-            layer2 = layers.conv2D_layer(layer1, 'dlayer2', kernel_size=(4, 4), strides=(2, 2), num_filters=128,
-                                         activation=layers.leaky_relu, weight_init='simple')
-            layer3 = layers.dense_layer(layer2, 'dlayer3', hidden_units=1024, activation=layers.leaky_relu,
-                                        weight_init='simple')
-            layer4 = layers.dense_layer(layer3, 'dlayer4', hidden_units=1, activation=tf.identity,
+            conv1 = layers.conv3D_layer(x, 'dconv1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu, weight_init='simple')
+
+            pool1 = layers.max_pool_layer3d(conv1)
+
+            conv2 = layers.conv3D_layer(pool1, 'dconv2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu, weight_init='simple')
+
+            pool2 = layers.max_pool_layer3d(conv2)
+
+            conv3 = layers.conv3D_layer(pool2, 'dconv3',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu, weight_init='simple')
+
+            pool3 = layers.max_pool_layer3d(conv3)
+
+            conv4 = layers.conv3D_layer(pool3, 'dconv4',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu, weight_init='simple')
+
+            pool4 = layers.max_pool_layer3d(conv4)
+
+            dense1 = layers.dense_layer(pool4, 'ddense1', hidden_units=512, activation=layers.leaky_relu,
                                         weight_init='simple')
 
-            return layer4
+            dense2 = layers.dense_layer(dense1, 'ddense2', hidden_units=1, activation=tf.identity,
+                                        weight_init='simple')
+
+            return dense2
 
     @staticmethod
     def generator(z, training, scope_name='generator'):
         with tf.variable_scope(scope_name):
-            layer1 = layers.conv2D_layer_bn(z, 'glayer1', num_filters=64, activation=tf.nn.relu,
+            layer1 = layers.conv3D_layer_bn(z, 'glayer1', num_filters=64, activation=tf.nn.relu,
                                          weight_init='simple', training=training)
 
-            layer2 = layers.max_pool_layer2d(layer1)
-
-            layer3 = layers.conv2D_layer_bn(layer2, 'glayer3', num_filters=128, activation=tf.nn.relu,
+            layer2 = layers.conv3D_layer_bn(layer1, 'glayer2', num_filters=128, activation=tf.nn.relu,
                                          weight_init='simple', training=training)
 
-            layer4 = layers.deconv2D_layer_bn(layer3, 'glayer4', kernel_size=(4, 4), strides=(2, 2),
-                                           num_filters=64, weight_init='simple', training=training)
-
-            layer5 = layers.conv2D_layer_bn(layer4, 'glayer5', num_filters=128, activation=tf.nn.relu,
+            layer3 = layers.conv3D_layer_bn(layer2, 'glayer3', num_filters=128, activation=tf.nn.relu,
                                          weight_init='simple', training=training)
 
-            layer6 = layers.conv2D_layer(layer5, 'glayer6', num_filters=1, kernel_size=(1, 1), strides=(1, 1),
+            layer4 = layers.conv3D_layer(layer3, 'glayer4', num_filters=1, kernel_size=(1, 1, 1), strides=(1, 1, 1),
                                          activation=tf.sigmoid)
 
-            return layer6
+            return layer4
 
 #
 # class UNET:
