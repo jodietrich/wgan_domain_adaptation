@@ -87,27 +87,32 @@ class DCGAN_FCN_bn:
             if scope_reuse:
                 scope.reuse_variables()
 
-            conv1 = layers.conv3D_layer(x, 'dconv1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+            conv1 = layers.conv3D_layer(x, 'dconv1',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
                                         activation=layers.leaky_relu, weight_init='simple')
 
             pool1 = layers.max_pool_layer3d(conv1)
 
-            conv2 = layers.conv3D_layer(pool1, 'dconv2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+            conv2 = layers.conv3D_layer(pool1, 'dconv2',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
                                         activation=layers.leaky_relu, weight_init='simple')
 
             pool2 = layers.max_pool_layer3d(conv2)
 
-            conv3 = layers.conv3D_layer(pool2, 'dconv3',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+            conv3 = layers.conv3D_layer(pool2, 'dconv3',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
                                         activation=layers.leaky_relu, weight_init='simple')
 
             pool3 = layers.max_pool_layer3d(conv3)
 
-            conv4 = layers.conv3D_layer(pool3, 'dconv4',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+            conv4 = layers.conv3D_layer(pool3, 'dconv4',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
                                         activation=layers.leaky_relu, weight_init='simple')
 
             pool4 = layers.max_pool_layer3d(conv4)
 
-            dense1 = layers.dense_layer(pool4, 'ddense1', hidden_units=512, activation=layers.leaky_relu,
+            conv5 = layers.conv3D_layer(pool4, 'dconv5',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+                            activation=layers.leaky_relu, weight_init='simple')
+
+            pool5 = layers.max_pool_layer3d(conv5)
+
+            dense1 = layers.dense_layer(pool5, 'ddense1', hidden_units=512, activation=layers.leaky_relu,
                                         weight_init='simple')
 
             dense2 = layers.dense_layer(dense1, 'ddense2', hidden_units=1, activation=tf.identity,

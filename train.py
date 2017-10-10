@@ -105,7 +105,7 @@ def run_training():
 
 
         d_pl = nets.discriminator(x_pl, training_placeholder, scope_reuse=False)
-        d_pl_ = nets.discriminator(x_pl_, training_placeholder ,scope_reuse=True)
+        d_pl_ = nets.discriminator(x_pl_, training_placeholder, scope_reuse=True)
 
         d_hat = None
         x_hat = None
