@@ -22,6 +22,7 @@ n_channels = 1
 
 # Training settings
 batch_size = 3
+val_batch_size = batch_size # must be smaller than the smallest validation set
 learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
 

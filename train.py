@@ -49,24 +49,29 @@ images_train = data['images_train']
 images_val = data['images_val']
 
 # separate 1.5T and 3T data
-source_images_train = []
-target_images_train = []
-source_images_val = []
-target_images_val = []
+source_images_train_ind = []
+target_images_train_ind = []
+source_images_val_ind = []
+target_images_val_ind = []
 
-for i in range(0, len(images_train)):
-    field_str = data['field_strength_train'][i]
+for train_ind in range(0, len(images_train)):
+    field_str = data['field_strength_train'][train_ind]
     if field_str == exp_config.source_field_strength:
-        source_images_train.append(images_train[i])
+        source_images_train_ind.append(train_ind)
     elif field_str == exp_config.target_field_strength:
-        target_images_train.append(images_train[i])
+        target_images_train_ind.append(train_ind)
 
-for i in range(0, len(images_val)):
-    field_str = data['field_strength_val'][i]
+for val_ind in range(0, len(images_val)):
+    field_str = data['field_strength_val'][val_ind]
     if field_str == exp_config.source_field_strength:
-        source_images_val.append(images_val[i])
+        source_images_val_ind.append(val_ind)
     elif field_str == exp_config.target_field_strength:
-        target_images_val.append(images_val[i])
+        target_images_val_ind.append(val_ind)
+
+print(source_images_train_ind)
+print(target_images_train_ind)
+print(source_images_val_ind)
+print(target_images_val_ind)
 
 
 def run_training():
@@ -77,8 +82,8 @@ def run_training():
 
     nets = exp_config.model_handle
 
-    x_sampler = data_utils.DataSampler(source_images_train, source_images_val)
-    z_sampler = data_utils.DataSampler(target_images_train, target_images_val)
+    x_sampler = data_utils.DataSampler(images_train, source_images_train_ind, images_val, source_images_val_ind)
+    z_sampler = data_utils.DataSampler(images_train, target_images_train_ind, images_val, target_images_val_ind)
 
 
     with tf.Graph().as_default():
@@ -208,8 +213,8 @@ def run_training():
 
             if step % exp_config.validation_frequency == 0:
 
-                x = x_sampler.get_validation_batch(64)
-                z = z_sampler.get_validation_batch(64)
+                x = x_sampler.get_validation_batch(exp_config.val_batch_size)
+                z = z_sampler.get_validation_batch(exp_config.val_batch_size)
 
                 g_loss_val, d_loss_val = sess.run(
                     [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={z_pl: z, x_pl: x, training_placeholder: False})

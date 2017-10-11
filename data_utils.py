@@ -18,24 +18,23 @@ import adni_data_loader
 
 
 class DataSampler(object):
-    def __init__(self, train_images, validation_images):
+    def __init__(self, train_images, images_train_indices, validation_images, images_val_indices):
         self.shape = list(exp_config.image_size) + [exp_config.n_channels] # [x, y, z, #channels]
         self.train_data = train_images
+        self.train_subset_ind = images_train_indices # indices of the subset of the training data that gets sampled
         self.validation_data = validation_images
-        self.current_index = 0 # Index where the next batch starts
+        self.val_subset_ind = images_val_indices # indices of the subset of the training data that gets sampled
 
 # batch is sequential images. Ask Christian if reshuffling is needed.
     def __call__(self, batch_size):
-        next_index = (self.current_index + batch_size) % len(self.train_data)
-        batch = self.train_data[self.current_index:next_index]
-        self.current_index = next_index
+        batch_indices = sorted(random.sample(self.train_subset_ind, batch_size))
+        batch = self.train_data[batch_indices]
         return self.data2img(batch)
 
     def get_validation_batch(self, batch_size):
-        next_index = (self.current_index + batch_size) % len(self.train_data)
-        batch = self.validation_data[self.current_index:next_index]
-        self.current_index = next_index
+        batch_indices = sorted(random.sample(self.val_subset_ind, batch_size))
+        batch = self.train_data[batch_indices]
         return self.data2img(batch)
 
     def data2img(self, data):
-        return np.reshape(data, [len(data)] + self.shape)
+        return np.reshape(data, [data.shape[0]] + self.shape)
