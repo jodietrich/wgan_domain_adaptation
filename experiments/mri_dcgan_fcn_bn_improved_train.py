@@ -21,7 +21,7 @@ target_field_strength = 3.0 # magnetic field strength in T of pictures in the ta
 n_channels = 1
 
 # Training settings
-batch_size = 64
+batch_size = 3
 learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
 

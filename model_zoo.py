@@ -98,39 +98,37 @@ class DCGAN_FCN_bn:
             pool2 = layers.max_pool_layer3d(conv2)
 
             conv3 = layers.conv3D_layer(pool2, 'dconv3',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
-                                        activation=layers.leaky_relu, weight_init='simple')
+                                        activation=layers.leaky_relu)
 
             pool3 = layers.max_pool_layer3d(conv3)
 
             conv4 = layers.conv3D_layer(pool3, 'dconv4',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
-                                        activation=layers.leaky_relu, weight_init='simple')
+                                        activation=layers.leaky_relu)
 
             pool4 = layers.max_pool_layer3d(conv4)
 
             conv5 = layers.conv3D_layer(pool4, 'dconv5',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
-                            activation=layers.leaky_relu, weight_init='simple')
+                            activation=layers.leaky_relu)
 
             pool5 = layers.max_pool_layer3d(conv5)
 
-            dense1 = layers.dense_layer(pool5, 'ddense1', hidden_units=512, activation=layers.leaky_relu,
-                                        weight_init='simple')
+            dense1 = layers.dense_layer(pool5, 'ddense1', hidden_units=512, activation=layers.leaky_relu)
 
-            dense2 = layers.dense_layer(dense1, 'ddense2', hidden_units=1, activation=tf.identity,
-                                        weight_init='simple')
+            dense2 = layers.dense_layer(dense1, 'ddense2', hidden_units=1, activation=tf.identity)
 
             return dense2
 
     @staticmethod
     def generator(z, training, scope_name='generator'):
         with tf.variable_scope(scope_name):
-            layer1 = layers.conv3D_layer_bn(z, 'glayer1', num_filters=64, activation=tf.nn.relu,
-                                         weight_init='simple', training=training)
+            layer1 = layers.conv3D_layer_bn(z, 'glayer1', num_filters=32, activation=tf.nn.relu,
+                                         training=training)
 
-            layer2 = layers.conv3D_layer_bn(layer1, 'glayer2', num_filters=128, activation=tf.nn.relu,
-                                         weight_init='simple', training=training)
+            layer2 = layers.conv3D_layer_bn(layer1, 'glayer2', num_filters=32, activation=tf.nn.relu,
+                                         training=training)
 
-            layer3 = layers.conv3D_layer_bn(layer2, 'glayer3', num_filters=128, activation=tf.nn.relu,
-                                         weight_init='simple', training=training)
+            layer3 = layers.conv3D_layer_bn(layer2, 'glayer3', num_filters=32, activation=tf.nn.relu,
+                                         training=training)
 
             layer4 = layers.conv3D_layer(layer3, 'glayer4', num_filters=1, kernel_size=(1, 1, 1), strides=(1, 1, 1),
                                          activation=tf.sigmoid)
