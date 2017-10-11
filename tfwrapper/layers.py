@@ -7,12 +7,14 @@ import math
 import numpy as np
 
 from tfwrapper import utils
+from tensorflow.contrib.layers import variance_scaling_initializer, xavier_initializer
 
-def linear_activation(x):
-    '''
-    A linear activation function (i.e. no non-linearity)
-    '''
-    return tf.identity(x)
+
+# def linear_activation(x):
+#     '''
+#     A linear activation function (i.e. no non-linearity)
+#     '''
+#     return tf.identity(x)
 
 def leaky_relu(x, alpha=0.1):
     return tf.maximum(tf.minimum(0.0, alpha * x), x)
@@ -125,8 +127,7 @@ def batch_normalisation_layer(bottom, name, training):
     return h_bn
 
 
-
-### FEED_FORWARD LAYERS ##############################################################################33
+### FEED_FORWARD LAYERS ##############################################################################
 
 def conv2D_layer(bottom,
                  name,
@@ -135,7 +136,8 @@ def conv2D_layer(bottom,
                  strides=(1,1),
                  activation=tf.nn.relu,
                  padding="SAME",
-                 weight_init='he_normal', **kwargs):
+                 weight_init='he_normal',
+                 add_bias=True):
 
     '''
     Standard 2D convolutional layer
@@ -148,28 +150,21 @@ def conv2D_layer(bottom,
 
     strides_augm = [1, strides[0], strides[1], 1]
 
-    #with tf.variable_scope(name):
+    with tf.variable_scope(name):
 
-    if weight_init == 'he_normal':
-        N = utils.get_rhs_dim(bottom)
-        weights = _weight_variable_he_normal(weight_shape, N, name=name + '_w')
-    elif weight_init =='simple':
-        weights = _weight_variable_simple(weight_shape, name=name + '_w')
-    else:
-        raise ValueError('Unknown weight initialisation method %s' % weight_init)
+        weights = get_weight_variable(weight_shape, name='W', type=weight_init, regularize=True)
+        op = tf.nn.conv2d(bottom, filter=weights, strides=strides_augm, padding=padding)
 
-    biases = _bias_variable(bias_shape, name=name + '_b')
+        biases = None
+        if add_bias:
+            biases = get_bias_variable(bias_shape, name='b')
+            op = tf.nn.bias_add(op, biases)
+        op = activation(op)
 
-    op = tf.nn.conv2d(bottom, filter=weights, strides=strides_augm, padding=padding)
-    op = tf.nn.bias_add(op, biases)
-    op = activation(op)
+        # Add Tensorboard summaries
+        _add_summaries(op, weights, biases)
 
-    # Tensorboard variables
-    tf.summary.histogram(weights.name, weights)
-    tf.summary.histogram(biases.name, biases)
-    tf.summary.histogram(op.op.name + '/activations', op)
-
-    return op
+        return op
 
 
 def conv3D_layer(bottom,
@@ -179,7 +174,8 @@ def conv3D_layer(bottom,
                  strides=(1,1,1),
                  activation=tf.nn.relu,
                  padding="SAME",
-                 weight_init='he_normal'):
+                 weight_init='he_normal',
+                 add_bias=True):
 
     '''
     Standard 3D convolutional layer
@@ -194,24 +190,17 @@ def conv3D_layer(bottom,
 
     with tf.variable_scope(name):
 
-        if weight_init == 'he_normal':
-            N = utils.get_rhs_dim(bottom)
-            weights = _weight_variable_he_normal(weight_shape, N, name=name + '_w')
-        elif weight_init =='simple':
-            weights = _weight_variable_simple(weight_shape, name=name + '_w')
-        else:
-            raise ValueError('Unknown weight initialisation method %s' % weight_init)
-
-        biases = _bias_variable(bias_shape, name=name + '_b')
-
+        weights = get_weight_variable(weight_shape, name='W', type=weight_init, regularize=True)
         op = tf.nn.conv3d(bottom, filter=weights, strides=strides_augm, padding=padding)
-        op = tf.nn.bias_add(op, biases)
+
+        biases = None
+        if add_bias:
+            biases = get_bias_variable(bias_shape, name='b')
+            op = tf.nn.bias_add(op, biases)
         op = activation(op)
 
-        # Tensorboard variables
-        tf.summary.histogram(weights.name, weights)
-        tf.summary.histogram(biases.name, biases)
-        tf.summary.histogram(op.op.name + '/activations', op)
+        # Add Tensorboard summaries
+        _add_summaries(op, weights, biases)
 
         return op
 
@@ -224,7 +213,8 @@ def deconv2D_layer(bottom,
                    output_shape=None,
                    activation=tf.nn.relu,
                    padding="SAME",
-                   weight_init='he_normal'):
+                   weight_init='he_normal',
+                   add_bias=True):
 
     '''
     Standard 2D transpose (also known as deconvolution) layer. Default behaviour upsamples the input by a
@@ -243,30 +233,22 @@ def deconv2D_layer(bottom,
 
     with tf.variable_scope(name):
 
-        if weight_init == 'he_normal':
-            N = utils.get_rhs_dim(bottom)
-            weights = _weight_variable_he_normal(weight_shape, N, name=name + '_w')
-        elif weight_init =='simple':
-            weights = _weight_variable_simple(weight_shape, name=name + '_w')
-        elif weight_init == 'bilinear':
-            weights = _weight_variable_bilinear(weight_shape, name=name + '_w')
-        else:
-            raise ValueError('Unknown weight initialisation method %s' % weight_init)
-
-        biases = _bias_variable(bias_shape, name=name + '_b')
+        weights = get_weight_variable(weight_shape, name='W', type=weight_init, regularize=True)
 
         op = tf.nn.conv2d_transpose(bottom,
                                     filter=weights,
                                     output_shape=output_shape,
                                     strides=strides_augm,
                                     padding=padding)
-        op = tf.nn.bias_add(op, biases)
+
+        biases = None
+        if add_bias:
+            biases = get_bias_variable(bias_shape, name='b')
+            op = tf.nn.bias_add(op, biases)
         op = activation(op)
 
-        # Tensorboard variables
-        tf.summary.histogram(weights.name, weights)
-        tf.summary.histogram(biases.name, biases)
-        tf.summary.histogram(op.op.name + '/activations', op)
+        # Add Tensorboard summaries
+        _add_summaries(op, weights, biases)
 
         return op
 
@@ -279,7 +261,8 @@ def deconv3D_layer(bottom,
                    output_shape=None,
                    activation=tf.nn.relu,
                    padding="SAME",
-                   weight_init='he_normal'):
+                   weight_init='he_normal',
+                   add_bias=True):
 
     '''
     Standard 2D transpose (also known as deconvolution) layer. Default behaviour upsamples the input by a
@@ -301,30 +284,22 @@ def deconv3D_layer(bottom,
 
     with tf.variable_scope(name):
 
-        if weight_init == 'he_normal':
-            N = utils.get_rhs_dim(bottom)
-            weights = _weight_variable_he_normal(weight_shape, N, name=name + '_w')
-        elif weight_init =='simple':
-            weights = _weight_variable_simple(weight_shape, name=name + '_w')
-        elif weight_init == 'bilinear':
-            weights = _weight_variable_bilinear(weight_shape, name=name + '_w')
-        else:
-            raise ValueError('Unknown weight initialisation method %s' % weight_init)
-
-        biases = _bias_variable(bias_shape, name=name + '_b')
+        weights = get_weight_variable(weight_shape, name='W', type=weight_init, regularize=True)
 
         op = tf.nn.conv3d_transpose(bottom,
                                     filter=weights,
                                     output_shape=output_shape,
                                     strides=strides_augm,
                                     padding=padding)
-        op = tf.nn.bias_add(op, biases)
+
+        biases = None
+        if add_bias:
+            biases = get_bias_variable(bias_shape, name='b')
+            op = tf.nn.bias_add(op, biases)
         op = activation(op)
 
-        # Tensorboard variables
-        tf.summary.histogram(weights.name, weights)
-        tf.summary.histogram(biases.name, biases)
-        tf.summary.histogram(op.op.name + '/activations', op)
+        # Add Tensorboard summaries
+        _add_summaries(op, weights, biases)
 
         return op
 
@@ -336,7 +311,8 @@ def conv2D_dilated_layer(bottom,
                          rate=1,
                          activation=tf.nn.relu,
                          padding="SAME",
-                         weight_init='he_normal'):
+                         weight_init='he_normal',
+                         add_bias=True):
 
     '''
     2D dilated convolution layer. This layer can be used to increase the receptive field of a network. 
@@ -351,24 +327,18 @@ def conv2D_dilated_layer(bottom,
 
     with tf.variable_scope(name):
 
-        if weight_init == 'he_normal':
-            N = utils.get_rhs_dim(bottom)
-            weights = _weight_variable_he_normal(weight_shape, N, name=name + '_w')
-        elif weight_init =='simple':
-            weights = _weight_variable_simple(weight_shape, name=name + '_w')
-        else:
-            raise ValueError('Unknown weight initialisation method %s' % weight_init)
-
-        biases = _bias_variable(bias_shape, name=name + '_b')
+        weights = get_weight_variable(weight_shape, name='W', type=weight_init, regularize=True)
 
         op = tf.nn.atrous_conv2d(bottom, filters=weights, rate=rate, padding=padding)
-        op = tf.nn.bias_add(op, biases)
+
+        biases = None
+        if add_bias:
+            biases = get_bias_variable(bias_shape, name='b')
+            op = tf.nn.bias_add(op, biases)
         op = activation(op)
 
-        # Tensorboard variables
-        tf.summary.histogram(weights.name, weights)
-        tf.summary.histogram(biases.name, biases)
-        tf.summary.histogram(op.op.name + '/activations', op)
+        # Add Tensorboard summaries
+        _add_summaries(op, weights, biases)
 
         return op
 
@@ -378,7 +348,7 @@ def dense_layer(bottom,
                 hidden_units=512,
                 activation=tf.nn.relu,
                 weight_init='he_normal',
-                **kwargs):
+                add_bias=True):
 
     '''
     Dense a.k.a. fully connected layer
@@ -390,41 +360,35 @@ def dense_layer(bottom,
     weight_shape = [bottom_rhs_dim, hidden_units]
     bias_shape = [hidden_units]
 
-    # with tf.variable_scope(name):
+    with tf.variable_scope(name):
 
-    if weight_init == 'he_normal':
-        N = bottom_rhs_dim
-        weights = _weight_variable_he_normal(weight_shape, N, name=name + '_w')
-    elif weight_init =='simple':
-        weights = _weight_variable_simple(weight_shape, name=name + '_w')
-    else:
-        raise ValueError('Unknown weight initialisation method %s' % weight_init)
+        weights = get_weight_variable(weight_shape, name='W', type=weight_init, regularize=True)
 
-    biases = _bias_variable(bias_shape, name=name + '_b')
+        op = tf.matmul(bottom_flat, weights)
 
-    op = tf.matmul(bottom_flat, weights)
-    op = tf.nn.bias_add(op, biases)
-    op = activation(op)
+        biases = None
+        if add_bias:
+            biases = get_bias_variable(bias_shape, name='b')
+            op = tf.nn.bias_add(op, biases)
+        op = activation(op)
 
-    # Tensorboard variables
-    tf.summary.histogram(weights.name, weights)
-    tf.summary.histogram(biases.name, biases)
-    tf.summary.histogram(op.op.name + '/activations', op)
+        # Add Tensorboard summaries
+        _add_summaries(op, weights, biases)
 
-    return op
+        return op
 
 
 ### BATCH_NORM SHORTCUTS #####################################################################################
 
 def conv2D_layer_bn(bottom,
                     name,
+                    training,
                     kernel_size=(3,3),
                     num_filters=32,
                     strides=(1,1),
                     activation=tf.nn.relu,
                     padding="SAME",
-                    weight_init='he_normal',
-                    training=tf.constant(True, dtype=tf.bool)):
+                    weight_init='he_normal'):
     '''
     Shortcut for batch normalised 2D convolutional layer
     '''
@@ -434,26 +398,27 @@ def conv2D_layer_bn(bottom,
                         kernel_size=kernel_size,
                         num_filters=num_filters,
                         strides=strides,
-                        activation=linear_activation,
+                        activation=tf.identity,
                         padding=padding,
-                        weight_init=weight_init)
+                        weight_init=weight_init,
+                        add_bias=False)
 
     conv_bn = batch_normalisation_layer(conv, name + '_bn', training)
 
-    relu = activation(conv_bn)
+    act = activation(conv_bn)
 
-    return relu
+    return act
 
 
 def conv3D_layer_bn(bottom,
                     name,
+                    training,
                     kernel_size=(3,3,3),
                     num_filters=32,
                     strides=(1,1,1),
                     activation=tf.nn.relu,
                     padding="SAME",
-                    weight_init='he_normal',
-                    training=tf.constant(True, dtype=tf.bool)):
+                    weight_init='he_normal'):
 
     '''
     Shortcut for batch normalised 3D convolutional layer
@@ -464,26 +429,28 @@ def conv3D_layer_bn(bottom,
                         kernel_size=kernel_size,
                         num_filters=num_filters,
                         strides=strides,
-                        activation=linear_activation,
+                        activation=tf.identity,
                         padding=padding,
-                        weight_init=weight_init)
+                        weight_init=weight_init,
+                        add_bias=False)
 
     conv_bn = batch_normalisation_layer(conv, name + '_bn', training)
 
-    relu = activation(conv_bn)
+    act = activation(conv_bn)
 
-    return relu
+    return act
+
 
 def deconv2D_layer_bn(bottom,
                       name,
+                      training,
                       kernel_size=(4,4),
                       num_filters=32,
                       strides=(2,2),
                       output_shape=None,
                       activation=tf.nn.relu,
                       padding="SAME",
-                      weight_init='he_normal',
-                      training=tf.constant(True, dtype=tf.bool)):
+                      weight_init='he_normal'):
     '''
     Shortcut for batch normalised 2D transposed convolutional layer
     '''
@@ -494,28 +461,28 @@ def deconv2D_layer_bn(bottom,
                           num_filters=num_filters,
                           strides=strides,
                           output_shape=output_shape,
-                          activation=linear_activation,
+                          activation=tf.identity,
                           padding=padding,
-                          weight_init=weight_init)
+                          weight_init=weight_init,
+                          add_bias=False)
 
     deco_bn = batch_normalisation_layer(deco, name + '_bn', training=training)
 
-    relu = activation(deco_bn)
+    act = activation(deco_bn)
 
-    return relu
+    return act
 
 
 def deconv3D_layer_bn(bottom,
                       name,
+                      training,
                       kernel_size=(4,4,4),
                       num_filters=32,
                       strides=(2,2,2),
                       output_shape=None,
                       activation=tf.nn.relu,
                       padding="SAME",
-                      weight_init='he_normal',
-                      training=tf.constant(True, dtype=tf.bool),
-                      **kwargs):
+                      weight_init='he_normal'):
 
     '''
     Shortcut for batch normalised 3D transposed convolutional layer
@@ -527,26 +494,27 @@ def deconv3D_layer_bn(bottom,
                           num_filters=num_filters,
                           strides=strides,
                           output_shape=output_shape,
-                          activation=linear_activation,
+                          activation=tf.identity,
                           padding=padding,
-                          weight_init=weight_init)
+                          weight_init=weight_init,
+                          add_bias=False)
 
     deco_bn = batch_normalisation_layer(deco, name + '_bn', training=training)
 
-    relu = activation(deco_bn)
+    act = activation(deco_bn)
 
-    return relu
+    return act
 
 
 def conv2D_dilated_layer_bn(bottom,
                            name,
+                           training,
                            kernel_size=(3,3),
                            num_filters=32,
                            rate=1,
                            activation=tf.nn.relu,
                            padding="SAME",
-                           weight_init='he_normal',
-                           training=tf.constant(True, dtype=tf.bool)):
+                           weight_init='he_normal'):
 
     '''
     Shortcut for batch normalised 2D dilated convolutional layer
@@ -557,24 +525,25 @@ def conv2D_dilated_layer_bn(bottom,
                                 kernel_size=kernel_size,
                                 num_filters=num_filters,
                                 rate=rate,
-                                activation=linear_activation,
+                                activation=tf.identity,
                                 padding=padding,
-                                weight_init=weight_init)
+                                weight_init=weight_init,
+                                add_bias=False)
 
     conv_bn = batch_normalisation_layer(conv, name + '_bn', training=training)
 
-    relu = activation(conv_bn)
+    act = activation(conv_bn)
 
-    return relu
+    return act
 
 
 
 def dense_layer_bn(bottom,
                    name,
+                   training,
                    hidden_units=512,
                    activation=tf.nn.relu,
-                   weight_init='he_normal',
-                   training=tf.constant(True, dtype=tf.bool)):
+                   weight_init='he_normal'):
 
     '''
     Shortcut for batch normalised 2D dilated convolutional layer
@@ -583,47 +552,57 @@ def dense_layer_bn(bottom,
     linact = dense_layer(bottom=bottom,
                          name=name,
                          hidden_units=hidden_units,
-                         activation=linear_activation,
-                         weight_init=weight_init)
+                         activation=tf.identity,
+                         weight_init=weight_init,
+                         add_bias=False)
 
     batchnorm = batch_normalisation_layer(linact, name + '_bn', training=training)
+    act = activation(batchnorm)
 
-    relu = activation(batchnorm)
-
-    return relu
+    return act
 
 ### VARIABLE INITIALISERS ####################################################################################
 
-def _weight_variable_simple(shape, stddev=0.02, name=None):
+def get_weight_variable(shape, name=None, type='xavier_uniform', regularize=True, **kwargs):
 
-    initial = tf.truncated_normal(shape, stddev=stddev, dtype=tf.float32)
-    if name is None:
+    initialise_from_constant = False
+    if type == 'xavier_uniform':
+        initial = xavier_initializer(uniform=True, dtype=tf.float32)
+    elif type == 'xavier_normal':
+        initial = xavier_initializer(uniform=False, dtype=tf.float32)
+    elif type == 'he_normal':
+        initial = variance_scaling_initializer(uniform=False, factor=2.0, mode='FAN_IN', dtype=tf.float32)
+    elif type == 'he_uniform':
+        initial = variance_scaling_initializer(uniform=True, factor=2.0, mode='FAN_IN', dtype=tf.float32)
+    elif type == 'caffe_uniform':
+        initial = variance_scaling_initializer(uniform=True, factor=1.0, mode='FAN_IN', dtype=tf.float32)
+    elif type == 'simple':
+        stddev = kwargs.get('stddev', 0.02)
+        initial = tf.truncated_normal(shape, stddev=stddev, dtype=tf.float32)
+        initialise_from_constant = True
+    elif type == 'bilinear':
+        weights = _bilinear_upsample_weights(shape)
+        initial = tf.constant(weights, shape=shape, dtype=tf.float32)
+        initialise_from_constant = True
+    else:
+        raise ValueError('Unknown initialisation requested: %s' % type)
+
+    if name is None:  # This keeps to option open to use unnamed Variables
         weight = tf.Variable(initial)
     else:
-        weight = tf.get_variable(name, initializer=initial)
+        if initialise_from_constant:
+            weight = tf.get_variable(name, initializer=initial)
+        else:
+            weight = tf.get_variable(name, shape=shape, initializer=initial)
 
-    if weight not in tf.get_collection('weight_variables'):
+    if regularize:
         tf.add_to_collection('weight_variables', weight)
 
     return weight
 
-def _weight_variable_he_normal(shape, N, name=None):
-
-    stddev = math.sqrt(2.0/float(N))
-
-    initial = tf.truncated_normal(shape, stddev=stddev, dtype=tf.float32)
-    if name is None:
-        weight = tf.Variable(initial)
-    else:
-        weight = tf.get_variable(name, initializer=initial)
-
-    if weight not in tf.get_collection('weight_variables'):
-        tf.add_to_collection('weight_variables', weight)
-
-    return weight
 
 
-def _bias_variable(shape, name=None, init_value=0.0):
+def get_bias_variable(shape, name=None, init_value=0.0):
 
     initial = tf.constant(init_value, shape=shape, dtype=tf.float32)
     if name is None:
@@ -631,24 +610,6 @@ def _bias_variable(shape, name=None, init_value=0.0):
     else:
         return tf.get_variable(name, initializer=initial)
 
-
-def _weight_variable_bilinear(shape, name=None):
-    '''
-    Initialise weights with a billinear interpolation filter for upsampling
-    '''
-
-    weights = _bilinear_upsample_weights(shape)
-    initial = tf.constant(weights, shape=shape, dtype=tf.float32)
-
-    if name is None:
-        weight = tf.Variable(initial)
-    else:
-        weight = tf.get_variable(name, initializer=initial)
-
-    if weight not in tf.get_collection('weight_variables'):
-        tf.add_to_collection('weight_variables', weight)
-
-    return weight
 
 
 def _upsample_filt(size):
@@ -684,3 +645,11 @@ def _bilinear_upsample_weights(shape):
         weights[:, :, i, i] = upsample_kernel
 
     return weights
+
+def _add_summaries(op, weights, biases):
+
+    # Tensorboard variables
+    tf.summary.histogram(weights.name, weights)
+    if biases:
+        tf.summary.histogram(biases.name, biases)
+    tf.summary.histogram(op.op.name + '/activations', op)
