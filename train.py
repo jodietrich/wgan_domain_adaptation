@@ -93,15 +93,15 @@ def run_training():
 
         x_pl_ = nets.generator(z_pl, training_placeholder)
 
-        # I commented this out because it does not work for 3d images
-        # tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid(x_pl_)
-        # )
-        #
-        # tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid(x_pl)
-        # )
-        #
-        # tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid(z_pl)
-        # )
+        # visualize the images by showing one slice of them in the z direction
+        tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid(x_pl_[:, :, :, exp_config.image_z_slice, :])
+        )
+
+        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid(x_pl[:, :, :, exp_config.image_z_slice, :])
+        )
+
+        tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid(z_pl[:, :, :, exp_config.image_z_slice, :])
+        )
 
 
         d_pl = nets.discriminator(x_pl, training_placeholder, scope_reuse=False)

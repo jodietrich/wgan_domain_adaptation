@@ -20,8 +20,11 @@ source_field_strength = 1.5 # magnetic field strength in T of pictures in the so
 target_field_strength = 3.0 # magnetic field strength in T of pictures in the target-domain
 n_channels = 1
 
+# visualization settings
+image_z_slice = 50
+
 # Training settings
-batch_size = 3
+batch_size = 2
 val_batch_size = batch_size # must be smaller than the smallest validation set
 learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
