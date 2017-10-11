@@ -68,11 +68,6 @@ for val_ind in range(0, len(images_val)):
     elif field_str == exp_config.target_field_strength:
         target_images_val_ind.append(val_ind)
 
-print(source_images_train_ind)
-print(target_images_train_ind)
-print(source_images_val_ind)
-print(target_images_val_ind)
-
 
 def run_training():
 
