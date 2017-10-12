@@ -87,32 +87,38 @@ class DCGAN_FCN_bn:
             if scope_reuse:
                 scope.reuse_variables()
 
-            conv1 = layers.conv3D_layer(x, 'dconv1',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+            conv1_1 = layers.conv3D_layer(x, 'dconv1_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
                                         activation=layers.leaky_relu, weight_init='simple')
 
-            pool1 = layers.max_pool_layer3d(conv1)
+            pool1 = layers.max_pool_layer3d(conv1_1)
 
-            conv2 = layers.conv3D_layer(pool1, 'dconv2',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+            conv2_1 = layers.conv3D_layer(pool1, 'dconv2_1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
                                         activation=layers.leaky_relu, weight_init='simple')
 
-            pool2 = layers.max_pool_layer3d(conv2)
+            conv2_2 = layers.conv3D_layer(conv2_1, 'dconv2_2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu, weight_init='simple')
 
-            conv3 = layers.conv3D_layer(pool2, 'dconv3',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+            pool2 = layers.max_pool_layer3d(conv2_2)
+
+            conv3_1 = layers.conv3D_layer(pool2, 'dconv3_1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
                                         activation=layers.leaky_relu)
 
-            pool3 = layers.max_pool_layer3d(conv3)
-
-            conv4 = layers.conv3D_layer(pool3, 'dconv4',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+            conv3_2 = layers.conv3D_layer(conv3_1, 'dconv3_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
                                         activation=layers.leaky_relu)
 
-            pool4 = layers.max_pool_layer3d(conv4)
+            pool3 = layers.max_pool_layer3d(conv3_2)
 
-            conv5 = layers.conv3D_layer(pool4, 'dconv5',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
-                            activation=layers.leaky_relu)
+            # conv4 = layers.conv3D_layer(pool3, 'dconv4',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+            #                             activation=layers.leaky_relu)
+            #
+            # pool4 = layers.max_pool_layer3d(conv4)
+            #
+            # conv5 = layers.conv3D_layer(pool4, 'dconv5',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+            #                 activation=layers.leaky_relu)
+            #
+            # pool5 = layers.max_pool_layer3d(conv5)
 
-            pool5 = layers.max_pool_layer3d(conv5)
-
-            dense1 = layers.dense_layer(pool5, 'ddense1', hidden_units=512, activation=layers.leaky_relu)
+            dense1 = layers.dense_layer(pool3, 'ddense1', hidden_units=512, activation=layers.leaky_relu)
 
             dense2 = layers.dense_layer(dense1, 'ddense2', hidden_units=1, activation=tf.identity)
 
@@ -121,19 +127,16 @@ class DCGAN_FCN_bn:
     @staticmethod
     def generator(z, training, scope_name='generator'):
         with tf.variable_scope(scope_name):
-            layer1 = layers.conv3D_layer_bn(z, 'glayer1', num_filters=32, activation=tf.nn.relu,
+            layer1 = layers.conv3D_layer_bn(z, 'glayer1', num_filters=24, activation=tf.nn.relu,
                                          training=training)
 
-            layer2 = layers.conv3D_layer_bn(layer1, 'glayer2', num_filters=32, activation=tf.nn.relu,
+            layer2 = layers.conv3D_layer_bn(layer1, 'glayer2', num_filters=24, activation=tf.nn.relu,
                                          training=training)
 
-            layer3 = layers.conv3D_layer_bn(layer2, 'glayer3', num_filters=32, activation=tf.nn.relu,
-                                         training=training)
-
-            layer4 = layers.conv3D_layer(layer3, 'glayer4', num_filters=1, kernel_size=(1, 1, 1), strides=(1, 1, 1),
+            layer3 = layers.conv3D_layer(layer2, 'glayer3', num_filters=1, kernel_size=(1, 1, 1), strides=(1, 1, 1),
                                          activation=tf.sigmoid)
 
-            return layer4
+            return layer3
 
 #
 # class UNET:

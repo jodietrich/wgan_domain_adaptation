@@ -3,7 +3,7 @@ import tensorflow as tf
 import config.system as sys_config
 import os
 
-experiment_name = 'dcgan_fcn_bn_improved_train_fcn_mri_2'
+experiment_name = 'dcgan_fcn_bn_improved_train_fcn_mri_5_more_discr'
 
 # paths
 data_root = sys_config.data_root
