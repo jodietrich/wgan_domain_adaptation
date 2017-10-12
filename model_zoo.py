@@ -88,15 +88,15 @@ class DCGAN_FCN_bn:
                 scope.reuse_variables()
 
             conv1_1 = layers.conv3D_layer(x, 'dconv1_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
-                                        activation=layers.leaky_relu, weight_init='simple')
+                                        activation=layers.leaky_relu)
 
             pool1 = layers.max_pool_layer3d(conv1_1)
 
             conv2_1 = layers.conv3D_layer(pool1, 'dconv2_1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
-                                        activation=layers.leaky_relu, weight_init='simple')
+                                        activation=layers.leaky_relu)
 
             conv2_2 = layers.conv3D_layer(conv2_1, 'dconv2_2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
-                                        activation=layers.leaky_relu, weight_init='simple')
+                                        activation=layers.leaky_relu)
 
             pool2 = layers.max_pool_layer3d(conv2_2)
 
@@ -131,6 +131,51 @@ class DCGAN_FCN_bn:
                                          training=training)
 
             layer2 = layers.conv3D_layer_bn(layer1, 'glayer2', num_filters=24, activation=tf.nn.relu,
+                                         training=training)
+
+            layer3 = layers.conv3D_layer(layer2, 'glayer3', num_filters=1, kernel_size=(1, 1, 1), strides=(1, 1, 1),
+                                         activation=tf.sigmoid)
+
+            return layer3
+
+class FCN:
+    @staticmethod
+    def discriminator(x, training, scope_name='discriminator', scope_reuse=False):
+        with tf.variable_scope(scope_name) as scope:
+            if scope_reuse:
+                scope.reuse_variables()
+
+            conv1_1 = layers.conv3D_layer(x, 'dconv1_1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            pool1 = layers.max_pool_layer3d(conv1_1)
+
+            conv2_1 = layers.conv3D_layer(pool1, 'dconv2_1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            conv2_2 = layers.conv3D_layer(conv2_1, 'dconv2_2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            pool2 = layers.max_pool_layer3d(conv2_2)
+
+            conv3_1 = layers.conv3D_layer(pool2, 'dconv3_1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            conv3_2 = layers.conv3D_layer(conv3_1, 'dconv3_2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            conv3_3 = layers.conv3D_layer(conv3_2, 'dconv3_3', num_filters=2, kernel_size=(1, 1, 1), strides=(1, 1, 1),
+                                         activation=tf.identity)
+
+            return conv3_3
+
+    @staticmethod
+    def generator(z, training, scope_name='generator'):
+        with tf.variable_scope(scope_name):
+            layer1 = layers.conv3D_layer_bn(z, 'glayer1', num_filters=32, activation=tf.nn.relu,
+                                         training=training)
+
+            layer2 = layers.conv3D_layer_bn(layer1, 'glayer2', num_filters=32, activation=tf.nn.relu,
                                          training=training)
 
             layer3 = layers.conv3D_layer(layer2, 'glayer3', num_filters=1, kernel_size=(1, 1, 1), strides=(1, 1, 1),
