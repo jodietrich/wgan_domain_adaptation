@@ -4,7 +4,7 @@ import tensorflow as tf
 experiment_name = 'dcgan_fcn_bn_improved_train_fcn_invert_wtest'
 
 # Model settings
-model_handle = model_zoo.DCGAN_FCN_bn
+model_handle = model_zoo.Std_CNN_bs2_bn
 
 # Data settings
 z_dim = 100

@@ -3,14 +3,14 @@ import tensorflow as tf
 import config.system as sys_config
 import os
 
-experiment_name = 'dcgan_fcn_bn_improved_train_fcn_mri_6_identity_gen'
+experiment_name = 'std_cnn_identity_gen_no_batch_normalization'
 
 # paths
 data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
 
 # Model settings
-model_handle = model_zoo.DCGAN_FCN_bn
+model_handle = model_zoo.Std_CNN_bs2
 
 # Data settings
 image_size = (128, 160, 112)
