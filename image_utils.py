@@ -61,6 +61,11 @@ def normalise_images(X):
     return X_white.astype(np.float32)
 
 
+# TODO: write this function
+def scale_image_to_interval(image, interval_min, interval_max):
+    pass
+
+
 def reshape_2Dimage_to_tensor(image):
     return np.reshape(image, (1,image.shape[0], image.shape[1],1))
 

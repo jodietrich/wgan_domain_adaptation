@@ -30,7 +30,7 @@ from scipy import misc
 # from experiments import dcgan_fcn_improved_train as exp_config
 
 # LEARN SCALE
-from experiments import dcgan_fcn_bn_improved_train as exp_config
+from experiments import std_cnn_bs2_bn as exp_config
 experiment_name = 'dcgan_fcn_bn_improved_train_fcn_scale_wtest'
 from data import mnist_scale as data
 invert_img = False
