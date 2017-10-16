@@ -77,8 +77,8 @@ def run_training():
 
     nets = exp_config.model_handle
 
-    x_sampler = data_utils.DataSampler(images_train, source_images_train_ind, images_val, source_images_val_ind)
-    z_sampler = data_utils.DataSampler(images_train, target_images_train_ind, images_val, target_images_val_ind)
+    z_sampler = data_utils.DataSampler(images_train, source_images_train_ind, images_val, source_images_val_ind)
+    x_sampler = data_utils.DataSampler(images_train, target_images_train_ind, images_val, target_images_val_ind)
 
 
     with tf.Graph().as_default():
