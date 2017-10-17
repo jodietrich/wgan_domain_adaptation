@@ -29,7 +29,7 @@ sys_config.setup_GPU_environment()
 
 # from experiments import dcgan_improved_train as exp_config
 # from experiments import dcgan_fcn_improved_train as exp_config
-from experiments import std_cnn_bs2_bn as exp_config
+from experiments import residual_generator_bs2_bn as exp_config
 
 #######################################################################
 

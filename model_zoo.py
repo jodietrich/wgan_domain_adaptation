@@ -5,8 +5,8 @@ import tensorflow as tf
 from tfwrapper import layers
 
 
-
-class ResNet_bn:
+# preactivation residual unit as generator to have identity function as starting point for the generator
+class ResNet_gen_bs2_bn:
     @staticmethod
     def discriminator(x, training, scope_name='discriminator', scope_reuse=False):
         with tf.variable_scope(scope_name) as scope:
@@ -64,16 +64,22 @@ class ResNet_bn:
     @staticmethod
     def generator(z, training, scope_name='generator'):
         with tf.variable_scope(scope_name):
-            layer1 = layers.conv3D_layer_bn(z, 'gconv1', num_filters=16, activation=tf.nn.relu,
+            bn = layers.batch_normalisation_layer(z, 'gbn', training=training)
+
+            activation = layers.activation_layer(bn, 'gactivation')
+
+            conv1 = layers.conv3D_layer_bn(activation, 'gconv1', num_filters=16, activation=tf.nn.relu,
                                          training=training)
 
-            layer2 = layers.conv3D_layer_bn(layer1, 'gconv2', num_filters=16, activation=tf.nn.relu,
+            conv2 = layers.conv3D_layer_bn(conv1, 'gconv2', num_filters=16, activation=tf.nn.relu,
                                          training=training)
 
-            layer3 = layers.conv3D_layer(layer2, 'gconv3', num_filters=1, kernel_size=(1, 1, 1), strides=(1, 1, 1),
+            conv3 = layers.conv3D_layer(conv2, 'gconv3', num_filters=1, kernel_size=(1, 1, 1), strides=(1, 1, 1),
                                          activation=tf.identity)
 
-            return layer3
+            residual_out = z + conv3
+
+            return residual_out
 
 
 
