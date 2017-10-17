@@ -3,14 +3,14 @@ import tensorflow as tf
 import config.system as sys_config
 import os
 
-experiment_name = 'residual_identity_gen_bs2_bn_std_disc'
+experiment_name = 'residual_identity_gen_bs2_bn_std_disc_2_no_preactivation'
 
 # paths
 data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
 
 # Model settings
-model_handle = model_zoo.ResNet_gen_bs2_bn
+model_handle = model_zoo.Res_Gen_bs2_bn
 
 # Data settings
 image_size = (128, 160, 112)
