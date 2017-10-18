@@ -27,8 +27,6 @@ sys_config.setup_GPU_environment()
 
 #######################################################################
 
-# from experiments import dcgan_improved_train as exp_config
-# from experiments import dcgan_fcn_improved_train as exp_config
 from experiments import residual_gen_bs2_bn as exp_config
 
 #######################################################################
@@ -48,7 +46,7 @@ data = adni_data_loader.load_and_maybe_process_data(
 images_train = data['images_train']
 images_val = data['images_val']
 
-# separate 1.5T and 3T data
+# make a list of 3T and 1.5T training/test data indices in the training/test image table
 source_images_train_ind = []
 target_images_train_ind = []
 source_images_val_ind = []
@@ -88,9 +86,14 @@ def run_training():
         im_s = exp_config.image_size
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
+
+        # target image batch
         x_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='x')
+
+        # source image batch
         z_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='z')
 
+        # generated fake image batch
         x_pl_ = nets.generator(z_pl, training_placeholder)
 
         # visualize the images by showing one slice of them in the z direction
@@ -103,8 +106,10 @@ def run_training():
         tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid(z_pl[:, :, :, exp_config.image_z_slice, :])
         )
 
-
+        # output of the discriminator for real image
         d_pl = nets.discriminator(x_pl, training_placeholder, scope_reuse=False)
+
+        # output of the discriminator for fake image
         d_pl_ = nets.discriminator(x_pl_, training_placeholder, scope_reuse=True)
 
         d_hat = None
@@ -115,6 +120,7 @@ def run_training():
             x_hat = epsilon * x_pl + (1 - epsilon) * x_pl_
             d_hat = nets.discriminator(x_hat, training_placeholder, scope_reuse=True)
 
+        # nr means no regularization, meaning the loss without the regularization term
         discriminator_train_op, generator_train_op, \
         disc_loss_pl, gen_loss_pl, \
         disc_loss_nr_pl, gen_loss_nr_pl = model.training_ops(d_pl, d_pl_,
@@ -160,6 +166,7 @@ def run_training():
 
             start_time = time.time()
 
+            # discriminator training iterations
             d_iters = 5
             if step % 500 == 0 or step < 25:
                 d_iters = 100
