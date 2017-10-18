@@ -3,14 +3,14 @@ import tensorflow as tf
 import config.system as sys_config
 import os
 
-experiment_name = 'residual_identity_gen_bs2_bn_std_disc_2_no_preactivation'
+experiment_name = 'std_cnn_identity_gen_no_batch_normalization'
 
 # paths
 data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
 
 # Model settings
-model_handle = model_zoo.Res_Gen_bs2_bn
+model_handle = model_zoo.Std_CNN_bs2
 
 # Data settings
 image_size = (128, 160, 112)
@@ -19,6 +19,7 @@ label_list = (0,2)  # 0 - normal, 1 - mci, 2 - alzheimer's
 source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
 target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
 n_channels = 1
+image_range = (-0.512, 2.985) # approximately 1st percentile to 99th percentile of preprocessed ADNI images
 
 # visualization settings
 cut_axis = 2 # axis perpendicular to the cut plane (x=0, y=1, z=2)

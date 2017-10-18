@@ -21,7 +21,8 @@ target_field_strength = 1.5 # magnetic field strength in T of pictures in the ta
 n_channels = 1
 
 # visualization settings
-image_z_slice = 50
+cut_axis = 2 # axis perpendicular to the cut plane (x=0, y=1, z=2)
+image_cut = 50 # index of the cut for visualization
 
 # Training settings
 batch_size = 1

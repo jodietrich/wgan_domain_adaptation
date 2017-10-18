@@ -19,9 +19,11 @@ label_list = (0,2)  # 0 - normal, 1 - mci, 2 - alzheimer's
 source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
 target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
 n_channels = 1
+image_range = (-0.512, 2.985) # approximately 1st percentile to 99th percentile
 
 # visualization settings
-image_z_slice = 50
+cut_axis = 2 # axis perpendicular to the cut plane (x=0, y=1, z=2)
+image_cut = 50 # index of the cut for visualization
 
 # Training settings
 batch_size = 2
