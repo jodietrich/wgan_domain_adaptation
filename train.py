@@ -97,15 +97,17 @@ def run_training():
         x_pl_ = nets.generator(z_pl, training_placeholder)
 
         # visualize the images by showing one slice of them in the z direction
-        tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid3D(x_pl_, exp_config.cut_axis,
-                                                                          exp_config.image_cut, rescale_mode='consistent',
+        tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='consistent',
                                                                           input_range=exp_config.image_range))
 
-        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid(x_pl[:, :, :, exp_config.image_z_slice, :])
-        )
+        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='consistent',
+                                                                          input_range=exp_config.image_range))
 
-        tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid(z_pl[:, :, :, exp_config.image_z_slice, :])
-        )
+        tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='consistent',
+                                                                          input_range=exp_config.image_range))
 
         # output of the discriminator for real image
         d_pl = nets.discriminator(x_pl, training_placeholder, scope_reuse=False)

@@ -21,12 +21,12 @@ n_channels = 1
 image_range = (-0.512, 2.985) # approximately 1st percentile to 99th percentile of preprocessed ADNI images
 
 # visualization settings
-cut_axis = 2 # axis perpendicular to the cut plane (x=0, y=1, z=2)
-image_cut = 50 # index of the cut for visualization
+cut_axis = 2  # axis perpendicular to the cut plane (x=0, y=1, z=2)
+cut_index = 50  # index of the cut for visualization
 
 # Training settings
 batch_size = 2
-val_batch_size = batch_size # must be smaller than the smallest validation set
+val_batch_size = batch_size  # must be smaller than the smallest validation set
 learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
 
