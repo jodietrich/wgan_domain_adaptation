@@ -1,16 +1,15 @@
+# these parameters are used for every experiment unless otherwise specified in the experiment file
+
 import model_zoo
 import tensorflow as tf
 import config.system as sys_config
 import os
 
-experiment_name = 'std_cnn_identity_gen_no_batch_normalization'
 
 # paths
 data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
 
-# Model settings
-model_handle = model_zoo.Std_CNN_bs2
 
 # Data settings
 image_size = (128, 160, 112)

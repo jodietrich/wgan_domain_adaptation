@@ -3,46 +3,9 @@ import tensorflow as tf
 import config.system as sys_config
 import os
 
-experiment_name = 'std_cnn_identity_gen_no_batch_normalization'
+from experiments.standard_parameters import *
 
-# paths
-data_root = sys_config.data_root
-preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
+experiment_name = 'std_cnn_identity_gen_no_batch_normalization'
 
 # Model settings
 model_handle = model_zoo.Std_CNN_bs2
-
-# Data settings
-image_size = (128, 160, 112)
-target_resolution =  (1.5, 1.5, 1.5)
-label_list = (0,2)  # 0 - normal, 1 - mci, 2 - alzheimer's
-source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
-target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
-n_channels = 1
-image_range = (-0.512, 2.985) # approximately 1st percentile to 99th percentile
-
-# visualization settings
-cut_axis = 2 # axis perpendicular to the cut plane (x=0, y=1, z=2)
-image_cut = 50 # index of the cut for visualization
-
-# Training settings
-batch_size = 2
-val_batch_size = batch_size # must be smaller than the smallest validation set
-learning_rate = 1e-4
-optimizer_handle = tf.train.AdamOptimizer
-
-# Improved training settings
-improved_training = True
-scale=10.0
-
-# Regularisation settings
-w_reg_gen_l1 = 0.0
-w_reg_disc_l1 = 0.0
-w_reg_gen_l2 = 0.0
-w_reg_disc_l2 = 0.0
-
-# Rarely changed settings
-max_iterations = 100000
-save_frequency = 200
-validation_frequency = 100
-update_tensorboard_frequency = 10
