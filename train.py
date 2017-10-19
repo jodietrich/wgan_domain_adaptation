@@ -8,6 +8,7 @@ import time
 import numpy as np
 import os.path
 import tensorflow as tf
+import shutil
 
 import config.system as sys_config
 
@@ -33,45 +34,61 @@ from experiments import std_cnn_bs2_bn as exp_config
 
 log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
 
-# import data
-data = adni_data_loader.load_and_maybe_process_data(
-    input_folder=exp_config.data_root,
-    preprocessing_folder=exp_config.preproc_folder,
-    size=exp_config.image_size,
-    target_resolution=exp_config.target_resolution,
-    label_list = exp_config.label_list,
-    force_overwrite=False
-)
 
-images_train = data['images_train']
-images_val = data['images_val']
-
-# make a list of 3T and 1.5T training/test data indices in the training/test image table
-source_images_train_ind = []
-target_images_train_ind = []
-source_images_val_ind = []
-target_images_val_ind = []
-
-for train_ind in range(0, len(images_train)):
-    field_str = data['field_strength_train'][train_ind]
-    if field_str == exp_config.source_field_strength:
-        source_images_train_ind.append(train_ind)
-    elif field_str == exp_config.target_field_strength:
-        target_images_train_ind.append(train_ind)
-
-for val_ind in range(0, len(images_val)):
-    field_str = data['field_strength_val'][val_ind]
-    if field_str == exp_config.source_field_strength:
-        source_images_val_ind.append(val_ind)
-    elif field_str == exp_config.target_field_strength:
-        target_images_val_ind.append(val_ind)
-
-
-def run_training():
+def run_training(continue_run):
 
     logging.info('===== RUNNING EXPERIMENT ========')
     logging.info(exp_config.experiment_name)
     logging.info('=================================')
+
+    init_step = 0
+
+    if continue_run:
+        logging.info('!!!!!!!!!!!!!!!!!!!!!!!!!!!! Continuing previous run !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        try:
+            init_checkpoint_path = utils.get_latest_model_checkpoint_path(log_dir, 'model.ckpt')
+            logging.info('Checkpoint path: %s' % init_checkpoint_path)
+            init_step = int(init_checkpoint_path.split('/')[-1].split('-')[-1]) + 1  # plus 1 b/c otherwise starts with eval
+            logging.info('Latest step was: %d' % init_step)
+        except:
+            logging.warning('!!! Didnt find init checkpoint. Maybe first run failed. Disabling continue mode...')
+            continue_run = False
+            init_step = 0
+
+        logging.info('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+
+    # import data
+    data = adni_data_loader.load_and_maybe_process_data(
+        input_folder=exp_config.data_root,
+        preprocessing_folder=exp_config.preproc_folder,
+        size=exp_config.image_size,
+        target_resolution=exp_config.target_resolution,
+        label_list = exp_config.label_list,
+        force_overwrite=False
+    )
+    
+    images_train = data['images_train']
+    images_val = data['images_val']
+
+    # make a list of 3T and 1.5T training/test data indices in the training/test image table
+    source_images_train_ind = []
+    target_images_train_ind = []
+    source_images_val_ind = []
+    target_images_val_ind = []
+
+    for train_ind in range(0, len(images_train)):
+        field_str = data['field_strength_train'][train_ind]
+        if field_str == exp_config.source_field_strength:
+            source_images_train_ind.append(train_ind)
+        elif field_str == exp_config.target_field_strength:
+            target_images_train_ind.append(train_ind)
+
+    for val_ind in range(0, len(images_val)):
+        field_str = data['field_strength_val'][val_ind]
+        if field_str == exp_config.source_field_strength:
+            source_images_val_ind.append(val_ind)
+        elif field_str == exp_config.target_field_strength:
+            target_images_val_ind.append(val_ind)
 
     nets = exp_config.model_handle
 
@@ -166,6 +183,10 @@ def run_training():
         # Run the Op to initialize the variables.
         sess.run(init)
 
+        if continue_run:
+            # Restore session
+            saver_latest.restore(sess, init_checkpoint_path)
+
         # initialize value of lowest (i. e. best) discriminator loss
         best_d_loss = np.inf
 
@@ -258,7 +279,15 @@ def run_training():
 
 def main():
 
-    run_training()
+    continue_run = True
+    if not tf.gfile.Exists(log_dir):
+        tf.gfile.MakeDirs(log_dir)
+        continue_run = False
+
+    # Copy experiment config file
+    shutil.copy(exp_config.__file__, log_dir)
+
+    run_training(continue_run)
 
 
 if __name__ == '__main__':
