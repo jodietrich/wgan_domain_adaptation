@@ -154,8 +154,9 @@ def run_training():
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
 
-        # Create a saver for writing training checkpoints.
-        saver = tf.train.Saver()
+        # Create a savers for writing training checkpoints.
+        saver_latest = tf.train.Saver(max_to_keep=3)
+        saver_best_disc = tf.train.Saver(max_to_keep=3)  # disc loss is scaled negative EM distance
 
         # Create a session for running Ops on the Graph.
         sess = tf.Session()
@@ -164,6 +165,9 @@ def run_training():
 
         # Run the Op to initialize the variables.
         sess.run(init)
+
+        # initialize value of lowest (i. e. best) discriminator loss
+        best_d_loss = np.inf
 
         for step in range(1000000):
 
@@ -178,13 +182,6 @@ def run_training():
 
                 x = x_sampler(exp_config.batch_size)
                 z = z_sampler(exp_config.batch_size)
-
-                # import matplotlib.pyplot as plt
-                # plt.figure()
-                # plt.imshow(np.squeeze(x[0,...]), cmap='gray')
-                # plt.figure()
-                # plt.imshow(np.squeeze(z[0,...]), cmap='gray')
-                # plt.show()
 
                 # train discriminator
                 sess.run(discriminator_train_op,
@@ -218,24 +215,43 @@ def run_training():
 
             if step % exp_config.validation_frequency == 0:
 
-                x = x_sampler.get_validation_batch(exp_config.val_batch_size)
-                z = z_sampler.get_validation_batch(exp_config.val_batch_size)
+                x = x_sampler.get_validation_batch(exp_config.batch_size*exp_config.num_val_batches)
+                z = z_sampler.get_validation_batch(exp_config.batch_size*exp_config.num_val_batches)
 
-                g_loss_val, d_loss_val = sess.run(
-                    [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={z_pl: z, x_pl: x, training_placeholder: False})
+                # evaluate the validation batch with batch_size images (from each domain) at a time
+                g_loss_val_list = []
+                d_loss_val_list = []
+                for batch_num in range(0,exp_config.num_val_batches+1):
+                    current_indices = slice(batch_num, batch_num+exp_config.batch_size)
+                    g_loss_val, d_loss_val = sess.run(
+                        [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={z_pl: z[current_indices],
+                                                                      x_pl: x[current_indices],
+                                                                      training_placeholder: False})
+                    g_loss_val_list.append(g_loss_val)
+                    d_loss_val_list.append(d_loss_val)
 
-                validation_summary_str = sess.run(val_summary_op, feed_dict={val_disc_loss_pl: d_loss_val,
-                                                                             val_gen_loss_pl: g_loss_val}
+                g_loss_val_avg = np.mean(g_loss_val_list)
+                d_loss_val_avg = np.mean(d_loss_val_list)
+
+                validation_summary_str = sess.run(val_summary_op, feed_dict={val_disc_loss_pl: d_loss_val_avg,
+                                                                                 val_gen_loss_pl: g_loss_val_avg}
                                              )
                 summary_writer.add_summary(validation_summary_str, step)
                 summary_writer.flush()
 
-                logging.info("[Validation], generator loss: %g, discriminator_loss: %g" % (g_loss_val, d_loss_val))
+                # save best variables (if discriminator loss is the lowest yet)
+                if d_loss_val_avg <= best_d_loss:
+                    best_d_loss = d_loss_val_avg
+                    best_file = os.path.join(log_dir, 'model_best_d_loss.ckpt')
+                    saver_best_disc.save(sess, best_file, global_step=step)
+                    logging.info('Found new best discriminator loss on validation set! - %f -  Saving model_best_d_loss.ckpt' % best_d_loss)
+
+                logging.info("[Validation], generator loss: %g, discriminator_loss: %g" % (g_loss_val_avg, d_loss_val_avg))
 
             # Write the summaries and print an overview fairly often.
             if step % exp_config.save_frequency == 0:
 
-                saver.save(sess, os.path.join(log_dir, 'model.ckpt'), global_step=step)
+                saver_latest.save(sess, os.path.join(log_dir, 'model.ckpt'), global_step=step)
 
 
 

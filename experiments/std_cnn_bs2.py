@@ -5,7 +5,7 @@ import os
 
 from experiments.standard_parameters import *
 
-experiment_name = 'std_cnn_identity_gen_no_batch_normalization'
+experiment_name = 'std_cnn_identity_gen_no_batch_normalization_v2'
 
 # Model settings
 model_handle = model_zoo.Std_CNN_bs2

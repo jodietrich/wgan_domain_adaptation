@@ -26,7 +26,7 @@ cut_index = 50  # index of the cut for visualization
 
 # Training settings
 batch_size = 2
-val_batch_size = batch_size  # must be smaller than the smallest validation set
+num_val_batches = 10 # of batches used for validation. Validation happens with a set of size batch_size*num_val_batches
 learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
 
