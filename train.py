@@ -27,7 +27,7 @@ sys_config.setup_GPU_environment()
 
 #######################################################################
 
-from experiments import residual_gen_bs2_bn as exp_config
+from experiments import std_cnn_bs2_bn as exp_config
 
 #######################################################################
 
@@ -98,15 +98,15 @@ def run_training():
 
         # visualize the images by showing one slice of them in the z direction
         tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
-                                                                          exp_config.cut_index, rescale_mode='consistent',
+                                                                          exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
 
-        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
-                                                                          exp_config.cut_index, rescale_mode='consistent',
+        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid3d(x_pl, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
 
-        tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
-                                                                          exp_config.cut_index, rescale_mode='consistent',
+        tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid3d(z_pl, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
 
         # output of the discriminator for real image

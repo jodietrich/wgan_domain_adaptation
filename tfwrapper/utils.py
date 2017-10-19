@@ -54,6 +54,8 @@ def put_kernels_on_grid(images, pad=1, rescale_mode='automatic', input_range=Non
     elif rescale_mode == 'manual':
         x_min = input_range[0]
         x_max = input_range[1]
+    else:
+        raise ValueError('Unknown rescale_mode: %s' % type)
 
     images = (images - x_min) / (x_max - x_min)
     images = 255.0 * images
