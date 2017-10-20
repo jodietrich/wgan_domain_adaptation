@@ -66,7 +66,7 @@ def run_training(continue_run):
         label_list = exp_config.label_list,
         force_overwrite=False
     )
-    
+
     images_train = data['images_train']
     images_val = data['images_val']
 
@@ -187,10 +187,11 @@ def run_training(continue_run):
             # Restore session
             saver_latest.restore(sess, init_checkpoint_path)
 
+
         # initialize value of lowest (i. e. best) discriminator loss
         best_d_loss = np.inf
 
-        for step in range(1000000):
+        for step in range(init_step, 1000000):
 
             start_time = time.time()
 
