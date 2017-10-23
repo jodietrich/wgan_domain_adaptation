@@ -21,6 +21,28 @@ import random
 
 from experiments import residual_gen_bs2_bn as exp_config
 
+
+# function to make tensor for put_kernels_on_grid out of 2D array
+def make_test_tensor(image):
+    image = np.reshape(image, (1,) + image.shape + (1,1))
+    return tf.convert_to_tensor(image)
+
+# self made testcases
+thresh_test = np.array([-100, 100])
+scale_test1 = np.array([0, 1])
+scale_test2 = np.array([0, 2])
+
+# test output
+sess1 = tf.Session()
+with sess1.as_default():
+    thresh_out = tf_utils.put_kernels_on_grid(make_test_tensor(thresh_test), rescale_mode='manual', input_range=(0,2)).eval()
+    scale1_out = tf_utils.put_kernels_on_grid(make_test_tensor(scale_test1), rescale_mode='manual', input_range=(0,2)).eval()
+    scale2_out = tf_utils.put_kernels_on_grid(make_test_tensor(scale_test2), rescale_mode='manual', input_range=(0,2)).eval()
+    print(np.squeeze(thresh_out))
+    print(np.squeeze(scale1_out))
+    print(np.squeeze(scale2_out))
+
+
 # import data
 data = adni_data_loader.load_and_maybe_process_data(
     input_folder=exp_config.data_root,
@@ -84,7 +106,7 @@ print('98th percentile: ' + str(percentile98))
 print('1st percentile: ' + str(percentile1))
 print('99th percentile: ' + str(percentile99))
 
-images = np.expand_dims(all_images[3::50], 4)
+images = np.expand_dims(all_images[7::100], 4)
 
 # print('3D IMAGE')
 # print(images)
@@ -92,8 +114,8 @@ images = np.expand_dims(all_images[3::50], 4)
 # print('CUT BEFORE RESCALING')
 # print(images[:, :, :, exp_config.cut_index, :])
 
-sess = tf.Session()
-with sess.as_default():
+sess2 = tf.Session()
+with sess2.as_default():
     images_tensor = tf.convert_to_tensor(images)
 
     print('AUTOMATIC RESCALING')
@@ -103,15 +125,35 @@ with sess.as_default():
     plt.imshow(np.squeeze(autoimage), cmap='gray')
 
     print('MANUAL RESCALING')
-    manimage1 = tf_utils.put_kernels_on_grid3d(images_tensor, exp_config.cut_axis,
+    manimage1 = tf_utils.put_kernels_on_grid3d(images_tensor*10, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range).eval()
-    manimage2 = tf_utils.put_kernels_on_grid3d(images_tensor, exp_config.cut_axis,
+    manimage2 = tf_utils.put_kernels_on_grid3d(images_tensor*100, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='manual',
-                                                                          input_range=(-0.512, 2.985)).eval()
+                                                                          input_range=exp_config.image_range).eval()
+    manimage3 = tf_utils.put_kernels_on_grid3d(images_tensor*1000, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='manual',
+                                                                          input_range=exp_config.image_range).eval()
+    manimage4 = tf_utils.put_kernels_on_grid3d(images_tensor*10000, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='manual',
+                                                                          input_range=exp_config.image_range).eval()
+    manimage5 = tf_utils.put_kernels_on_grid3d(images_tensor, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='manual',
+                                                                          input_range=(0,0.00001)).eval()
+    manimage6 = tf_utils.put_kernels_on_grid3d(images_tensor, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='manual',
+                                                                          input_range=(-100000, 100000)).eval()
     # print(np.squeeze(manimage))
     plt.figure()
     plt.imshow(np.squeeze(manimage1), cmap='gray')
     plt.figure()
     plt.imshow(np.squeeze(manimage2), cmap='gray')
+    plt.figure()
+    plt.imshow(np.squeeze(manimage3), cmap='gray')
+    plt.figure()
+    plt.imshow(np.squeeze(manimage4), cmap='gray')
+    plt.figure()
+    plt.imshow(np.squeeze(manimage5), cmap='gray')
+    plt.figure()
+    plt.imshow(np.squeeze(manimage6), cmap='gray')
     plt.show()

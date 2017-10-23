@@ -61,7 +61,7 @@ def put_kernels_on_grid(images, pad=1, rescale_mode='automatic', input_range=Non
     images = 255.0 * images
     if rescale_mode == 'manual':
         # threshold such that everything is in [0,255]
-        tf.clip_by_value(images, 0, 255)
+        images = tf.clip_by_value(images, 0, 255)
 
 
     # pad X and Y
