@@ -82,7 +82,7 @@ class PreAct_Res_Gen_bs2_bn:
             return residual_out
 
 
-# preactivation residual unit as generator to have identity function as starting point for the generator
+# residual unit as generator to have identity function as starting point for the generator
 class Res_Gen_bs2_bn:
     @staticmethod
     def discriminator(x, training, scope_name='discriminator', scope_reuse=False):
@@ -366,6 +366,190 @@ class Std_CNN_bs1:
                                          activation=tf.identity)
 
             return layer4
+
+
+# ---------------stand alone functions for discriminator and generator------------------------------
+def only_conv_generator(z, training, residual=True, batch_normalization=False, scope_name='generator', hidden_layers=2, filters=16):
+    # batch size 2: hidden_layers=2, filters=16
+    # batch size 1: hidden_layers=3, filters=32
+    # only residual connection from beginning to end possible
+    with tf.variable_scope(scope_name):
+        previous_layer = z
+        for depth in range(1, hidden_layers + 1):
+            if(batch_normalization):
+                previous_layer = layers.conv3D_layer_bn(previous_layer, 'gconv%d' % depth, training, num_filters=filters,
+                                                    activation=tf.nn.relu)
+            else:
+                previous_layer = layers.conv3D_layer(previous_layer, 'gconv%d' % depth, num_filters=32,
+                                                     activation=tf.nn.relu)
+        last_layer = layers.conv3D_layer(previous_layer, 'gconv%d_last' % hidden_layers + 1, num_filters=1,
+                                         kernel_size=(1, 1, 1), strides=(1, 1, 1), activation=tf.identity)
+        if residual:
+            return last_layer + z
+        else:
+            return last_layer
+
+
+def pool_fc_discriminator_bs2(x, training, scope_name='discriminator', scope_reuse=False):
+    with tf.variable_scope(scope_name) as scope:
+            if scope_reuse:
+                scope.reuse_variables()
+
+            conv1_1 = layers.conv3D_layer(x, 'dconv1_1',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            pool1 = layers.max_pool_layer3d(conv1_1)
+
+            conv2_1 = layers.conv3D_layer(pool1, 'dconv2_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            pool2 = layers.max_pool_layer3d(conv2_1)
+
+            conv3_1 = layers.conv3D_layer(pool2, 'dconv3_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            conv3_2 = layers.conv3D_layer_bn(conv3_1, 'dconv3_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu, training=training)
+
+            pool3 = layers.max_pool_layer3d(conv3_2)
+
+            conv4_1 = layers.conv3D_layer(pool3, 'dconv4_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            conv4_2 = layers.conv3D_layer(conv4_1, 'dconv4_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            pool4 = layers.max_pool_layer3d(conv4_2)
+
+            conv5_1 = layers.conv3D_layer(pool4, 'dconv5_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                            activation=layers.leaky_relu)
+
+            conv5_2 = layers.conv3D_layer(conv5_1, 'dconv5_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                            activation=layers.leaky_relu)
+
+            pool5 = layers.max_pool_layer3d(conv5_2)
+
+            conv6_1 = layers.conv3D_layer(pool5, 'dconv6_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                            activation=layers.leaky_relu)
+
+            conv6_2 = layers.conv3D_layer(conv6_1, 'dconv6_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                            activation=layers.leaky_relu)
+
+            pool6 = layers.max_pool_layer3d(conv6_2)
+
+            dense1 = layers.dense_layer(pool6, 'ddense1', hidden_units=256, activation=layers.leaky_relu)
+
+            dense2 = layers.dense_layer(dense1, 'ddense2', hidden_units=1, activation=tf.identity)
+
+            return dense2
+
+
+def pool_fc_discriminator_bs2_bn(x, training, scope_name='discriminator', scope_reuse=False):
+    with tf.variable_scope(scope_name) as scope:
+            if scope_reuse:
+                scope.reuse_variables()
+
+            conv1_1 = layers.conv3D_layer_bn(x, 'dconv1_1',kernel_size=(3,3,3), num_filters=8, strides=(1,1,1),
+                                        activation=layers.leaky_relu, training=training)
+
+            pool1 = layers.max_pool_layer3d(conv1_1)
+
+            conv2_1 = layers.conv3D_layer_bn(pool1, 'dconv2_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu, training=training)
+
+            pool2 = layers.max_pool_layer3d(conv2_1)
+
+            conv3_1 = layers.conv3D_layer_bn(pool2, 'dconv3_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu, training=training)
+
+            conv3_2 = layers.conv3D_layer_bn(conv3_1, 'dconv3_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu, training=training)
+
+            pool3 = layers.max_pool_layer3d(conv3_2)
+
+            conv4_1 = layers.conv3D_layer_bn(pool3, 'dconv4_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu, training=training)
+
+            conv4_2 = layers.conv3D_layer_bn(conv4_1, 'dconv4_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu, training=training)
+
+            pool4 = layers.max_pool_layer3d(conv4_2)
+
+            conv5_1 = layers.conv3D_layer_bn(pool4, 'dconv5_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                            activation=layers.leaky_relu, training=training)
+
+            conv5_2 = layers.conv3D_layer_bn(conv5_1, 'dconv5_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                            activation=layers.leaky_relu, training=training)
+
+            pool5 = layers.max_pool_layer3d(conv5_2)
+
+            conv6_1 = layers.conv3D_layer_bn(pool5, 'dconv6_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                            activation=layers.leaky_relu, training=training)
+
+            conv6_2 = layers.conv3D_layer_bn(conv6_1, 'dconv6_2',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                            activation=layers.leaky_relu, training=training)
+
+            pool6 = layers.max_pool_layer3d(conv6_2)
+
+            dense1 = layers.dense_layer(pool6, 'ddense1', hidden_units=256, activation=layers.leaky_relu)
+
+            dense2 = layers.dense_layer(dense1, 'ddense2', hidden_units=1, activation=tf.identity)
+
+            return dense2
+
+def pool_fc_discriminator_bs1(x, training, scope_name='discriminator', scope_reuse=False):
+    with tf.variable_scope(scope_name) as scope:
+            if scope_reuse:
+                scope.reuse_variables()
+
+            conv1_1 = layers.conv3D_layer(x, 'dconv1_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            pool1 = layers.max_pool_layer3d(conv1_1)
+
+            conv2_1 = layers.conv3D_layer(pool1, 'dconv2_1',kernel_size=(3,3,3), num_filters=16, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            pool2 = layers.max_pool_layer3d(conv2_1)
+
+            conv3_1 = layers.conv3D_layer(pool2, 'dconv3_1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            conv3_2 = layers.conv3D_layer_bn(conv3_1, 'dconv3_2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu, training=training)
+
+            pool3 = layers.max_pool_layer3d(conv3_2)
+
+            conv4_1 = layers.conv3D_layer(pool3, 'dconv4_1',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            conv4_2 = layers.conv3D_layer(conv4_1, 'dconv4_2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                                        activation=layers.leaky_relu)
+
+            pool4 = layers.max_pool_layer3d(conv4_2)
+
+            conv5_1 = layers.conv3D_layer(pool4, 'dconv5_1',kernel_size=(3,3,3), num_filters=64, strides=(1,1,1),
+                            activation=layers.leaky_relu)
+
+            conv5_2 = layers.conv3D_layer(conv5_1, 'dconv5_2',kernel_size=(3,3,3), num_filters=64, strides=(1,1,1),
+                            activation=layers.leaky_relu)
+
+            pool5 = layers.max_pool_layer3d(conv5_2)
+
+            conv6_1 = layers.conv3D_layer(pool5, 'dconv6_1',kernel_size=(3,3,3), num_filters=64, strides=(1,1,1),
+                            activation=layers.leaky_relu)
+
+            conv6_2 = layers.conv3D_layer(conv6_1, 'dconv6_2',kernel_size=(3,3,3), num_filters=32, strides=(1,1,1),
+                            activation=layers.leaky_relu)
+
+            pool6 = layers.max_pool_layer3d(conv6_2)
+
+            dense1 = layers.dense_layer(pool6, 'ddense1', hidden_units=512, activation=layers.leaky_relu)
+
+            dense2 = layers.dense_layer(dense1, 'ddense2', hidden_units=1, activation=tf.identity)
+
+            return dense2
+
 
 
 
