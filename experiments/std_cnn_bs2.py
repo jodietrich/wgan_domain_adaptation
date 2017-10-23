@@ -5,7 +5,15 @@ import os
 
 from experiments.standard_parameters import *
 
-experiment_name = 'std_cnn_identity_gen_no_batch_normalization_v4'
+experiment_name = 'std_cnn_identity_gen_v5'
 
 # Model settings
-model_handle = model_zoo.Std_CNN_bs2
+residual = False
+batch_normalization = False
+
+# model to use
+def generator(z, training, scope_name='generator'):
+    return model_zoo.only_conv_generator(z, training, residual=residual, batch_normalization=batch_normalization,
+                                         scope_name=scope_name, hidden_layers=gen_hidden_layers, filters=gen_filters)
+
+discriminator = model_zoo.pool_fc_discriminator_bs2

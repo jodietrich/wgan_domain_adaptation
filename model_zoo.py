@@ -382,7 +382,7 @@ def only_conv_generator(z, training, residual=True, batch_normalization=False, s
             else:
                 previous_layer = layers.conv3D_layer(previous_layer, 'gconv%d' % depth, num_filters=32,
                                                      activation=tf.nn.relu)
-        last_layer = layers.conv3D_layer(previous_layer, 'gconv%d_last' % hidden_layers + 1, num_filters=1,
+        last_layer = layers.conv3D_layer(previous_layer, 'gconv%d_last' % (hidden_layers + 1), num_filters=1,
                                          kernel_size=(1, 1, 1), strides=(1, 1, 1), activation=tf.identity)
         if residual:
             return last_layer + z

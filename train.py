@@ -90,7 +90,8 @@ def run_training(continue_run):
         elif field_str == exp_config.target_field_strength:
             target_images_val_ind.append(val_ind)
 
-    nets = exp_config.model_handle
+    generator = exp_config.generator
+    discriminator = exp_config.discriminator
 
     z_sampler = data_utils.DataSampler(images_train, source_images_train_ind, images_val, source_images_val_ind)
     x_sampler = data_utils.DataSampler(images_train, target_images_train_ind, images_val, target_images_val_ind)
@@ -111,7 +112,7 @@ def run_training(continue_run):
         z_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='z')
 
         # generated fake image batch
-        x_pl_ = nets.generator(z_pl, training_placeholder)
+        x_pl_ = generator(z_pl, training_placeholder)
 
         # visualize the images by showing one slice of them in the z direction
         tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
@@ -127,10 +128,10 @@ def run_training(continue_run):
                                                                           input_range=exp_config.image_range))
 
         # output of the discriminator for real image
-        d_pl = nets.discriminator(x_pl, training_placeholder, scope_reuse=False)
+        d_pl = discriminator(x_pl, training_placeholder, scope_reuse=False)
 
         # output of the discriminator for fake image
-        d_pl_ = nets.discriminator(x_pl_, training_placeholder, scope_reuse=True)
+        d_pl_ = discriminator(x_pl_, training_placeholder, scope_reuse=True)
 
         d_hat = None
         x_hat = None
@@ -138,7 +139,7 @@ def run_training(continue_run):
 
             epsilon = tf.random_uniform([], 0.0, 1.0)
             x_hat = epsilon * x_pl + (1 - epsilon) * x_pl_
-            d_hat = nets.discriminator(x_hat, training_placeholder, scope_reuse=True)
+            d_hat = discriminator(x_hat, training_placeholder, scope_reuse=True)
 
         # nr means no regularization, meaning the loss without the regularization term
         discriminator_train_op, generator_train_op, \

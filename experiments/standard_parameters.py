@@ -10,6 +10,9 @@ import os
 data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
 
+# model settings
+gen_hidden_layers = 2
+gen_filters = 16
 
 # Data settings
 image_size = (128, 160, 112)
