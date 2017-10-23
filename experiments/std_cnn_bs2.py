@@ -5,7 +5,7 @@ import os
 
 from experiments.standard_parameters import *
 
-experiment_name = 'std_cnn_identity_gen_v5'
+experiment_name = 'std_cnn_identity_gen_bs2_i1'
 
 # Model settings
 residual = False

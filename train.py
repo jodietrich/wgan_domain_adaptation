@@ -28,7 +28,7 @@ sys_config.setup_GPU_environment()
 
 #######################################################################
 
-from experiments import std_cnn_bs2 as exp_config
+from experiments import residual_gen_bs1 as exp_config
 
 #######################################################################
 

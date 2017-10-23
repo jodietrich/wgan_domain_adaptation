@@ -5,7 +5,7 @@ import os
 
 from experiments.standard_parameters import *
 
-experiment_name = 'residual_identity_gen_bs2_std_disc_v5'
+experiment_name = 'residual_identity_gen_bs2_std_disc_i1'
 
 # Model settings
 residual = True
