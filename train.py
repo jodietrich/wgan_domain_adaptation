@@ -28,7 +28,7 @@ sys_config.setup_GPU_environment()
 
 #######################################################################
 
-from experiments import residual_gen_bs1 as exp_config
+from experiments import residual_gen_bs2 as exp_config
 
 #######################################################################
 
@@ -244,8 +244,9 @@ def run_training(continue_run):
                 # evaluate the validation batch with batch_size images (from each domain) at a time
                 g_loss_val_list = []
                 d_loss_val_list = []
-                for batch_num in range(0,exp_config.num_val_batches+1):
-                    current_indices = slice(batch_num, batch_num+exp_config.batch_size)
+                b_size = exp_config.batch_size
+                for batch_num in range(exp_config.num_val_batches):
+                    current_indices = slice(batch_num*b_size, batch_num*b_size + b_size)
                     g_loss_val, d_loss_val = sess.run(
                         [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={z_pl: z[current_indices],
                                                                       x_pl: x[current_indices],
