@@ -26,10 +26,10 @@ gender_dict = {'Male': 0, 'Female': 1}
 MAX_WRITE_BUFFER = 5
 
 def fix_nan_and_unknown(target_data_format, input, nan_val=-1, unknown_val=-2):
-    if math.isnan(float(input)):
-        input = nan_val
-    elif input == 'unknown':
+    if input == 'unknown':
         input = unknown_val
+    elif math.isnan(float(input)):
+        input = nan_val
 
     return target_data_format(input)
 
