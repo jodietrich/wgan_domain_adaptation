@@ -9,6 +9,7 @@ import numpy as np
 import os.path
 import tensorflow as tf
 import shutil
+import random
 
 import config.system as sys_config
 
@@ -17,8 +18,6 @@ from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
 import data_utils
-
-import random
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
@@ -67,28 +66,10 @@ def run_training(continue_run):
         force_overwrite=False
     )
 
-    images_train = data['images_train']
-    images_val = data['images_val']
-
-    # make a list of 3T and 1.5T training/test data indices in the training/test image table
-    source_images_train_ind = []
-    target_images_train_ind = []
-    source_images_val_ind = []
-    target_images_val_ind = []
-
-    for train_ind in range(0, len(images_train)):
-        field_str = data['field_strength_train'][train_ind]
-        if field_str == exp_config.source_field_strength:
-            source_images_train_ind.append(train_ind)
-        elif field_str == exp_config.target_field_strength:
-            target_images_train_ind.append(train_ind)
-
-    for val_ind in range(0, len(images_val)):
-        field_str = data['field_strength_val'][val_ind]
-        if field_str == exp_config.source_field_strength:
-            source_images_val_ind.append(val_ind)
-        elif field_str == exp_config.target_field_strength:
-            target_images_val_ind.append(val_ind)
+    # extract images and indices of source/target images for the training and validation set
+    images_train, source_images_train_ind, target_images_train_ind,\
+    images_val, source_images_val_ind, target_images_val_ind = adni_data_loader.get_images_and_fieldstrength_indices(
+        data, exp_config.source_field_strength, exp_config.target_field_strength)
 
     generator = exp_config.generator
     discriminator = exp_config.discriminator
