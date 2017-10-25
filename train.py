@@ -176,8 +176,13 @@ def run_training(continue_run):
         saver_latest = tf.train.Saver(max_to_keep=3)
         saver_best_disc = tf.train.Saver(max_to_keep=3)  # disc loss is scaled negative EM distance
 
+        # prevents ResourceExhaustError when a lot of memory is used
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True  # Do not assign whole gpu memory, just use it on the go
+        config.allow_soft_placement = True  # If a operation is not defined in the default device, let it execute in another.
+
         # Create a session for running Ops on the Graph.
-        sess = tf.Session()
+        sess = tf.Session(config=config)
 
         summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
 
