@@ -119,9 +119,9 @@ def pad_to_size(bottom, output_size):
 
 
 
-def batch_normalisation_layer(bottom, name, training):
+def batch_normalisation_layer(bottom, name, training, decay=0.999):
 
-    h_bn = tf.contrib.layers.batch_norm(inputs=bottom, decay=0.5, epsilon=1e-3, is_training=training,
+    h_bn = tf.contrib.layers.batch_norm(inputs=bottom, decay=decay, epsilon=1e-3, is_training=training,
                                         scope=name, center=True, scale=True)
 
     return h_bn
@@ -418,7 +418,8 @@ def conv3D_layer_bn(bottom,
                     strides=(1,1,1),
                     activation=tf.nn.relu,
                     padding="SAME",
-                    weight_init='he_normal'):
+                    weight_init='he_normal',
+                    bn_momentum = 0.999):
 
     '''
     Shortcut for batch normalised 3D convolutional layer
@@ -434,7 +435,7 @@ def conv3D_layer_bn(bottom,
                         weight_init=weight_init,
                         add_bias=False)
 
-    conv_bn = batch_normalisation_layer(conv, name + '_bn', training)
+    conv_bn = batch_normalisation_layer(conv, name + '_bn', training, decay=bn_momentum)
 
     act = activation(conv_bn)
 

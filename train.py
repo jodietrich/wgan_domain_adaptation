@@ -11,7 +11,6 @@ import tensorflow as tf
 import shutil
 
 import config.system as sys_config
-from experiments.gan import residual_gen_bs2 as exp_config
 import model
 from tfwrapper import utils as tf_utils
 import utils
@@ -25,7 +24,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 sys_config.setup_GPU_environment()
 
 #######################################################################
-
+from experiments.gan import residual_gen_bs2 as exp_config
 #######################################################################
 
 log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)

@@ -1,50 +1,76 @@
-from experiments.gan import residual_gen_bs2 as exp_config
+
 
 __author__ = 'jdietric'
 
 import logging
 
-import tensorflow as tf
 import itertools
+import logging
+import time
+import numpy as np
+import os.path
+import tensorflow as tf
+import shutil
 
+import config.system as sys_config
+import model
+from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
 import data_utils
 
 
 #######################################################################
-
+from experiments.gan import residual_gen_bs2 as gan_config
+from experiments.fclf import jia_xi_net as fclf_config
 #######################################################################
 
-def generate_adapted_images(data, experiment, save_path):
+def generate_and_evaluate_adapted_images(data):
     # extract images and indices of source/target images for the training and validation set
     images_train, source_images_train_ind, target_images_train_ind,\
     images_val, source_images_val_ind, target_images_val_ind = adni_data_loader.get_images_and_fieldstrength_indices(
-        data, exp_config.source_field_strength, exp_config.target_field_strength)
-    # open save file from the selected experiment
-    init_checkpoint_path = utils.get_latest_model_checkpoint_path(logdir, 'model.ckpt')
-    logging.info('Checkpoint path: %s' % init_checkpoint_path)
-    last_step = int(init_checkpoint_path.split('/')[-1].split('-')[-1])  # plus 1 b/c otherwise starts with eval
-    logging.info('Latest step was: %d' % last_step)
+        data, gan_config.source_field_strength, gan_config.target_field_strength)
 
-    generator = exp_config.generator
+    # log file paths
+    logdir_gan = os.path.join(sys_config.log_root, gan_config.experiment_name)
+    logdir_fclf = os.path.join(sys_config.log_root, fclf_config.experiment_name)
+
+    # open GAN save file from the selected experiment
+    init_checkpoint_path_gan = utils.get_latest_model_checkpoint_path(logdir_gan, 'model.ckpt')
+    logging.info('loading GAN')
+    logging.info('Checkpoint path: %s' % init_checkpoint_path_gan)
+    last_step_gan = int(init_checkpoint_path_gan.split('/')[-1].split('-')[-1])
+    logging.info('Latest step was: %d' % last_step_gan)
+
+    # open field strength classifier save file from the selected experiment
+    init_checkpoint_path_fclf = utils.get_latest_model_checkpoint_path(logdir_fclf, 'model.ckpt')
+    logging.info('loading field strength classifier')
+    logging.info('Checkpoint path: %s' % init_checkpoint_path_fclf)
+    last_step_fclf = int(init_checkpoint_path_fclf.split('/')[-1].split('-')[-1])
+    logging.info('Latest step was: %d' % last_step_fclf)
+
+
+    generator = gan_config.generator
+    classifier = fclf_config.model_handle
 
     z_sampler = data_utils.DataSampler(images_train, source_images_train_ind, images_val, source_images_val_ind)
 
     with tf.Graph().as_default():
 
         # Generate placeholders for the images and labels.
-        im_s = exp_config.image_size
+        im_s = gan_config.image_size
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
 
         # source image batch
-        z_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='z')
+        z_pl = tf.placeholder(tf.float32, [gan_config.batch_size, im_s[0], im_s[1], im_s[2], gan_config.n_channels], name='z')
 
         # generated fake image batch
         x_pl_ = generator(z_pl, training_placeholder)
 
-        classification_source_pl = classifier()
+        # classification of the real source image and the fake target image
+        logits_source_pl = classifier(z_pl, False, fclf_config.nlabels)
+        logits_fake_pl = classifier(x_pl_, False, fclf_config.nlabels)
 
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
@@ -64,17 +90,31 @@ def generate_adapted_images(data, experiment, save_path):
         # Run the Op to initialize the variables.
         sess.run(init)
 
-        saver_latest.restore(sess, init_checkpoint_path)
+        saver_latest.restore(sess, init_checkpoint_path_gan)
         # create selectors
         train_source_sel, val_source_sel = utils.index_sets_to_selectors(source_images_train_ind, source_images_val_ind)
 
+        # loops through all images from the source domain
         for source_img in itertools.chain(itertools.compress(images_train, train_source_sel),
                                           itertools.compress(images_val, val_source_sel)):
             # classify source_img
-
+            source_logits = sess.run(logits_source_pl, feed_dict={z_pl: source_img, training_placeholder: False})
             # generate image
             fake_img = sess.run(x_pl_, feed_dict={z_pl: source_img, training_placeholder: False})
             # classify fake_img
+            fake_logits = sess.run(logits_fake_pl, feed_dict={x_pl_: fake_img, training_placeholder: False})
+
+            real_source_label = fclf_config.fs_label_list[fclf_config.field_strength_list.index(gan_config.source_field_strength)]
+            predicted_source_label = fclf_config.fs_label_list[logits_source_pl.index(max(logits_source_pl))]
+            predicted_fake_label = fclf_config.fs_label_list[logits_fake_pl.index(max(logits_fake_pl))]
+
+            logging.info("NEW IMAGE")
+            logging.info("real label of source image: " + str(real_source_label))
+            logging.info("predicted label of source image: " + str(predicted_source_label))
+            logging.info("predicted label of fake image: " + str(predicted_fake_label))
+
+
+
 
 
 def import_images(path):
@@ -96,15 +136,14 @@ if __name__ == '__main__':
     # import data
     # TODO: import all data
     data = adni_data_loader.load_and_maybe_process_data(
-            input_folder=exp_config.data_root,
-            preprocessing_folder=exp_config.preproc_folder,
-            size=exp_config.image_size,
-            target_resolution=exp_config.target_resolution,
-            label_list = exp_config.label_list,
+            input_folder=gan_config.data_root,
+            preprocessing_folder=gan_config.preproc_folder,
+            size=gan_config.image_size,
+            target_resolution=gan_config.target_resolution,
+            label_list = gan_config.label_list,
             force_overwrite=False
         )
-    if not already_generated_images(experiment_name,image_saving_path):
-        generate_adapted_images(data, experiment_name, image_saving_path)
-    evaluate_images()
+
+    generate_and_evaluate_adapted_images(data)
 
 
