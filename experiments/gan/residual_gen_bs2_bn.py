@@ -1,14 +1,9 @@
-import model_zoo
-import tensorflow as tf
-import config.system as sys_config
-import os
+from experiments.gan.standard_parameters import *
 
-from experiments.standard_parameters import *
-
-experiment_name = 'std_cnn_identity_gen_bs2_bn_i1'
+experiment_name = 'residual_identity_gen_bs2_std_disc_bn_i1'
 
 # Model settings
-residual = False
+residual = True
 batch_normalization = True
 
 # model to use

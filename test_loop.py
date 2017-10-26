@@ -13,15 +13,12 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import glob
-from importlib.machinery import SourceFileLoader
-import argparse
+from scipy import misc
 
 import config.system as sys_config
+from experiments.gan import std_cnn_bs2_bn as exp_config
 import utils
-import image_utils
 
-from scipy import misc
 
 
 #######################################################################
@@ -30,7 +27,6 @@ from scipy import misc
 # from experiments import dcgan_fcn_improved_train as exp_config
 
 # LEARN SCALE
-from experiments import std_cnn_bs2_bn as exp_config
 experiment_name = 'dcgan_fcn_bn_improved_train_fcn_scale_wtest'
 from data import mnist_scale as data
 invert_img = False

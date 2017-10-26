@@ -1,29 +1,18 @@
+from experiments.gan import residual_gen_bs2 as exp_config
+
 __author__ = 'jdietric'
 
 import logging
-import time
 
-import numpy as np
-import os.path
 import tensorflow as tf
-import shutil
-import random
-import importlib
 import itertools
 
-import config.system as sys_config
-
-import model
-from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
 import data_utils
-import adni_fieldstr_clf.model_zoo
 
 
 #######################################################################
-
-from experiments import residual_gen_bs2 as exp_config
 
 #######################################################################
 

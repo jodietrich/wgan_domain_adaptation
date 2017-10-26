@@ -1,25 +1,13 @@
+from experiments.gan import residual_gen_bs2_bn as exp_config
+
 __author__ = 'jdietric'
 
-import logging
-import time
-
 import numpy as np
-import os.path
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-import config.system as sys_config
-
-import model
 from tfwrapper import utils as tf_utils
-import utils
 import adni_data_loader
-import data_utils
-
-import random
-
-
-from experiments import residual_gen_bs2_bn as exp_config
 
 
 # function to make tensor for put_kernels_on_grid out of 2D array

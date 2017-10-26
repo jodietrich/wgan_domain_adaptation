@@ -20,7 +20,7 @@ from batch_generator_list import iterate_minibatches
 
 ### EXPERIMENT CONFIG FILE #############################################################
 
-from experiments import jia_xi_net as exp_config
+from experiments.fclf import jia_xi_net as exp_config
 
 ########################################################################################
 

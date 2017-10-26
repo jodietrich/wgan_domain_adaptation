@@ -9,10 +9,9 @@ import numpy as np
 import os.path
 import tensorflow as tf
 import shutil
-import random
 
 import config.system as sys_config
-
+from experiments.gan import residual_gen_bs2 as exp_config
 import model
 from tfwrapper import utils as tf_utils
 import utils
@@ -26,8 +25,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 sys_config.setup_GPU_environment()
 
 #######################################################################
-
-from experiments import residual_gen_bs2 as exp_config
 
 #######################################################################
 
