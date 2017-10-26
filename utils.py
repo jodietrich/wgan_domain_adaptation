@@ -57,6 +57,15 @@ def get_latest_model_checkpoint_path(folder, name):
     return os.path.join(folder, name + '-' + str(latest_iteration))
 
 
+def index_sets_to_selectors(*index_sets):
+    # takes in sets of indices and changes them to lists with True if the index was in the set and false otherwise
+    # works with lists or tuples of indices as well, but the in operation is O(n) instead of O(1)
+    selector_result = []
+    for ind_set in index_sets:
+        selector_result.append([(index in ind_set) for index in range(max(ind_set))])
+    return selector_result
+
+
 # Useful shortcut for making struct like contructs
 # Example:
 # mystruct = Bunch(a=1, b=2)
@@ -66,3 +75,4 @@ def get_latest_model_checkpoint_path(folder, name):
 class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
+

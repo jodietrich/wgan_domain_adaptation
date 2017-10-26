@@ -40,6 +40,7 @@ def get_images_and_fieldstrength_indices(data, source_field_strength, target_fie
     images_train = data['images_train']
     images_val = data['images_val']
 
+    # TODO: make these sets (for more efficient lookup) and change Datasampler accordingly
     source_images_train_ind = []
     target_images_train_ind = []
     source_images_val_ind = []

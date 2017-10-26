@@ -9,6 +9,7 @@ import tensorflow as tf
 import shutil
 import random
 import importlib
+import itertools
 
 import config.system as sys_config
 
@@ -17,6 +18,7 @@ from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
 import data_utils
+import adni_fieldstr_clf.model_zoo
 
 
 #######################################################################
@@ -30,9 +32,6 @@ def generate_adapted_images(data, experiment, save_path):
     images_train, source_images_train_ind, target_images_train_ind,\
     images_val, source_images_val_ind, target_images_val_ind = adni_data_loader.get_images_and_fieldstrength_indices(
         data, exp_config.source_field_strength, exp_config.target_field_strength)
-
-    img_iter = ImageIterator((images_train, source_images_train_ind), (images_val, source_images_val_ind))
-
     # open save file from the selected experiment
     init_checkpoint_path = utils.get_latest_model_checkpoint_path(logdir, 'model.ckpt')
     logging.info('Checkpoint path: %s' % init_checkpoint_path)
@@ -46,7 +45,6 @@ def generate_adapted_images(data, experiment, save_path):
     with tf.Graph().as_default():
 
         # Generate placeholders for the images and labels.
-
         im_s = exp_config.image_size
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
@@ -56,6 +54,8 @@ def generate_adapted_images(data, experiment, save_path):
 
         # generated fake image batch
         x_pl_ = generator(z_pl, training_placeholder)
+
+        classification_source_pl = classifier()
 
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
@@ -76,10 +76,15 @@ def generate_adapted_images(data, experiment, save_path):
         sess.run(init)
 
         saver_latest.restore(sess, init_checkpoint_path)
-        for source_img in img_iter:
+        # create selectors
+        train_source_sel, val_source_sel = utils.index_sets_to_selectors(source_images_train_ind, source_images_val_ind)
+
+        for source_img in itertools.chain(itertools.compress(images_train, train_source_sel),
+                                          itertools.compress(images_val, val_source_sel)):
             # classify source_img
+
             # generate image
-            fake_img = sess.run(x_pl_, feed_dict={z_pl: z_img, training_placeholder: False})
+            fake_img = sess.run(x_pl_, feed_dict={z_pl: source_img, training_placeholder: False})
             # classify fake_img
 
 
