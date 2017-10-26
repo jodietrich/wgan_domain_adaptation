@@ -561,6 +561,14 @@ def dense_layer_bn(bottom,
 
     return act
 
+
+
+def reduce_avg_layer3D(x, name=None):
+    op = tf.reduce_mean(x, axis=(1,2,3), keep_dims=False, name=name)
+    tf.summary.histogram(op.op.name + '/activations', op)
+
+    return op
+
 ### VARIABLE INITIALISERS ####################################################################################
 
 def get_weight_variable(shape, name=None, type='xavier_uniform', regularize=True, **kwargs):
