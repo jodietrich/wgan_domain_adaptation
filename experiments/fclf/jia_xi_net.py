@@ -4,7 +4,7 @@ import config.system as sys_config
 import os
 import batch_augmentors
 
-experiment_name = 'jiaxi_net_only_diag_lr0.0001_flipaug_bn_mom0.99_fstr_all_data'
+experiment_name = 'jiaxi_net_lr0.0001_flipaug_bn_mom0.99_fstr'
 
 # Model settings
 model_handle = model_zoo.jia_xi_net_multitask_ordinal_bn
@@ -19,7 +19,7 @@ fs_label_list = (0, 1)
 age_bins = (65, 70, 75, 80, 85)
 nlabels = len(fs_label_list)
 data_root = sys_config.data_root
-preproc_folder = os.path.join(sys_config.project_root,'preproc_data/ender_noskull')
+preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
 
 # Cost function
 age_weight = 0.0   # setting this to zero turns it off

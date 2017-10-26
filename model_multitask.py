@@ -2,6 +2,8 @@
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
 # Lisa M. Koch (lisa.margret.koch@gmail.com)
 
+# used for field strength classifier
+
 import tensorflow as tf
 from tfwrapper import losses
 

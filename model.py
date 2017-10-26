@@ -1,6 +1,8 @@
 # Authors:
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
 
+# used for GAN
+
 import tensorflow as tf
 from tfwrapper import losses
 from math import sqrt
