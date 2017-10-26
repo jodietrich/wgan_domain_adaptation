@@ -388,7 +388,8 @@ def conv2D_layer_bn(bottom,
                     strides=(1,1),
                     activation=tf.nn.relu,
                     padding="SAME",
-                    weight_init='he_normal'):
+                    weight_init='he_normal',
+                    bn_momentum=0.999):
     '''
     Shortcut for batch normalised 2D convolutional layer
     '''
@@ -403,7 +404,7 @@ def conv2D_layer_bn(bottom,
                         weight_init=weight_init,
                         add_bias=False)
 
-    conv_bn = batch_normalisation_layer(conv, name + '_bn', training)
+    conv_bn = batch_normalisation_layer(conv, name + '_bn', training, decay=bn_momentum)
 
     act = activation(conv_bn)
 
@@ -451,7 +452,8 @@ def deconv2D_layer_bn(bottom,
                       output_shape=None,
                       activation=tf.nn.relu,
                       padding="SAME",
-                      weight_init='he_normal'):
+                      weight_init='he_normal',
+                      bn_momentum=0.999):
     '''
     Shortcut for batch normalised 2D transposed convolutional layer
     '''
@@ -467,7 +469,7 @@ def deconv2D_layer_bn(bottom,
                           weight_init=weight_init,
                           add_bias=False)
 
-    deco_bn = batch_normalisation_layer(deco, name + '_bn', training=training)
+    deco_bn = batch_normalisation_layer(deco, name + '_bn', training=training, decay=bn_momentum)
 
     act = activation(deco_bn)
 
@@ -483,7 +485,8 @@ def deconv3D_layer_bn(bottom,
                       output_shape=None,
                       activation=tf.nn.relu,
                       padding="SAME",
-                      weight_init='he_normal'):
+                      weight_init='he_normal',
+                      bn_momentum=0.999):
 
     '''
     Shortcut for batch normalised 3D transposed convolutional layer
@@ -500,7 +503,7 @@ def deconv3D_layer_bn(bottom,
                           weight_init=weight_init,
                           add_bias=False)
 
-    deco_bn = batch_normalisation_layer(deco, name + '_bn', training=training)
+    deco_bn = batch_normalisation_layer(deco, name + '_bn', training=training, decay=bn_momentum)
 
     act = activation(deco_bn)
 
@@ -515,7 +518,8 @@ def conv2D_dilated_layer_bn(bottom,
                            rate=1,
                            activation=tf.nn.relu,
                            padding="SAME",
-                           weight_init='he_normal'):
+                           weight_init='he_normal',
+                           bn_momentum=0.999):
 
     '''
     Shortcut for batch normalised 2D dilated convolutional layer
@@ -531,7 +535,7 @@ def conv2D_dilated_layer_bn(bottom,
                                 weight_init=weight_init,
                                 add_bias=False)
 
-    conv_bn = batch_normalisation_layer(conv, name + '_bn', training=training)
+    conv_bn = batch_normalisation_layer(conv, name + '_bn', training=training, decay=bn_momentum)
 
     act = activation(conv_bn)
 
@@ -544,7 +548,8 @@ def dense_layer_bn(bottom,
                    training,
                    hidden_units=512,
                    activation=tf.nn.relu,
-                   weight_init='he_normal'):
+                   weight_init='he_normal',
+                   bn_momentum=0.999):
 
     '''
     Shortcut for batch normalised 2D dilated convolutional layer
@@ -557,7 +562,7 @@ def dense_layer_bn(bottom,
                          weight_init=weight_init,
                          add_bias=False)
 
-    batchnorm = batch_normalisation_layer(linact, name + '_bn', training=training)
+    batchnorm = batch_normalisation_layer(linact, name + '_bn', training=training, decay=bn_momentum)
     act = activation(batchnorm)
 
     return act

@@ -1,3 +1,6 @@
+Training: 700
+Validation: 176
+
 min: -0.530884
 max: 10.6884
 mean: 0.067935

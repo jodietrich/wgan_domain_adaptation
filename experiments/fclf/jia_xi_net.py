@@ -35,7 +35,7 @@ optimizer_handle = tf.train.AdamOptimizer
 schedule_lr = False
 warmup_training = False
 momentum = None
-# bn_momentum = 0.99 # not used
+bn_momentum = 0.99
 
 # Augmentation settings
 augmentation_function = batch_augmentors.flip_augment

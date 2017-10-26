@@ -8,9 +8,10 @@ import itertools
 import logging
 import time
 import numpy as np
-import os.path
+import os
 import tensorflow as tf
 import shutil
+from importlib.machinery import SourceFileLoader
 
 import config.system as sys_config
 import model
@@ -20,20 +21,19 @@ import adni_data_loader
 import data_utils
 
 
-#######################################################################
-from experiments.gan import residual_gen_bs2 as gan_config
-from experiments.fclf import jia_xi_net as fclf_config
-#######################################################################
+def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
+    """
+    :param data: hdf5 file handle with ADNI data
+    :param gan_config: SourceFileLoader from importlib.machinery for gan config file
+    :param fclf_config: SourceFileLoader from importlib.machinery for fclf config file
+    :return: nothing
+    """
 
-def generate_and_evaluate_adapted_images(data):
+
     # extract images and indices of source/target images for the training and validation set
     images_train, source_images_train_ind, target_images_train_ind,\
     images_val, source_images_val_ind, target_images_val_ind = adni_data_loader.get_images_and_fieldstrength_indices(
         data, gan_config.source_field_strength, gan_config.target_field_strength)
-
-    # log file paths
-    logdir_gan = os.path.join(sys_config.log_root, gan_config.experiment_name)
-    logdir_fclf = os.path.join(sys_config.log_root, fclf_config.experiment_name)
 
     # open GAN save file from the selected experiment
     init_checkpoint_path_gan = utils.get_latest_model_checkpoint_path(logdir_gan, 'model.ckpt')
@@ -115,35 +115,34 @@ def generate_and_evaluate_adapted_images(data):
 
 
 
-
-
-def import_images(path):
-    pass
-
-def evaluate_images(experiment):
-    generated_images = import_images()
-
-def already_generated_images(experiment, image_saving_path):
-    return False
-
-
 if __name__ == '__main__':
     # settings
-    experiment_name = 'residual_identity_gen_bs2_std_disc_i2'
-    fclf_experiment_name = 'jiaxi_net_only_diag_lr0.0001_flipaug_bn_mom0.99_fstr_all_data'
+    gan_experiment_name = 'residual_identity_gen_bs2_std_disc_i2'
+    fclf_experiment_name = 'jiaxi_net_lr0.0001_flipaug_bn_mom0.99_fstr'
     image_saving_path = 'data/generated_images'
 
+    # log file paths
+    logdir_gan = os.path.join(sys_config.log_root, gan_experiment_name)
+    logdir_fclf = os.path.join(sys_config.log_root, fclf_experiment_name)
+
+    # get experiment config files (only python file in log directory)
+    gan_py_file = [file for file in os.listdir(logdir_gan) if file.endswith('.py')][0]
+    fclf_py_file = [file for file in os.listdir(logdir_fclf) if file.endswith('.py')][0]
+
+    # import config files
+    gan_config = SourceFileLoader(gan_py_file, logdir_gan)
+    fclf_config = SourceFileLoader(fclf_py_file, logdir_fclf)
+
     # import data
-    # TODO: import all data
     data = adni_data_loader.load_and_maybe_process_data(
             input_folder=gan_config.data_root,
             preprocessing_folder=gan_config.preproc_folder,
             size=gan_config.image_size,
             target_resolution=gan_config.target_resolution,
-            label_list = gan_config.label_list,
+            label_list = (0, 1, 2),
             force_overwrite=False
         )
 
-    generate_and_evaluate_adapted_images(data)
+    generate_and_evaluate_adapted_images(data, gan_config, fclf_config)
 
 

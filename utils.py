@@ -7,6 +7,71 @@ import numpy as np
 import os
 import glob
 
+def fstr_to_label(fieldstrengths, field_strength_list, label_list):
+    # input fieldstrenghts hdf5 list
+    # field_strength_list must have the same size as label_list
+    # returns a numpy array of labels
+    assert len(label_list) == len(field_strength_list)
+    labels = np.empty_like(fieldstrengths, dtype=np.int16)
+    for i in range(len(fieldstrengths)):
+        valid_value = False
+        for k in range(len(field_strength_list)):
+            if(fieldstrengths[i] == field_strength_list[k]):
+                labels[i] = label_list[k]
+                valid_value = True
+                break
+        if(not valid_value):
+            raise ValueError('unexpected value in fieldstrengths: %s' % fieldstrengths[i])
+    return labels
+
+
+
+def age_to_ordinal_reg_format(ages, bins=(65, 70, 75, 80, 85)):
+
+    N = ages.shape[0]
+    P = len(bins)
+
+    ages_mat = np.transpose(np.tile(ages,(P,1)))
+    bins_mat = np.tile(bins, (N,1))
+
+    return np.array(ages_mat>bins_mat, dtype=np.uint8)
+
+def age_to_bins(ages,  bins=(65, 70, 75, 80, 85)):
+
+    ages_ordinal = age_to_ordinal_reg_format(ages, bins)
+    return np.sum(ages_ordinal, axis=-1)
+
+
+def ordinal_regression_to_bin(ages_ord_reg):
+
+    # N = ages_ord_reg.shape[0]
+    # binned_list = []
+    # for nn in range(N):
+    #     if np.sum(ages_ord_reg[nn,:]) > 0:
+    #         binned_list.append(all_argmax(ages_ord_reg[nn,:])[-1][0]+1)
+    #     else:
+    #         binned_list.append(0)
+
+
+
+    return np.sum(ages_ord_reg, -1)
+
+
+def get_ordinal_reg_weights(ages_ordinal_reg):
+
+    ages_binned = list(ordinal_regression_to_bin(ages_ordinal_reg))
+    P = ages_ordinal_reg.shape[1]
+
+    counts = [ages_binned.count(pp) for pp in range(P)]
+    counts = [np.divide(np.sqrt(cc), np.sum(np.sqrt(counts))) for cc in counts]
+
+    return counts
+
+def all_argmax(arr, axis=None):
+
+    return np.argwhere(arr == np.amax(arr, axis=axis))
+
+
 def makefolder(folder):
     '''
     Helper function to make a new folder if doesn't exist

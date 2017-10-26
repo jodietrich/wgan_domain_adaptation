@@ -80,6 +80,15 @@ def per_structure_dice(logits, labels, epsilon=1e-10):
     return dices_per_subj
 
 
+def cross_entropy_loss(logits, labels):
+    '''
+    Simple wrapper for the normal tensorflow cross entropy loss
+    '''
+
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels))
+    return loss
+
+
 def pixel_wise_cross_entropy_loss(logits, labels):
     '''
     Simple wrapper for the normal tensorflow cross entropy loss 
@@ -115,3 +124,30 @@ def pixel_wise_cross_entropy_loss_weighted(logits, labels, class_weights):
 
     return loss
 
+
+def ordinal_prediction_loss(pred_list, labels, weights=None):
+
+    loss = 0
+
+    # print('DEBUG')
+    # print(labels.shape)
+
+    for cc, pred in enumerate(pred_list):
+
+        # print(cc)
+        # label = tf.slice(labels, (0, cc),(-1, 1), name='slice_gt_ages')
+        label = labels[:,cc]
+        # print('DEBUG')
+        # print(label.shape)
+
+        if weights:
+            weights_var = tf.constant(np.array(weights, dtype=np.float32))
+            loss += weights_var[cc]*tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=tf.one_hot(label, depth=2))
+
+        else:
+            loss += tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=tf.one_hot(label, depth=2))
+
+
+    # print('--')
+
+    return tf.reduce_mean(loss)

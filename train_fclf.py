@@ -89,8 +89,6 @@ def run_training(continue_run):
     images_val = data['images_val']
     fieldstr_val = data['field_strength_val']
     labels_val = utils.fstr_to_label(fieldstr_val, exp_config.field_strength_list, exp_config.fs_label_list)
-    logging.info("labels_train: " + str(list(labels_train)))
-    logging.info("labels_val: " + str(list(labels_val)))
     ages_val = data['age_val']
 
     if exp_config.age_ordinal_regression:

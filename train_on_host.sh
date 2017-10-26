@@ -9,7 +9,7 @@
 
 ## SET THE FOLLOWING VARIABLES ACCORDING TO YOUR SYSTEM ##
 CUDA_HOME=/scratch_net/brossa/jdietric/libs/cuda-8.0
-PROJECT_HOME=/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt/
+PROJECT_HOME=/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt
 VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 
 ## SGE Variables:
