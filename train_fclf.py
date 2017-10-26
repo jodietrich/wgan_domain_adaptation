@@ -185,7 +185,9 @@ def run_training(continue_run):
         zero_ops = [tv.assign(tf.zeros_like(tv)) for tv in accum_tvars]
 
         # compute gradients for a batch
-        batch_grads_vars = optimiser.compute_gradients(loss, t_vars)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            batch_grads_vars = optimiser.compute_gradients(loss, t_vars)
 
         # collect the batch gradient into accumulated vars
 
@@ -195,9 +197,10 @@ def run_training(continue_run):
         accum_mean_op = [accum_tvar.assign(tf.divide(accum_tvar, accum_normaliser_pl)) for accum_tvar in accum_tvars]
 
         # apply accums gradients
-        train_op = optimiser.apply_gradients(
-            [(accum_tvar, batch_grad_var[1]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars)]
-        )
+        with tf.control_dependencies(update_ops):
+            train_op = optimiser.apply_gradients(
+                [(accum_tvar, batch_grad_var[1]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars)]
+            )
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits, ages_logits,
                                                                                          diag_placeholder,
