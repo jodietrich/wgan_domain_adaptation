@@ -6,6 +6,8 @@ import nibabel as nib
 import numpy as np
 import os
 import glob
+from importlib.machinery import SourceFileLoader
+import config.system as sys_config
 
 def fstr_to_label(fieldstrengths, field_strength_list, label_list):
     # input fieldstrenghts hdf5 list
@@ -140,4 +142,21 @@ def index_sets_to_selectors(*index_sets):
 class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
+
+
+def load_log_exp_config(experiment_name):
+    # loads the module of the experiment and returns a loader that can be used to access variables and classes in the
+    # module (loader.myClass())
+
+    # log file path
+    logdir = os.path.join(sys_config.log_root, experiment_name)
+
+    # get experiment config file (assuming it is the first python file in log directory)
+    py_file_name = [file for file in os.listdir(logdir) if file.endswith('.py')][0]
+
+    py_file_path = os.path.join(logdir, py_file_name)
+
+    # import config file
+    # remove the .py with [:-3]
+    return SourceFileLoader(py_file_name[:-3], py_file_path).load_module()
 

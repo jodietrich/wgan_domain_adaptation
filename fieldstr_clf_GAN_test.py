@@ -2,8 +2,6 @@
 
 __author__ = 'jdietric'
 
-import logging
-
 import itertools
 import logging
 import time
@@ -19,6 +17,7 @@ from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
 import data_utils
+from model_multitask import predict
 
 
 def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
@@ -43,7 +42,7 @@ def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
     logging.info('Latest step was: %d' % last_step_gan)
 
     # open field strength classifier save file from the selected experiment
-    init_checkpoint_path_fclf = utils.get_latest_model_checkpoint_path(logdir_fclf, 'model.ckpt')
+    init_checkpoint_path_fclf = utils.get_latest_model_checkpoint_path(logdir_fclf, 'model_best_xent.ckpt')
     logging.info('loading field strength classifier')
     logging.info('Checkpoint path: %s' % init_checkpoint_path_fclf)
     last_step_fclf = int(init_checkpoint_path_fclf.split('/')[-1].split('-')[-1])
@@ -51,7 +50,8 @@ def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
 
 
     generator = gan_config.generator
-    classifier = fclf_config.model_handle
+    # classifier = lambda images: fclf_config.model_handle(images=images, training=False, nlabels=fclf_config.nlabels,
+    #                                                      bn_momentum=fclf_config.bn_momentum, scope_reuse=True)
 
     z_sampler = data_utils.DataSampler(images_train, source_images_train_ind, images_val, source_images_val_ind)
 
@@ -69,15 +69,18 @@ def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
         x_pl_ = generator(z_pl, training_placeholder)
 
         # classification of the real source image and the fake target image
-        logits_source_pl = classifier(z_pl, False, fclf_config.nlabels)
-        logits_fake_pl = classifier(x_pl_, False, fclf_config.nlabels)
+        # TODO: figure out reuse issue
+        with tf.variable_scope('prediction') as scope:
+            scope.reuse_variables()
+            source_predicted_label, source_softmax, _ = predict(z_pl, fclf_config)
+            fake_predicted_label, fake_softmax, _ = predict(x_pl_, fclf_config)
 
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
 
         # Create a savers for writing training checkpoints.
-        saver_latest = tf.train.Saver(max_to_keep=3)
-        saver_best_disc = tf.train.Saver(max_to_keep=3)  # disc loss is scaled negative EM distance
+        saver_latest_gan = tf.train.Saver()
+        saver_best_fclf = tf.train.Saver()  # disc loss is scaled negative EM distance
 
         # prevents ResourceExhaustError when a lot of memory is used
         config = tf.ConfigProto()
@@ -90,29 +93,65 @@ def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
         # Run the Op to initialize the variables.
         sess.run(init)
 
-        saver_latest.restore(sess, init_checkpoint_path_gan)
+        saver_latest_gan.restore(sess, init_checkpoint_path_gan)
+        saver_best_fclf.restore(sess, init_checkpoint_path_fclf)
         # create selectors
         train_source_sel, val_source_sel = utils.index_sets_to_selectors(source_images_train_ind, source_images_val_ind)
 
+        # s for source, t for target. First the prediction on the source image, then the prediction on the generated image
+        prediction_count = {'ss': 0, 'st': 0, 'ts': 0, 'tt': 0}
         # loops through all images from the source domain
         for source_img in itertools.chain(itertools.compress(images_train, train_source_sel),
                                           itertools.compress(images_val, val_source_sel)):
             # classify source_img
-            source_logits = sess.run(logits_source_pl, feed_dict={z_pl: source_img, training_placeholder: False})
+            source_prediction, source_sm_prob = sess.run([source_predicted_label, source_softmax], feed_dict={z_pl: source_img, training_placeholder: False})
             # generate image
             fake_img = sess.run(x_pl_, feed_dict={z_pl: source_img, training_placeholder: False})
             # classify fake_img
-            fake_logits = sess.run(logits_fake_pl, feed_dict={x_pl_: fake_img, training_placeholder: False})
+            fake_prediction, fake_sm_prob = sess.run([fake_predicted_label, fake_softmax], feed_dict={x_pl_: fake_img, training_placeholder: False})
 
-            real_source_label = fclf_config.fs_label_list[fclf_config.field_strength_list.index(gan_config.source_field_strength)]
-            predicted_source_label = fclf_config.fs_label_list[logits_source_pl.index(max(logits_source_pl))]
-            predicted_fake_label = fclf_config.fs_label_list[logits_fake_pl.index(max(logits_fake_pl))]
+            source_label = fclf_config.fs_label_list[fclf_config.field_strength_list.index(gan_config.source_field_strength)]
+
+            # record occurences of the four possible combinations of source_prediction and fake_prediction
+            if source_prediction == source_label:
+                if fake_prediction == source_label:
+                    prediction_count['ss'] += 1
+                else:
+                    prediction_count['st'] += 1
+            else:
+                if fake_prediction == source_label:
+                    prediction_count['ts'] += 1
+                else:
+                    prediction_count['tt'] += 1
+
 
             logging.info("NEW IMAGE")
-            logging.info("real label of source image: " + str(real_source_label))
-            logging.info("predicted label of source image: " + str(predicted_source_label))
-            logging.info("predicted label of fake image: " + str(predicted_fake_label))
+            logging.info("real label of source image: " + str(source_label))
+            logging.info("predicted label of source image: " + str(source_prediction))
+            logging.info("predicted label of fake image: " + str(fake_prediction))
 
+        log_stats(prediction_count)
+
+
+def log_stats(prediction_count):
+    total_count = 0
+    for key in prediction_count:
+        total_count += prediction_count[key]
+    logging.info('SUMMARY')
+    logging.info('fraction of generated pictures classified as target domain images: ' + str((prediction_count['st'] + prediction_count['tt']))/total_count)
+    logging.info('total number of pictures processed: ' + str(total_count))
+
+    logging.info('statistics with pictures where the source image was correctly classified as a source domain image:')
+    source_real_count = prediction_count['ss'] + prediction_count['st']
+    logging.info('number of images: ' + str(source_real_count))
+    if source_real_count > 0:
+        logging.info('fraction of generated pictures classified as target domain images: ' + str(prediction_count['st']/source_real_count))
+
+    logging.info('statistics with pictures where the source image was incorrectly classified as a target domain image:')
+    target_real_count = prediction_count['ts'] + prediction_count['tt']
+    logging.info('number of images: ' + str(target_real_count))
+    if target_real_count > 0:
+        logging.info('fraction of generated pictures classified as target domain images: ' + str(prediction_count['tt']/target_real_count))
 
 
 if __name__ == '__main__':
@@ -121,24 +160,9 @@ if __name__ == '__main__':
     fclf_experiment_name = 'fclf_jiaxi_net_small_data'
     image_saving_path = 'data/generated_images'
 
-    # log file paths
-    logdir_gan = os.path.join(sys_config.log_root, gan_experiment_name)
-    logdir_fclf = os.path.join(sys_config.log_root, fclf_experiment_name)
-
-    # get experiment config files (only python file in log directory)
-    gan_py_file_name = [file for file in os.listdir(logdir_gan) if file.endswith('.py')][0]
-    fclf_py_file_name = [file for file in os.listdir(logdir_fclf) if file.endswith('.py')][0]
-
-    gan_py_file_path = os.path.join(logdir_gan, gan_py_file_name)
-    fclf_py_file_path = os.path.join(logdir_fclf, fclf_py_file_name)
-
     # import config files
-    # remove the .py with [:-3]
-    gan_config = SourceFileLoader(gan_py_file_name[:-3], gan_py_file_path).load_module()
-    fclf_config = SourceFileLoader(fclf_py_file_name[:-3], fclf_py_file_path).load_module()
-
-    print(gan_config)
-    print(fclf_config)
+    gan_config = utils.load_log_exp_config(gan_experiment_name)
+    fclf_config = utils.load_log_exp_config(fclf_experiment_name)
 
     # import data
     data = adni_data_loader.load_and_maybe_process_data(
