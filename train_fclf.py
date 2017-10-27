@@ -166,7 +166,6 @@ def run_training(continue_run):
 
         tf.summary.scalar('loss', loss)
         tf.summary.scalar('diag_loss', diag_loss)
-        tf.summary.scalar('age_loss', age_loss)
         tf.summary.scalar('weights_norm_term', weights_norm)
 
         if exp_config.momentum is not None:
@@ -218,7 +217,6 @@ def run_training(continue_run):
         # Create a saver for writing training checkpoints.
         saver = tf.train.Saver(max_to_keep=3)
         saver_best_diag_f1 = tf.train.Saver(max_to_keep=2)
-        saver_best_ages_f1 = tf.train.Saver(max_to_keep=2)
         saver_best_xent = tf.train.Saver(max_to_keep=2)
 
         # prevents ResourceExhaustError when a lot of memory is used
@@ -241,9 +239,8 @@ def run_training(continue_run):
         val_f1_diag_summary = tf.summary.scalar('validation_diag_f1', val_diag_f1_score_)
 
         val_ages_f1_score_ = tf.placeholder(tf.float32, shape=[], name='val_ages_f1')
-        val_f1_ages_summary = tf.summary.scalar('validation_ages_f1', val_ages_f1_score_)
 
-        val_summary = tf.summary.merge([val_error_summary, val_f1_diag_summary, val_f1_ages_summary])
+        val_summary = tf.summary.merge([val_error_summary, val_f1_diag_summary])
 
         train_error_ = tf.placeholder(tf.float32, shape=[], name='train_error_diag')
         train_error_summary = tf.summary.scalar('training_loss', train_error_)
@@ -252,9 +249,8 @@ def run_training(continue_run):
         train_diag_f1_summary = tf.summary.scalar('training_diag_f1', train_diag_f1_score_)
 
         train_ages_f1_score_ = tf.placeholder(tf.float32, shape=[], name='train_ages_f1')
-        train_f1_ages_summary = tf.summary.scalar('training_ages_f1', train_ages_f1_score_)
 
-        train_summary = tf.summary.merge([train_error_summary, train_diag_f1_summary, train_f1_ages_summary])
+        train_summary = tf.summary.merge([train_error_summary, train_diag_f1_summary])
 
         # Run the Op to initialize the variables.
         sess.run(init)
@@ -272,7 +268,6 @@ def run_training(continue_run):
         loss_history = []
         loss_gradient = np.inf
         best_diag_f1_score = 0
-        best_ages_f1_score = 0
 
         # acum_manual = 0  #np.zeros((2,3,3,3,1,32))
 
@@ -323,7 +318,7 @@ def run_training(continue_run):
 
                     # Average gradient over batches
                     sess.run(accum_mean_op, feed_dict={accum_normaliser_pl: float(exp_config.n_accum_batches)})
-                    sess.run(train_op, feed_dict={learning_rate_placeholder: curr_lr, training_time_placeholder: True})
+                    sess.run(train_op, feed_dict=feed_dict)
 
                     # Reset all counters etc.
                     sess.run(zero_ops)
@@ -426,12 +421,6 @@ def run_training(continue_run):
                             best_file = os.path.join(log_dir, 'model_best_diag_f1.ckpt')
                             saver_best_diag_f1.save(sess, best_file, global_step=step)
                             logging.info('Found new best DIAGNOSIS F1 score on validation set! - %f -  Saving model_best_diag_f1.ckpt' % val_diag_f1)
-
-                        if val_ages_f1 >= best_ages_f1_score:
-                            best_ages_f1_score = val_ages_f1
-                            best_file = os.path.join(log_dir, 'model_best_ages_f1.ckpt')
-                            saver_best_ages_f1.save(sess, best_file, global_step=step)
-                            logging.info('Found new best AGES F1 score on validation set! - %f -  Saving model_best_ages_f1.ckpt' % val_ages_f1)
 
                         if val_loss <= best_val:
                             best_val = val_loss

@@ -4,7 +4,7 @@ import config.system as sys_config
 import os
 import batch_augmentors
 
-experiment_name = 'jiaxi_net_lr0.0001_flipaug_bn_mom0.99_fstr'
+experiment_name = 'fclf_jiaxi_net_small_data'
 
 # Model settings
 model_handle = model_zoo.jia_xi_net_multitask_ordinal_bn
