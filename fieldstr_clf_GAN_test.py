@@ -118,7 +118,7 @@ def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
 if __name__ == '__main__':
     # settings
     gan_experiment_name = 'residual_identity_gen_bs2_std_disc_i2'
-    fclf_experiment_name = 'jiaxi_net_lr0.0001_flipaug_bn_mom0.99_fstr'
+    fclf_experiment_name = 'fclf_jiaxi_net_small_data'
     image_saving_path = 'data/generated_images'
 
     # log file paths
@@ -133,8 +133,9 @@ if __name__ == '__main__':
     fclf_py_file_path = os.path.join(logdir_fclf, fclf_py_file_name)
 
     # import config files
-    gan_config = SourceFileLoader(gan_py_file_name, fclf_py_file_path).load_module()
-    fclf_config = SourceFileLoader(fclf_py_file_name, fclf_py_file_path).load_module()
+    # remove the .py with [:-3]
+    gan_config = SourceFileLoader(gan_py_file_name[:-3], gan_py_file_path).load_module()
+    fclf_config = SourceFileLoader(fclf_py_file_name[:-3], fclf_py_file_path).load_module()
 
     print(gan_config)
     print(fclf_config)

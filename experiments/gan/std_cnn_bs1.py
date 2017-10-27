@@ -15,6 +15,6 @@ num_val_batches = 20 # must be smaller than the smallest validation set
 # model to use
 def generator(z, training, scope_name='generator'):
     return model_zoo.only_conv_generator(z, training, residual=residual, batch_normalization=batch_normalization,
-                                         scope_name=scope_name, hidden_layers=gen_hidden_layers, filters=gen_filters)
+                                         hidden_layers=gen_hidden_layers, filters=gen_filters, scope_name=scope_name)
 
 discriminator = model_zoo.pool_fc_discriminator_bs1
