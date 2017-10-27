@@ -328,5 +328,58 @@ def jia_xi_net_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=
         return diagnosis, ages_logits
 
 
+def FCN_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=5, bn_momentum=0.99, scope_name='classifier',
+                             scope_reuse=False):
+    with tf.variable_scope(scope_name) as scope:
+        if scope_reuse:
+            scope.reuse_variables()
+        conv1_1 = layers.conv3D_layer_bn(images, 'conv1_1', num_filters=32, training=training, bn_momentum=bn_momentum)
 
+        pool1 = layers.max_pool_layer3d(conv1_1)
+
+        conv2_1 = layers.conv3D_layer_bn(pool1, 'conv2_1', num_filters=64, training=training, bn_momentum=bn_momentum)
+
+        pool2 = layers.max_pool_layer3d(conv2_1)
+
+        conv3_1 = layers.conv3D_layer_bn(pool2, 'conv3_1', num_filters=128, training=training, bn_momentum=bn_momentum)
+        conv3_2 = layers.conv3D_layer_bn(conv3_1, 'conv3_2', num_filters=128, training=training, bn_momentum=bn_momentum)
+
+        pool3 = layers.max_pool_layer3d(conv3_2)
+
+        conv4_1 = layers.conv3D_layer_bn(pool3, 'conv4_1', num_filters=256, training=training, bn_momentum=bn_momentum)
+        conv4_2 = layers.conv3D_layer_bn(conv4_1, 'conv4_2', num_filters=256, training=training, bn_momentum=bn_momentum)
+
+        pool4 = layers.max_pool_layer3d(conv4_2)
+
+        conv5_1 = layers.conv3D_layer_bn(pool4, 'conv5_1', num_filters=256, training=training, bn_momentum=bn_momentum)
+        conv5_2 = layers.conv3D_layer_bn(conv5_1, 'conv5_2', num_filters=256, training=training, bn_momentum=bn_momentum)
+
+        convD_1 = layers.conv3D_layer_bn(conv5_2, 'convD_1', num_filters=256, training=training, bn_momentum=bn_momentum)
+        convD_2 = layers.conv3D_layer_bn(convD_1,
+                                         'convD_2',
+                                         num_filters=nlabels,
+                                         training=training,
+                                         bn_momentum=bn_momentum,
+                                         kernel_size=(1,1,1),
+                                         activation=tf.identity)
+
+        diag_logits = layers.reduce_avg_layer3D(convD_2, name='diagnosis_avg')
+
+        convA_1 = layers.conv3D_layer_bn(pool4, 'convA_1', num_filters=256, training=training, bn_momentum=bn_momentum)
+
+        ages_logits = []
+        for ii in range(n_age_thresholds):
+
+            age_activations = layers.conv3D_layer_bn(convA_1,
+                                                     'convA_2_%d' % ii,
+                                                     num_filters=2,
+                                                     training=training,
+                                                     bn_momentum=bn_momentum,
+                                                     kernel_size=(1, 1, 1),
+                                                     activation=tf.identity)
+
+            ages_logits.append(layers.reduce_avg_layer3D(age_activations, name='age_avg_%d' % ii))
+
+
+        return diag_logits, ages_logits
 
