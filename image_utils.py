@@ -41,6 +41,22 @@ def normalise_image(image):
     s = np.std(img_o)
     return np.divide((img_o - m), s)
 
+
+def map_image_to_intensity_range(image, min_o, max_o):
+
+    if image.dtype in [np.uint8, np.uint16, np.uint32]:
+        assert min_o >= 0, 'Input image type is uintXX but you selected a negative min_o: %f' % min_o
+
+    if image.dtype == np.uint8:
+        assert max_o <= 255, 'Input image type is uint8 but you selected a max_o > 255: %f' % max_o
+
+    min_i = np.min(image)
+    max_i = np.max(image)
+    image = (np.divide((image - min_i), max_i - min_i) * (max_o - min_o) + min_o).copy()
+
+    return image
+
+
 def normalise_images(X):
     '''
     Helper for making the images zero mean and unit standard deviation i.e. `white`
@@ -59,11 +75,6 @@ def normalise_images(X):
         X_white[ii,:,:,:] = Xc_white
 
     return X_white.astype(np.float32)
-
-
-# TODO: write this function
-def scale_image_to_interval(image, interval_min, interval_max):
-    pass
 
 
 def reshape_2Dimage_to_tensor(image):

@@ -126,12 +126,18 @@ if __name__ == '__main__':
     logdir_fclf = os.path.join(sys_config.log_root, fclf_experiment_name)
 
     # get experiment config files (only python file in log directory)
-    gan_py_file = [file for file in os.listdir(logdir_gan) if file.endswith('.py')][0]
-    fclf_py_file = [file for file in os.listdir(logdir_fclf) if file.endswith('.py')][0]
+    gan_py_file_name = [file for file in os.listdir(logdir_gan) if file.endswith('.py')][0]
+    fclf_py_file_name = [file for file in os.listdir(logdir_fclf) if file.endswith('.py')][0]
+
+    gan_py_file_path = os.path.join(logdir_gan, gan_py_file_name)
+    fclf_py_file_path = os.path.join(logdir_fclf, fclf_py_file_name)
 
     # import config files
-    gan_config = SourceFileLoader(gan_py_file, logdir_gan)
-    fclf_config = SourceFileLoader(fclf_py_file, logdir_fclf)
+    gan_config = SourceFileLoader(gan_py_file_name, fclf_py_file_path).load_module()
+    fclf_config = SourceFileLoader(fclf_py_file_name, fclf_py_file_path).load_module()
+
+    print(gan_config)
+    print(fclf_config)
 
     # import data
     data = adni_data_loader.load_and_maybe_process_data(
