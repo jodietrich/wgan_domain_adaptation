@@ -18,9 +18,10 @@ import utils
 import adni_data_loader
 import data_utils
 from model_multitask import predict
+import experiments.gan.standard_parameters as std_params
 
 
-def generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_config, logdir_fclf):
+def generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_config, logdir_fclf, verbose=True):
     """
     :param data: hdf5 file handle with ADNI data
     :param gan_config: SourceFileLoader from importlib.machinery for gan config file
@@ -149,19 +150,20 @@ def generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_conf
             else:
                 prediction_count['tt'] += 1
 
+        if verbose:
+            logging.info("NEW IMAGE")
+            logging.info("real label of source image: " + str(source_label))
+            logging.info("predicted label of source image: " + str(source_prediction))
+            logging.info("predicted label of fake image: " + str(fake_prediction))
 
-        logging.info("NEW IMAGE")
-        logging.info("real label of source image: " + str(source_label))
-        logging.info("predicted label of source image: " + str(source_prediction))
-        logging.info("predicted label of fake image: " + str(fake_prediction))
-
-    log_stats(prediction_count)
+    return log_stats(prediction_count)
 
 
 def log_stats(prediction_count):
     total_count = 0
     for key in prediction_count:
         total_count += prediction_count[key]
+    score = (prediction_count['st'] + prediction_count['tt'])/total_count
     logging.info('SUMMARY')
     logging.info('fraction of generated pictures classified as target domain images: ' + str((prediction_count['st'] + prediction_count['tt'])/total_count))
     logging.info('total number of pictures processed: ' + str(total_count))
@@ -177,28 +179,54 @@ def log_stats(prediction_count):
     logging.info('number of images: ' + str(target_real_count))
     if target_real_count > 0:
         logging.info('fraction of generated pictures classified as target domain images: ' + str(prediction_count['tt']/target_real_count))
+    return score
+
 
 
 if __name__ == '__main__':
     # settings
-    gan_experiment_name = 'residual_identity_gen_bs2_std_disc_i2'
+    gan_experiment_list = [
+        'residual_identity_gen_bs1_std_disc_i1',
+        'residual_identity_gen_bs2_std_disc_bn_i1',
+        'residual_identity_gen_bs2_std_disc_i1',
+        'residual_identity_gen_bs2_std_disc_i2',
+        'std_cnn_identity_gen_v5'
+    ]
+    logging.info('file opening worked')
     fclf_experiment_name = 'fclf_jiaxi_net_small_data'
     image_saving_path = 'data/generated_images'
 
-    # import config files
-    gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_name)
-    fclf_config, logdir_fclf = utils.load_log_exp_config(fclf_experiment_name)
-
     # import data
     data = adni_data_loader.load_and_maybe_process_data(
-            input_folder=gan_config.data_root,
-            preprocessing_folder=gan_config.preproc_folder,
-            size=gan_config.image_size,
-            target_resolution=gan_config.target_resolution,
+            input_folder=std_params.data_root,
+            preprocessing_folder=std_params.preproc_folder,
+            size=std_params.image_size,
+            target_resolution=std_params.target_resolution,
             label_list = (0, 1, 2),
             force_overwrite=False
         )
 
-    generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_config, logdir_fclf)
+    # TODO: Do all this in generate_and_evaluate_adapted_images to avoid loading the fclf multiple times
+    # import config file for field strength classifier
+    fclf_config, logdir_fclf = utils.load_log_exp_config(fclf_experiment_name)
+    logging.info('Classifier used: ' + fclf_experiment_name)
+
+    scores = {}
+    for gan_experiment_name in gan_experiment_list:
+        gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_name)
+        logging.info('\nGAN Experiment (%f T to %f T): %s' % (gan_config.source_field_strength,
+                                                              gan_config.target_field_strength, gan_experiment_name))
+        scores[gan_experiment_name] = generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_config,
+                                                                           logdir_fclf, verbose=False)
+
+    logging.info('FINAL SUMMARY:\nFraction of generated images classified as from the target domain (score):')
+    logging.info(scores)
+    # gives the name of the experiment with the largest score (dictionary iterates over keys)
+    best_experiment = max(scores, key=scores.get)
+    best_score = scores[best_experiment]
+    logging.info('The best experiment was %s with score %f' % (best_experiment, best_score))
+
+
+
 
 
