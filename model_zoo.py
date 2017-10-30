@@ -293,9 +293,9 @@ def jia_xi_net_multitask_ordinal(images, training, nlabels, n_age_thresholds=5, 
 
 def jia_xi_net_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=5, bn_momentum=0.99,
                                     scope_name='classifier', scope_reuse=False):
-    with tf.variable_scope(scope_name) as scope:
-        if scope_reuse:
-            scope.reuse_variables()
+    # with tf.variable_scope(scope_name) as scope:
+    #     if scope_reuse:
+    #         scope.reuse_variables()
 
         conv1_1 = layers.conv3D_layer_bn(images, 'conv1_1', num_filters=32, training=training, bn_momentum=bn_momentum)
 

@@ -27,7 +27,8 @@ def generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_conf
     :param fclf_config: SourceFileLoader from importlib.machinery for fclf config file
     :return: nothing
     """
-
+    # bigger does not work currently (because of the statistics)
+    batch_size = 1
 
     # extract images and indices of source/target images for the training and validation set
     images_train, source_images_train_ind, target_images_train_ind,\
@@ -54,81 +55,107 @@ def generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_conf
     #                                                      bn_momentum=fclf_config.bn_momentum, scope_reuse=True)
 
 
-    with tf.Graph().as_default():
+    # build a separate graph for the generator and the classifier respectively
+    graph_generator = tf.Graph()
+    graph_classifier = tf.Graph()
 
-        # Generate placeholders for the images and labels.
-        im_s = gan_config.image_size
+    # Generate placeholders for the images and labels.
+    im_s = gan_config.image_size
+    img_tensor_shape = [batch_size, im_s[0], im_s[1], im_s[2], gan_config.n_channels]
 
-        training_placeholder = tf.placeholder(tf.bool, name='training_phase')
+    with graph_generator.as_default():
+        training_gan_pl = tf.placeholder(tf.bool, name='training_phase')
 
         # source image (batch size = 1)
-        z_pl = tf.placeholder(tf.float32, [1, im_s[0], im_s[1], im_s[2], gan_config.n_channels], name='z')
+        z_gan_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
 
         # generated fake image batch
-        x_pl_ = generator(z_pl, training_placeholder)
-
-        # classification of the real source image and the fake target image
-        source_predicted_label, source_softmax, _ = predict(z_pl, fclf_config)
-        scope = tf.get_variable_scope()
-        scope.reuse_variables()
-        fake_predicted_label, fake_softmax, _ = predict(x_pl_, fclf_config)
+        x_gan_pl_ = generator(z_gan_pl, training_gan_pl)
 
         # Add the variable initializer Op.
-        init = tf.global_variables_initializer()
+        init_gan = tf.global_variables_initializer()
 
         # Create a savers for writing training checkpoints.
         saver_latest_gan = tf.train.Saver()
+
+    with graph_classifier.as_default():
+        # Generate placeholders for the images and labels.
+        training_fclf_pl = tf.placeholder(tf.bool, name='training_phase')
+
+        # source image (batch size = 1)
+        z_fclf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
+
+        # generated fake image batch
+        x_fclf_pl_ = tf.placeholder(tf.float32, img_tensor_shape, name='z')
+
+        # classification of the real source image and the fake target image
+        source_predicted_label, source_softmax, _ = predict(z_fclf_pl, fclf_config)
+        scope = tf.get_variable_scope()
+        scope.reuse_variables()
+        fake_predicted_label, fake_softmax, _ = predict(x_fclf_pl_, fclf_config)
+
+        # Add the variable initializer Op.
+        init_fclf = tf.global_variables_initializer()
+
+        # Create a savers for writing training checkpoints.
         saver_best_fclf = tf.train.Saver()  # disc loss is scaled negative EM distance
 
-        # prevents ResourceExhaustError when a lot of memory is used
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True  # Do not assign whole gpu memory, just use it on the go
-        config.allow_soft_placement = True  # If a operation is not defined in the default device, let it execute in another.
+    # prevents ResourceExhaustError when a lot of memory is used
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True  # Do not assign whole gpu memory, just use it on the go
+    config.allow_soft_placement = True  # If a operation is not defined in the default device, let it execute in another.
 
-        # Create a session for running Ops on the Graph.
-        sess = tf.Session(config=config)
 
-        # Run the Op to initialize the variables.
-        sess.run(init)
 
-        saver_latest_gan.restore(sess, init_checkpoint_path_gan)
-        saver_best_fclf.restore(sess, init_checkpoint_path_fclf)
-        # create selectors
-        train_source_sel, val_source_sel = utils.index_sets_to_selectors(source_images_train_ind, source_images_val_ind)
+    # Create a session for running Ops on the Graph.
+    sess_gan = tf.Session(config=config, graph=graph_generator)
+    sess_fclf = tf.Session(config=config, graph=graph_classifier)
 
-        # s for source, t for target. First the prediction on the source image, then the prediction on the generated image
-        prediction_count = {'ss': 0, 'st': 0, 'ts': 0, 'tt': 0}
-        # loops through all images from the source domain
-        for source_img in itertools.chain(itertools.compress(images_train, train_source_sel),
-                                          itertools.compress(images_val, val_source_sel)):
-            # classify source_img
-            source_prediction, source_sm_prob = sess.run([source_predicted_label, source_softmax], feed_dict={z_pl: source_img, training_placeholder: False})
-            # generate image
-            fake_img = sess.run(x_pl_, feed_dict={z_pl: source_img, training_placeholder: False})
-            # classify fake_img
-            fake_prediction, fake_sm_prob = sess.run([fake_predicted_label, fake_softmax], feed_dict={x_pl_: fake_img, training_placeholder: False})
 
-            source_label = fclf_config.fs_label_list[fclf_config.field_strength_list.index(gan_config.source_field_strength)]
+    # Run the Op to initialize the variables.
+    sess_gan.run(init_gan)
+    sess_fclf.run(init_fclf)
 
-            # record occurences of the four possible combinations of source_prediction and fake_prediction
-            if source_prediction == source_label:
-                if fake_prediction == source_label:
-                    prediction_count['ss'] += 1
-                else:
-                    prediction_count['st'] += 1
+    saver_latest_gan.restore(sess_gan, init_checkpoint_path_gan)
+    saver_best_fclf.restore(sess_fclf, init_checkpoint_path_fclf)
+    # create selectors
+    train_source_sel, val_source_sel = utils.index_sets_to_selectors(source_images_train_ind, source_images_val_ind)
+
+    # s for source, t for target. First the prediction on the source image, then the prediction on the generated image
+    prediction_count = {'ss': 0, 'st': 0, 'ts': 0, 'tt': 0}
+    # loops through all images from the source domain
+    for source_img in itertools.chain(itertools.compress(images_train, train_source_sel),
+                                      itertools.compress(images_val, val_source_sel)):
+        source_image_input = np.reshape(source_img, img_tensor_shape)
+        # classify source_img
+        source_prediction_list, source_sm_prob = sess_fclf.run([source_predicted_label, source_softmax], feed_dict={z_fclf_pl: source_image_input, training_fclf_pl: False})
+        # generate image
+        fake_img = sess_gan.run(x_gan_pl_, feed_dict={z_gan_pl: source_image_input, training_gan_pl: False})
+        # classify fake_img
+        fake_prediction_list, fake_sm_prob = sess_fclf.run([fake_predicted_label, fake_softmax], feed_dict={x_fclf_pl_: fake_img, training_fclf_pl: False})
+        source_prediction = source_prediction_list[0]
+        fake_prediction = fake_prediction_list[0]
+        source_label = fclf_config.fs_label_list[fclf_config.field_strength_list.index(gan_config.source_field_strength)]
+
+        # record occurences of the four possible combinations of source_prediction and fake_prediction
+        if source_prediction == source_label:
+            if fake_prediction == source_label:
+                prediction_count['ss'] += 1
             else:
-                if fake_prediction == source_label:
-                    prediction_count['ts'] += 1
-                else:
-                    prediction_count['tt'] += 1
+                prediction_count['st'] += 1
+        else:
+            if fake_prediction == source_label:
+                prediction_count['ts'] += 1
+            else:
+                prediction_count['tt'] += 1
 
 
-            logging.info("NEW IMAGE")
-            logging.info("real label of source image: " + str(source_label))
-            logging.info("predicted label of source image: " + str(source_prediction))
-            logging.info("predicted label of fake image: " + str(fake_prediction))
+        logging.info("NEW IMAGE")
+        logging.info("real label of source image: " + str(source_label))
+        logging.info("predicted label of source image: " + str(source_prediction))
+        logging.info("predicted label of fake image: " + str(fake_prediction))
 
-        log_stats(prediction_count)
+    log_stats(prediction_count)
 
 
 def log_stats(prediction_count):
@@ -136,7 +163,7 @@ def log_stats(prediction_count):
     for key in prediction_count:
         total_count += prediction_count[key]
     logging.info('SUMMARY')
-    logging.info('fraction of generated pictures classified as target domain images: ' + str((prediction_count['st'] + prediction_count['tt']))/total_count)
+    logging.info('fraction of generated pictures classified as target domain images: ' + str((prediction_count['st'] + prediction_count['tt'])/total_count))
     logging.info('total number of pictures processed: ' + str(total_count))
 
     logging.info('statistics with pictures where the source image was correctly classified as a source domain image:')
