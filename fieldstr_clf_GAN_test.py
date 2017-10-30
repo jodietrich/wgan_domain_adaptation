@@ -20,7 +20,7 @@ import data_utils
 from model_multitask import predict
 
 
-def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
+def generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_config, logdir_fclf):
     """
     :param data: hdf5 file handle with ADNI data
     :param gan_config: SourceFileLoader from importlib.machinery for gan config file
@@ -53,7 +53,6 @@ def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
     # classifier = lambda images: fclf_config.model_handle(images=images, training=False, nlabels=fclf_config.nlabels,
     #                                                      bn_momentum=fclf_config.bn_momentum, scope_reuse=True)
 
-    z_sampler = data_utils.DataSampler(images_train, source_images_train_ind, images_val, source_images_val_ind)
 
     with tf.Graph().as_default():
 
@@ -62,18 +61,17 @@ def generate_and_evaluate_adapted_images(data, gan_config, fclf_config):
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
 
-        # source image batch
-        z_pl = tf.placeholder(tf.float32, [gan_config.batch_size, im_s[0], im_s[1], im_s[2], gan_config.n_channels], name='z')
+        # source image (batch size = 1)
+        z_pl = tf.placeholder(tf.float32, [1, im_s[0], im_s[1], im_s[2], gan_config.n_channels], name='z')
 
         # generated fake image batch
         x_pl_ = generator(z_pl, training_placeholder)
 
         # classification of the real source image and the fake target image
-        # TODO: figure out reuse issue
-        with tf.variable_scope('prediction') as scope:
-            scope.reuse_variables()
-            source_predicted_label, source_softmax, _ = predict(z_pl, fclf_config)
-            fake_predicted_label, fake_softmax, _ = predict(x_pl_, fclf_config)
+        source_predicted_label, source_softmax, _ = predict(z_pl, fclf_config)
+        scope = tf.get_variable_scope()
+        scope.reuse_variables()
+        fake_predicted_label, fake_softmax, _ = predict(x_pl_, fclf_config)
 
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
@@ -161,8 +159,8 @@ if __name__ == '__main__':
     image_saving_path = 'data/generated_images'
 
     # import config files
-    gan_config = utils.load_log_exp_config(gan_experiment_name)
-    fclf_config = utils.load_log_exp_config(fclf_experiment_name)
+    gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_name)
+    fclf_config, logdir_fclf = utils.load_log_exp_config(fclf_experiment_name)
 
     # import data
     data = adni_data_loader.load_and_maybe_process_data(
@@ -174,6 +172,6 @@ if __name__ == '__main__':
             force_overwrite=False
         )
 
-    generate_and_evaluate_adapted_images(data, gan_config, fclf_config)
+    generate_and_evaluate_adapted_images(data, gan_config, logdir_gan, fclf_config, logdir_fclf)
 
 

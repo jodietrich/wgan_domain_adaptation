@@ -158,5 +158,5 @@ def load_log_exp_config(experiment_name):
 
     # import config file
     # remove the .py with [:-3]
-    return SourceFileLoader(py_file_name[:-3], py_file_path).load_module()
+    return SourceFileLoader(py_file_name[:-3], py_file_path).load_module(), logdir
 
