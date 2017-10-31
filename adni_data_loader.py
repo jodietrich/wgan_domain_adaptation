@@ -40,7 +40,6 @@ def get_images_and_fieldstrength_indices(data, source_field_strength, target_fie
     images_train = data['images_train']
     images_val = data['images_val']
 
-    # TODO: make these sets (for more efficient lookup) and change Datasampler accordingly
     source_images_train_ind = []
     target_images_train_ind = []
     source_images_val_ind = []
@@ -110,7 +109,7 @@ def crop_or_pad_slice_to_size(image, target_size):
     return output_volume
 
 
-def prepare_data(input_folder, output_file, size, target_resolution, labels_list, image_postfix='.nii.gz'):
+def prepare_data(input_folder, output_file, size, target_resolution, labels_list, rescale_to_one, image_postfix='.nii.gz'):
 
     '''
     Main function that prepares a dataset from the raw challenge data to an hdf5 dataset
@@ -213,7 +212,12 @@ def prepare_data(input_folder, output_file, size, target_resolution, labels_list
 
             img_dat = utils.load_nii(file)
             img = img_dat[0].copy()
-            img = image_utils.normalise_image(img)
+
+            if rescale_to_one:
+                img = image_utils.map_image_to_intensity_range(img, -1, 1)
+            else:
+                img = image_utils.normalise_image(img)
+
 
             pixel_size = (img_dat[2].structarr['pixdim'][1],
                           img_dat[2].structarr['pixdim'][2],
@@ -289,6 +293,7 @@ def load_and_maybe_process_data(input_folder,
                                 size,
                                 target_resolution,
                                 label_list,
+                                rescale_to_one=False,
                                 force_overwrite=False):
 
     '''
@@ -308,7 +313,12 @@ def load_and_maybe_process_data(input_folder,
 
     lbl_str = '_'.join([str(i) for i in label_list])
 
-    data_file_name = 'data_size_%s_res_%s_lbl_%s.hdf5' % (size_str, res_str, lbl_str)
+    if rescale_to_one:
+        rescale_postfix = '_intrangeone'
+    else:
+        rescale_postfix = ''
+
+    data_file_name = 'data_size_%s_res_%s_lbl_%s%s.hdf5' % (size_str, res_str, lbl_str, rescale_postfix)
     data_file_path = os.path.join(preprocessing_folder, data_file_name)
 
     utils.makefolder(preprocessing_folder)
@@ -316,7 +326,7 @@ def load_and_maybe_process_data(input_folder,
     if not os.path.exists(data_file_path) or force_overwrite:
         logging.info('This configuration of mode, size and target resolution has not yet been preprocessed')
         logging.info('Preprocessing now!')
-        prepare_data(input_folder, data_file_path, size, target_resolution, label_list)
+        prepare_data(input_folder, data_file_path, size, target_resolution, label_list, rescale_to_one=rescale_to_one)
     else:
         logging.info('Already preprocessed this configuration. Loading now!')
 

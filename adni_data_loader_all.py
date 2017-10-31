@@ -28,10 +28,11 @@ viscode_dict = {'bl': 0, 'm03': 1, 'm06': 2, 'm12': 3, 'm18': 4, 'm24': 5, 'm36'
 MAX_WRITE_BUFFER = 5
 
 def fix_nan_and_unknown(input, target_data_format=lambda x: x, nan_val=-1, unknown_val=-2):
-    if math.isnan(float(input)):
-        input = nan_val
-    elif input == 'unknown':
+    if input == 'unknown':
         input = unknown_val
+    elif math.isnan(float(input)):
+        input = nan_val
+
 
     return target_data_format(input)
 
