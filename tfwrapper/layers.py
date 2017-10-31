@@ -568,6 +568,20 @@ def dense_layer_bn(bottom,
     return act
 
 
+# used by Bousmalis et al and in original residual networks paper
+def residual_block_original(bottom,
+                            scope_name,
+                            conv_layer,
+                            activation,
+                            nlayers=2):
+    with tf.variable_scope(scope_name) as scope:
+        previous_layer = conv_layer(bottom=bottom, name='conv1', activation=activation)
+
+        for layer in range(2, nlayers):
+            previous_layer = conv_layer(bottom=previous_layer, name='conv' + str(layer), activation=activation)
+        last_layer = conv_layer(bottom=previous_layer, name='conv_' + str(nlayers), activation=tf.identity)
+        return last_layer + bottom
+
 
 def reduce_avg_layer3D(x, name=None):
     op = tf.reduce_mean(x, axis=(1,2,3), keep_dims=False, name=name)

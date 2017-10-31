@@ -191,6 +191,64 @@ def pool_fc_discriminator_bs1(x, training, scope_name='discriminator', scope_reu
         return dense2
 
 
+# Bousmalis Netzwerke
+# can only be used with images in [-1, 1]
+# TODO: include noise
+def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilters, scope_name='generator', scope_reuse=False):
+    kernel_size = (3, 3, 3)
+    strides = (1, 1, 1)
+    # define layer for the residual blocks
+    if batch_normalization:
+        conv_layer = lambda bottom, name, activation: layers.conv3D_layer_bn(bottom, name, training=training,
+                                                                       kernel_size=kernel_size, num_filters=nfilters,
+                                                                       strides=strides, activation=activation)
+    else:
+        conv_layer = lambda bottom, name, activation: layers.conv3D_layer(bottom, name, kernel_size=kernel_size,
+                                                                    num_filters=nfilters, strides=strides,
+                                                                    activation=activation)
+    with tf.variable_scope(scope_name) as scope:
+        if scope_reuse:
+            scope.reuse_variables()
+        previous_layer = layers.conv3D_layer(x, 'conv1', kernel_size=kernel_size, num_filters=nfilters, strides=strides,
+                        activation=tf.nn.relu)
+
+        # place residual blocks
+        for block_num in range(1, 1 + residual_blocks):
+            previous_layer = layers.residual_block_original(previous_layer, 'res_block_' + str(block_num), conv_layer,
+                                                            activation=tf.nn.relu, nlayers=2)
+
+        conv_out = layers.conv3D_layer(previous_layer, 'conv_out', kernel_size=kernel_size, num_filters=1, strides=strides,
+                        activation=tf.nn.tanh)
+        return conv_out
+
+
+def bousmalis_discriminator(x, training, batch_normalization, middle_layers, nfilters, scope_name='discriminator', scope_reuse=False):
+    # leaky relu has the same parameter as in the paper
+    leaky_relu = lambda x: layers.leaky_relu(x, alpha=0.2)
+    with tf.variable_scope(scope_name) as scope:
+        if scope_reuse:
+            scope.reuse_variables()
+        if batch_normalization:
+            previous_layer = layers.conv3D_layer_bn(x, 'convs1_1', kernel_size=(3,3,3), num_filters=nfilters, strides=(1,1,1),
+                        activation=leaky_relu, training=training)
+        else:
+            previous_layer = layers.conv3D_layer(x, 'convs1_1', kernel_size=(3,3,3), num_filters=nfilters, strides=(1,1,1),
+                        activation=leaky_relu)
+
+        for layer in range(1, 1 + middle_layers):
+            if batch_normalization:
+                previous_layer = layers.conv3D_layer_bn(previous_layer, 'convs2_' + str(layer), kernel_size=(3,3,3), num_filters=nfilters*(2**layer), strides=(2,2,2),
+                            activation=leaky_relu, training=training)
+            else:
+                previous_layer = layers.conv3D_layer(previous_layer, 'convs2_' + str(layer), kernel_size=(3,3,3), num_filters=nfilters*(2**layer), strides=(2,2,2),
+                            activation=leaky_relu)
+
+        dense_out = layers.dense_layer(previous_layer, 'dense_out', hidden_units=1, activation=tf.identity)
+
+    return dense_out
+
+
+
 
 
     # classifiers from fieldstrength classifier, use too much memory to be used as discriminators

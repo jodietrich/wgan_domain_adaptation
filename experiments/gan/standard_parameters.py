@@ -26,7 +26,7 @@ image_range = (-0.512, 2.985) # approximately 1st percentile to 99th percentile 
 # visualization settings
 cut_axis = 2  # axis perpendicular to the cut plane (x=0, y=1, z=2)
 cut_index = 50  # index of the cut for visualization
-diff_threshold = 0.5  # maximum absolute value for visualization of difference between images. Gets mapped to 255
+diff_threshold = 1  # maximum absolute value for visualization of difference between images. Gets mapped to 255
 
 # Training settings
 batch_size = 2

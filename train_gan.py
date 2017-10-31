@@ -285,6 +285,7 @@ def main():
     shutil.copy(exp_config.__file__, log_dir)
     shutil.copy(standard_parameters.__file__, log_dir)
 
+
     run_training(continue_run)
 
 
