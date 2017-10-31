@@ -1,6 +1,6 @@
 __author__ = 'jdietric'
 
-from train import exp_config
+from train_gan import exp_config
 import logging
 import time
 

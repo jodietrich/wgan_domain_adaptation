@@ -25,6 +25,7 @@ sys_config.setup_GPU_environment()
 
 #######################################################################
 from experiments.gan import residual_gen_bs2 as exp_config
+from experiments.gan import standard_parameters
 #######################################################################
 
 log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
@@ -91,6 +92,9 @@ def run_training(continue_run):
         # generated fake image batch
         x_pl_ = generator(z_pl, training_placeholder)
 
+        # difference between generated and source images
+        diff_img_pl = x_pl_ - z_pl
+
         # visualize the images by showing one slice of them in the z direction
         tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='manual',
@@ -103,6 +107,10 @@ def run_training(continue_run):
         tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid3d(z_pl, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
+
+        tf.summary.image('sample_difference_gx-x', tf_utils.put_kernels_on_grid3d(diff_img_pl, exp_config.cut_axis,
+                                                                          exp_config.cut_index, rescale_mode='centered',
+                                                                          cutoff_abs=exp_config.diff_threshold))
 
         # output of the discriminator for real image
         d_pl = discriminator(x_pl, training_placeholder, scope_reuse=False)
@@ -133,6 +141,10 @@ def run_training(continue_run):
 
         # Build the operation for clipping the discriminator weights
         d_clip_op = model.clip_op()
+
+        # Put L1 distance of generated image and original image on summary
+        dist_l1_pl = tf.reduce_mean(tf.abs(diff_img_pl))
+        dist_l1_summary_op = tf.summary.scalar('L1_distance_to_source_img', dist_l1_pl)
 
         # Build the summary Tensor based on the TF collection of Summaries.
         summary_op = tf.summary.merge_all()
@@ -269,8 +281,9 @@ def main():
         tf.gfile.MakeDirs(log_dir)
         continue_run = False
 
-    # Copy experiment config file
+    # Copy experiment config file and standard_parameters file
     shutil.copy(exp_config.__file__, log_dir)
+    shutil.copy(standard_parameters.__file__, log_dir)
 
     run_training(continue_run)
 

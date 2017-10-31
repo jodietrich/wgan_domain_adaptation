@@ -18,7 +18,7 @@ VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 #$ -S /bin/bash
 #
 ## <= 1h is short queue, <= 6h is middle queue, <= 48 h is long queue
-#$ -l h_rt=06:00:00
+#$ -l h_rt=12:00:00
 
 ## the maximum memory usage of this job, (below 4G does not make much sense)
 #$ -l h_vmem=40G
@@ -53,7 +53,7 @@ eval "$(pyenv virtualenv-init -)"
 source $VIRTUAL_ENV_PATH/bin/activate
 
 ## EXECUTION OF PYTHON CODE:
-python $PROJECT_HOME/train.py
+python $PROJECT_HOME/train_gan.py
 
 echo "Hostname was: `hostname`"
 echo "Reached end of job file."

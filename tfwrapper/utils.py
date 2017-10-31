@@ -22,7 +22,7 @@ def get_rhs_dim(tensor):
     shape = tensor.get_shape().as_list()
     return np.prod(shape[1:])
 
-def put_kernels_on_grid(images, pad=1, rescale_mode='automatic', input_range=None):
+def put_kernels_on_grid(images, pad=1, rescale_mode='automatic', input_range=None, cutoff_abs=0.5):
 
     '''Visualize conv. filters as an image (mostly for the 1st layer).
     Arranges filters into a grid, with some paddings between adjacent filters.
@@ -30,9 +30,11 @@ def put_kernels_on_grid(images, pad=1, rescale_mode='automatic', input_range=Non
     Args:
       images:            [batch_size, X, Y, channels] 
       pad:               number of black pixels around each filter (between them)
-      rescale_mode:      'manual' or 'automatic'
+      rescale_mode:      'manual', 'automatic' or 'centered'
       Automatic rescale mode scales the images such that the they are in the range [0,255]
       Manual rescale mode maps input_range to [0,255] and thresholds everything outside the range
+      Centered rescale mode maps input_range to [0,255] with 0 at 127.5 and cutoff_abs at 255. Input values outside the
+                            range [-cutoff_abs, cutoff_abs] are clipped
       input_range:       input range used for manual rescaling (min, max)
     Return:
       Tensor of shape [1, (Y+2*pad)*grid_Y, (X+2*pad)*grid_X, NumChannels].
@@ -54,12 +56,15 @@ def put_kernels_on_grid(images, pad=1, rescale_mode='automatic', input_range=Non
     elif rescale_mode == 'manual':
         x_min = input_range[0]
         x_max = input_range[1]
+    elif rescale_mode == 'centered':
+        images = images / (2*cutoff_abs) + 0.5
     else:
         raise ValueError('Unknown rescale_mode: %s' % type)
 
-    images = (images - x_min) / (x_max - x_min)
+    if rescale_mode in ['automatic', 'manual']:
+        images = (images - x_min) / (x_max - x_min)
     images = 255.0 * images
-    if rescale_mode == 'manual':
+    if rescale_mode in ['manual', 'centered']:
         # threshold such that everything is in [0,255]
         images = tf.clip_by_value(images, 0, 255)
 
@@ -87,7 +92,7 @@ def put_kernels_on_grid(images, pad=1, rescale_mode='automatic', input_range=Non
 
     return x
 
-def put_kernels_on_grid3d(images, axis, cut_index, pad=1, rescale_mode='automatic', input_range=None):
+def put_kernels_on_grid3d(images, axis, cut_index, pad=1, rescale_mode='automatic', input_range=None, cutoff_abs=0.5):
     """ Puts a cut through the 3D kernel on the grid
     :param images: tensor of rank 5 with [batches, x, y, z, channels]
     :param axis: direction perpendicular to the cut, 0 for x, 1 for y, 2 for z
@@ -106,4 +111,4 @@ def put_kernels_on_grid3d(images, axis, cut_index, pad=1, rescale_mode='automati
         image_cut = images[:, :, cut_index, :, :]
     elif axis == 2:
         image_cut = images[:, :, :, cut_index, :]
-    return put_kernels_on_grid(image_cut, pad, rescale_mode, input_range)
+    return put_kernels_on_grid(image_cut, pad, rescale_mode, input_range, cutoff_abs)
