@@ -23,7 +23,8 @@ label_list = (0,2)  # 0 - normal, 1 - mci, 2 - alzheimer's
 source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
 target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
 n_channels = 1
-image_range = (-0.512, 2.985) # approximately 1st percentile to 99th percentile of preprocessed ADNI images
+image_range = (-1, 1)
+# image_range = (-0.512, 2.985) # approximately 1st percentile to 99th percentile of preprocessed ADNI images
 
 # visualization settings
 cut_axis = 2  # axis perpendicular to the cut plane (x=0, y=1, z=2)

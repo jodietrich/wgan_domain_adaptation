@@ -60,6 +60,7 @@ def run_training(continue_run):
         size=exp_config.image_size,
         target_resolution=exp_config.target_resolution,
         label_list = exp_config.label_list,
+        rescale_to_one=True,
         force_overwrite=False
     )
 

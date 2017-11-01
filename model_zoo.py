@@ -196,7 +196,6 @@ def pool_fc_discriminator_bs1(x, training, scope_name='discriminator', scope_reu
 
 # Bousmalis Netzwerke
 # can only be used with images in [-1, 1]
-# TODO: include noise
 def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilters, input_noise_dim=10, last_activation=tf.nn.tanh, scope_name='generator', scope_reuse=False):
     kernel_size = (3, 3, 3)
     strides = (1, 1, 1)
@@ -215,7 +214,7 @@ def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilt
         x_conv_in = x
         if input_noise_dim >= 1:
             # create noise, push it through a fc layer and concatenate it as a new channel
-            noise_in = tf.expand_dims(tf.random_uniform(shape=[input_noise_dim], minval=-1, maxval=1), axis=0)
+            noise_in = tf.expand_dims(tf.random_uniform(shape=[x.get_shape().as_list()[0], input_noise_dim], minval=-1, maxval=1), axis=0)
             # make sure the last dimension is 1 but the others agree with the image input
             noise_channel_shape = x.shape[:-1]
             fc_hidden_units = np.prod(noise_channel_shape)
@@ -238,27 +237,29 @@ def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilt
                         activation=last_activation)
         return conv_out
 
-# TODO: add dropout
-def bousmalis_discriminator(x, training, batch_normalization, middle_layers, nfilters, scope_name='discriminator', scope_reuse=False):
+def bousmalis_discriminator(x, training, batch_normalization, middle_layers, initial_filters, dropout_start=3, scope_name='discriminator', scope_reuse=False):
     # leaky relu has the same parameter as in the paper
     leaky_relu = lambda x: layers.leaky_relu(x, alpha=0.2)
     with tf.variable_scope(scope_name) as scope:
         if scope_reuse:
             scope.reuse_variables()
         if batch_normalization:
-            previous_layer = layers.conv3D_layer_bn(x, 'convs1_1', kernel_size=(3,3,3), num_filters=nfilters, strides=(1,1,1),
+            previous_layer = layers.conv3D_layer_bn(x, 'convs1_1', kernel_size=(3,3,3), num_filters=initial_filters, strides=(1,1,1),
                         activation=leaky_relu, training=training)
         else:
-            previous_layer = layers.conv3D_layer(x, 'convs1_1', kernel_size=(3,3,3), num_filters=nfilters, strides=(1,1,1),
+            previous_layer = layers.conv3D_layer(x, 'convs1_1', kernel_size=(3,3,3), num_filters=initial_filters, strides=(1,1,1),
                         activation=leaky_relu)
 
-        for layer in range(1, 1 + middle_layers):
+        for current_layer in range(2, 2 + middle_layers):
+            num_filters = initial_filters*(2**(current_layer-1))
             if batch_normalization:
-                previous_layer = layers.conv3D_layer_bn(previous_layer, 'convs2_' + str(layer), kernel_size=(3,3,3), num_filters=nfilters*(2**layer), strides=(2,2,2),
+                previous_layer = layers.conv3D_layer_bn(previous_layer, 'convs2_' + str(current_layer), kernel_size=(3,3,3), num_filters=num_filters, strides=(2,2,2),
                             activation=leaky_relu, training=training)
             else:
-                previous_layer = layers.conv3D_layer(previous_layer, 'convs2_' + str(layer), kernel_size=(3,3,3), num_filters=nfilters*(2**layer), strides=(2,2,2),
+                previous_layer = layers.conv3D_layer(previous_layer, 'convs2_' + str(current_layer), kernel_size=(3,3,3), num_filters=num_filters, strides=(2,2,2),
                             activation=leaky_relu)
+            if current_layer >= dropout_start:
+                previous_layer = layers.dropout_layer(previous_layer, 'dropout_' + str(current_layer), training)
 
         dense_out = layers.dense_layer(previous_layer, 'dense_out', hidden_units=1, activation=tf.identity)
 
@@ -368,9 +369,9 @@ def jia_xi_net_multitask_ordinal(images, training, nlabels, n_age_thresholds=5, 
 
 def jia_xi_net_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=5, bn_momentum=0.99,
                                     scope_name='classifier', scope_reuse=False):
-    # with tf.variable_scope(scope_name) as scope:
-    #     if scope_reuse:
-    #         scope.reuse_variables()
+    with tf.variable_scope(scope_name) as scope:
+        if scope_reuse:
+            scope.reuse_variables()
 
         conv1_1 = layers.conv3D_layer_bn(images, 'conv1_1', num_filters=32, training=training, bn_momentum=bn_momentum)
 
@@ -458,3 +459,22 @@ def FCN_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=5, bn_m
 
         return diag_logits, ages_logits
 
+
+
+def g_encoder_decoder_skip_notanh(z, training, scope_name='generator', scope_reuse=False):
+    with tf.variable_scope(scope_name) as scope:
+        if scope_reuse:
+            scope.reuse_variables()
+        layer1 = layers.conv3D_layer_bn(z, 'glayer1', num_filters=32, training=training, kernel_size=(4,4,4), strides=(2,2,2))
+        layer2 = layers.conv3D_layer_bn(layer1, 'glayer2', num_filters=64, training=training, kernel_size=(4,4,4), strides=(2,2,2))
+        layer3 = layers.conv3D_layer_bn(layer2, 'glayer3', num_filters=128, training=training, kernel_size=(4,4,4), strides=(2,2,2))
+        layer4 = layers.conv3D_layer_bn(layer3, 'glayer4', num_filters=256, training=training, kernel_size=(4,4,4), strides=(2,2,2))
+
+        layer5 = layers.deconv3D_layer_bn(layer4, name='glayer5', kernel_size=(4, 4, 4), strides=(2, 2, 2), num_filters=256, training=training)
+        layer6 = layers.deconv3D_layer_bn(layer5, name='glayer6', kernel_size=(4, 4, 4), strides=(2, 2, 2), num_filters=128, training=training)
+        layer7 = layers.deconv3D_layer_bn(layer6, name='glayer7', kernel_size=(4, 4, 4), strides=(2, 2, 2), num_filters=64, training=training)
+        layer8 = layers.deconv3D_layer_bn(layer7, name='glayer8', kernel_size=(4, 4, 4), strides=(2, 2, 2), num_filters=32, training=training)
+
+        layer9 = layers.conv3D_layer(layer8, 'glayer9', num_filters=1, kernel_size=(1, 1, 1), activation=tf.identity)
+
+        return z+layer9
