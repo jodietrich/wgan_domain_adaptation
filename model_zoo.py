@@ -3,6 +3,9 @@
 
 import tensorflow as tf
 from tfwrapper import layers
+import logging
+import numpy as np
+
 
 
 # ---------------stand alone functions for discriminator and generator------------------------------
@@ -194,7 +197,7 @@ def pool_fc_discriminator_bs1(x, training, scope_name='discriminator', scope_reu
 # Bousmalis Netzwerke
 # can only be used with images in [-1, 1]
 # TODO: include noise
-def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilters, scope_name='generator', scope_reuse=False):
+def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilters, input_noise_dim=10, scope_name='generator', scope_reuse=False):
     kernel_size = (3, 3, 3)
     strides = (1, 1, 1)
     # define layer for the residual blocks
@@ -209,7 +212,21 @@ def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilt
     with tf.variable_scope(scope_name) as scope:
         if scope_reuse:
             scope.reuse_variables()
-        previous_layer = layers.conv3D_layer(x, 'conv1', kernel_size=kernel_size, num_filters=nfilters, strides=strides,
+        x_conv_in = x
+        if input_noise_dim >= 1:
+            # create noise, push it through a fc layer and concatenate it as a new channel
+            noise_in = tf.expand_dims(tf.random_uniform(shape=[input_noise_dim], minval=-1, maxval=1), axis=0)
+            # make sure the last dimension is 1 but the others agree with the image input
+            noise_channel_shape = x.shape[:-1]
+            fc_hidden_units = np.prod(noise_channel_shape)
+            logging.info(noise_in)
+            logging.info(noise_channel_shape)
+            logging.info(fc_hidden_units)
+            fc_noise_layer = layers.dense_layer(noise_in, 'fc_noise_layer', hidden_units=fc_hidden_units, activation=tf.identity)
+            noise_channel = tf.reshape(fc_noise_layer, noise_channel_shape)
+            noise_channel = tf.expand_dims(noise_channel, axis=-1)
+            x_conv_in = tf.concat([x, noise_channel], axis=-1)
+        previous_layer = layers.conv3D_layer(x_conv_in, 'conv1', kernel_size=kernel_size, num_filters=nfilters, strides=strides,
                         activation=tf.nn.relu)
 
         # place residual blocks
@@ -221,7 +238,7 @@ def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilt
                         activation=tf.nn.tanh)
         return conv_out
 
-
+# TODO: add dropout
 def bousmalis_discriminator(x, training, batch_normalization, middle_layers, nfilters, scope_name='discriminator', scope_reuse=False):
     # leaky relu has the same parameter as in the paper
     leaky_relu = lambda x: layers.leaky_relu(x, alpha=0.2)
