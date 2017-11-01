@@ -214,10 +214,11 @@ def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilt
         x_conv_in = x
         if input_noise_dim >= 1:
             # create noise, push it through a fc layer and concatenate it as a new channel
-            noise_in = tf.expand_dims(tf.random_uniform(shape=[x.get_shape().as_list()[0], input_noise_dim], minval=-1, maxval=1), axis=0)
+            noise_in = tf.random_uniform(shape=[x.get_shape().as_list()[0], input_noise_dim], minval=-1, maxval=1)
             # make sure the last dimension is 1 but the others agree with the image input
             noise_channel_shape = x.shape[:-1]
-            fc_hidden_units = np.prod(noise_channel_shape)
+            # the batchsize stays constant
+            fc_hidden_units = np.prod(noise_channel_shape[1:])
             logging.info(noise_in)
             logging.info(noise_channel_shape)
             logging.info(fc_hidden_units)

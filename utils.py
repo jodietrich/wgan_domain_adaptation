@@ -102,6 +102,11 @@ def save_nii(img_path, data, affine, header):
     nimg = nib.Nifti1Image(data, affine=affine, header=header)
     nimg.to_filename(img_path)
 
+def create_and_save_nii(data, img_path):
+
+    img = nib.Nifti1Image(data, np.eye(4))
+    nib.save(img, img_path)
+
 def get_latest_model_checkpoint_path(folder, name):
     '''
     Returns the checkpoint with the highest iteration number with a given name

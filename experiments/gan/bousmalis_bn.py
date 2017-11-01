@@ -1,6 +1,6 @@
 from experiments.gan.standard_parameters import *
 
-experiment_name = 'bousmalis_bn_i2'
+experiment_name = 'bousmalis_bn_fixed_noise_i1'
 
 # Model settings
 batch_normalization = True
