@@ -28,11 +28,10 @@ viscode_dict = {'bl': 0, 'm03': 1, 'm06': 2, 'm12': 3, 'm18': 4, 'm24': 5, 'm36'
 MAX_WRITE_BUFFER = 5
 
 def fix_nan_and_unknown(input, target_data_format=lambda x: x, nan_val=-1, unknown_val=-2):
-    if input == 'unknown':
-        input = unknown_val
-    elif math.isnan(float(input)):
+    if math.isnan(float(input)):
         input = nan_val
-
+    elif input == 'unknown':
+        input = unknown_val
 
     return target_data_format(input)
 
@@ -41,7 +40,7 @@ def crop_or_pad_slice_to_size(image, target_size):
     x_t, y_t, z_t = target_size
     x_s, y_s, z_s = image.shape
 
-    output_volume = np.min(image)*np.zeros((x_t, y_t, z_t))  # the back ground is always the minimum
+    output_volume = np.min(image)*np.ones((x_t, y_t, z_t))  # the back ground is always the minimum
 
     x_d = abs(x_t - x_s) // 2
     y_d = abs(y_t - y_s) // 2
@@ -202,11 +201,6 @@ def prepare_data(input_folder, output_file, size, target_resolution, labels_list
             img_dat = utils.load_nii(file)
             img = img_dat[0].copy()
 
-            if rescale_to_one:
-                img = image_utils.map_image_to_intensity_range(img, -1, 1)
-            else:
-                img = image_utils.normalise_image(img)
-
             pixel_size = (img_dat[2].structarr['pixdim'][1],
                           img_dat[2].structarr['pixdim'][2],
                           img_dat[2].structarr['pixdim'][3])
@@ -225,6 +219,11 @@ def prepare_data(input_folder, output_file, size, target_resolution, labels_list
                                            preserve_range=True,
                                            multichannel=False,
                                            mode='constant')
+
+            if rescale_to_one:
+                img_scaled = image_utils.map_image_to_intensity_range(img_scaled, -1, 1)
+            else:
+                img_scaled = image_utils.normalise_image(img_scaled)
 
             img_resized = crop_or_pad_slice_to_size(img_scaled, size)
             img_list[train_test].append(img_resized)
@@ -328,4 +327,5 @@ if __name__ == '__main__':
 
     # d=load_and_maybe_process_data(input_folder, preprocessing_folder, (146, 192, 125), (1.36, 1.36, 1.0), force_overwrite=True)
     # d=load_and_maybe_process_data(input_folder, preprocessing_folder, (130, 160, 113), (1.5, 1.5, 1.5), (0,2), force_overwrite=True)
+    # d=load_and_maybe_process_data(input_folder, preprocessing_folder, (128, 160, 112), (1.5, 1.5, 1.5), (0,2), force_overwrite=False, rescale_to_one=True)
     d=load_and_maybe_process_data(input_folder, preprocessing_folder, (128, 160, 112), (1.5, 1.5, 1.5), (0,2), force_overwrite=False, rescale_to_one=True)

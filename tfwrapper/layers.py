@@ -378,6 +378,40 @@ def dense_layer(bottom,
         return op
 
 
+def dropout_layer(bottom, name, training, keep_prob=0.5):
+    '''
+    Performs dropout on the activations of an input
+    '''
+    keep_prob_pl = tf.cond(training,
+                           lambda: tf.constant(keep_prob, dtype=bottom.dtype),
+                           lambda: tf.constant(1.0, dtype=bottom.dtype))
+
+    # The tf.nn.dropout function takes care of all the scaling
+    # (https://www.tensorflow.org/get_started/mnist/pros)
+    return tf.nn.dropout(bottom, keep_prob=keep_prob_pl, name=name)
+
+
+# used by Bousmalis et al and in original residual networks paper
+def residual_block_original(bottom,
+                            scope_name,
+                            conv_layer,
+                            activation,
+                            nlayers=2):
+    with tf.variable_scope(scope_name) as scope:
+        previous_layer = conv_layer(bottom=bottom, name='conv1', activation=activation)
+
+        for layer in range(2, nlayers):
+            previous_layer = conv_layer(bottom=previous_layer, name='conv' + str(layer), activation=activation)
+        last_layer = conv_layer(bottom=previous_layer, name='conv_' + str(nlayers), activation=tf.identity)
+        return last_layer + bottom
+
+
+def reduce_avg_layer3D(x, name=None):
+    op = tf.reduce_mean(x, axis=(1,2,3), keep_dims=False, name=name)
+    tf.summary.histogram(op.op.name + '/activations', op)
+
+    return op
+
 ### BATCH_NORM SHORTCUTS #####################################################################################
 
 def conv2D_layer_bn(bottom,
@@ -567,27 +601,6 @@ def dense_layer_bn(bottom,
 
     return act
 
-
-# used by Bousmalis et al and in original residual networks paper
-def residual_block_original(bottom,
-                            scope_name,
-                            conv_layer,
-                            activation,
-                            nlayers=2):
-    with tf.variable_scope(scope_name) as scope:
-        previous_layer = conv_layer(bottom=bottom, name='conv1', activation=activation)
-
-        for layer in range(2, nlayers):
-            previous_layer = conv_layer(bottom=previous_layer, name='conv' + str(layer), activation=activation)
-        last_layer = conv_layer(bottom=previous_layer, name='conv_' + str(nlayers), activation=tf.identity)
-        return last_layer + bottom
-
-
-def reduce_avg_layer3D(x, name=None):
-    op = tf.reduce_mean(x, axis=(1,2,3), keep_dims=False, name=name)
-    tf.summary.histogram(op.op.name + '/activations', op)
-
-    return op
 
 ### VARIABLE INITIALISERS ####################################################################################
 

@@ -197,7 +197,7 @@ def pool_fc_discriminator_bs1(x, training, scope_name='discriminator', scope_reu
 # Bousmalis Netzwerke
 # can only be used with images in [-1, 1]
 # TODO: include noise
-def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilters, input_noise_dim=10, scope_name='generator', scope_reuse=False):
+def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilters, input_noise_dim=10, last_activation=tf.nn.tanh, scope_name='generator', scope_reuse=False):
     kernel_size = (3, 3, 3)
     strides = (1, 1, 1)
     # define layer for the residual blocks
@@ -235,7 +235,7 @@ def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilt
                                                             activation=tf.nn.relu, nlayers=2)
 
         conv_out = layers.conv3D_layer(previous_layer, 'conv_out', kernel_size=kernel_size, num_filters=1, strides=strides,
-                        activation=tf.nn.tanh)
+                        activation=last_activation)
         return conv_out
 
 # TODO: add dropout

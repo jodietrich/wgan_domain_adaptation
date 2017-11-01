@@ -213,12 +213,6 @@ def prepare_data(input_folder, output_file, size, target_resolution, labels_list
             img_dat = utils.load_nii(file)
             img = img_dat[0].copy()
 
-            if rescale_to_one:
-                img = image_utils.map_image_to_intensity_range(img, -1, 1)
-            else:
-                img = image_utils.normalise_image(img)
-
-
             pixel_size = (img_dat[2].structarr['pixdim'][1],
                           img_dat[2].structarr['pixdim'][2],
                           img_dat[2].structarr['pixdim'][3])
@@ -237,6 +231,12 @@ def prepare_data(input_folder, output_file, size, target_resolution, labels_list
                                            preserve_range=True,
                                            multichannel=False,
                                            mode='constant')
+
+            if rescale_to_one:
+                img_scaled = image_utils.map_image_to_intensity_range(img_scaled, -1, 1)
+            else:
+                img_scaled = image_utils.normalise_image(img_scaled)
+
 
             img_resized = crop_or_pad_slice_to_size(img_scaled, size)
             img_list[train_test].append(img_resized)
