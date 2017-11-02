@@ -35,16 +35,20 @@ def fix_nan_and_unknown(input, target_data_format=lambda x: x, nan_val=-1, unkno
 
     return target_data_format(input)
 
-def crop_or_pad_slice_to_size(image, target_size):
+
+def crop_or_pad_slice_to_size(image, target_size, offset=None):
+
+    if offset is None:
+        offset = (0,0,0)
 
     x_t, y_t, z_t = target_size
     x_s, y_s, z_s = image.shape
 
-    output_volume = np.min(image)*np.ones((x_t, y_t, z_t))  # the back ground is always the minimum
+    output_volume = np.min(image)*np.ones((x_t, y_t, z_t))
 
-    x_d = abs(x_t - x_s) // 2
-    y_d = abs(y_t - y_s) // 2
-    z_d = abs(z_t - z_s) // 2
+    x_d = abs(x_t - x_s) // 2 + offset[0]
+    y_d = abs(y_t - y_s) // 2 + offset[1]
+    z_d = abs(z_t - z_s) // 2 + offset[2]
 
     t_ranges = []
     s_ranges = []
@@ -61,20 +65,12 @@ def crop_or_pad_slice_to_size(image, target_size):
         t_ranges.append(t_range)
         s_ranges.append(s_range)
 
-    # debugging outputs
-    # print(target_size)
-    # print(image.shape)
-    # print(np.asarray(target_size) - np.asarray(image.shape))
-    # print('--')
 
     output_volume[t_ranges[0], t_ranges[1], t_ranges[2]] = image[s_ranges[0], s_ranges[1], s_ranges[2]]
 
-
-
     return output_volume
 
-
-def prepare_data(input_folder, output_file, size, target_resolution, labels_list, rescale_to_one, image_postfix='.nii.gz'):
+def prepare_data(input_folder, output_file, size, target_resolution, labels_list, rescale_to_one, offset=None, image_postfix='.nii.gz'):
 
     '''
     Main function that prepares a dataset from the raw challenge data to an hdf5 dataset
@@ -220,12 +216,19 @@ def prepare_data(input_folder, output_file, size, target_resolution, labels_list
                                            multichannel=False,
                                            mode='constant')
 
-            if rescale_to_one:
-                img_scaled = image_utils.map_image_to_intensity_range(img_scaled, -1, 1)
-            else:
-                img_scaled = image_utils.normalise_image(img_scaled)
+            img_resized = crop_or_pad_slice_to_size(img_scaled, size, offset=offset)
 
-            img_resized = crop_or_pad_slice_to_size(img_scaled, size)
+            if rescale_to_one:
+                img_resized = image_utils.map_image_to_intensity_range(img_resized, -1, 1)
+            else:
+                img_resized = image_utils.normalise_image(img_resized)
+
+
+            ### DEBUGGING ############################################
+            # utils.create_and_save_nii(img_resized, 'debug.nii.gz')
+            # exit()
+            #########################################################
+
             img_list[train_test].append(img_resized)
 
             write_buffer += 1
@@ -280,6 +283,7 @@ def load_and_maybe_process_data(input_folder,
                                 size,
                                 target_resolution,
                                 label_list,
+                                offset=None,
                                 rescale_to_one=False,
                                 force_overwrite=False):
 
@@ -305,7 +309,12 @@ def load_and_maybe_process_data(input_folder,
     else:
         rescale_postfix = ''
 
-    data_file_name = 'all_data_size_%s_res_%s_lbl_%s%s.hdf5' % (size_str, res_str, lbl_str, rescale_postfix)
+    if offset is not None:
+        offset_postfix = '_offset_%d_%d_%d' % offset
+    else:
+        offset_postfix = ''
+
+    data_file_name = 'all_data_size_%s_res_%s_lbl_%s%s%s.hdf5' % (size_str, res_str, lbl_str, rescale_postfix, offset_postfix)
     data_file_path = os.path.join(preprocessing_folder, data_file_name)
 
     utils.makefolder(preprocessing_folder)
@@ -313,7 +322,7 @@ def load_and_maybe_process_data(input_folder,
     if not os.path.exists(data_file_path) or force_overwrite:
         logging.info('This configuration of mode, size and target resolution has not yet been preprocessed')
         logging.info('Preprocessing now!')
-        prepare_data(input_folder, data_file_path, size, target_resolution, label_list, rescale_to_one=rescale_to_one)
+        prepare_data(input_folder, data_file_path, size, target_resolution, label_list, offset=offset, rescale_to_one=rescale_to_one)
     else:
         logging.info('Already preprocessed this configuration. Loading now!')
 
@@ -328,4 +337,5 @@ if __name__ == '__main__':
     # d=load_and_maybe_process_data(input_folder, preprocessing_folder, (146, 192, 125), (1.36, 1.36, 1.0), force_overwrite=True)
     # d=load_and_maybe_process_data(input_folder, preprocessing_folder, (130, 160, 113), (1.5, 1.5, 1.5), (0,2), force_overwrite=True)
     # d=load_and_maybe_process_data(input_folder, preprocessing_folder, (128, 160, 112), (1.5, 1.5, 1.5), (0,2), force_overwrite=False, rescale_to_one=True)
-    d=load_and_maybe_process_data(input_folder, preprocessing_folder, (128, 160, 112), (1.5, 1.5, 1.5), (0,2), force_overwrite=False, rescale_to_one=True)
+    # d=load_and_maybe_process_data(input_folder, preprocessing_folder, (128, 160, 112), (1.5, 1.5, 1.5), (0,2), force_overwrite=False, rescale_to_one=True)
+    d=load_and_maybe_process_data(input_folder, preprocessing_folder, (64, 80, 64), (1.5, 1.5, 1.5), (0,2), offset=(0,0,-10), force_overwrite=False, rescale_to_one=True)

@@ -18,20 +18,20 @@ VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 #$ -S /bin/bash
 #
 ## <= 1h is short queue, <= 6h is middle queue, <= 48 h is long queue
-#$ -l h_rt=6:00:00
+#$ -l h_rt=24:00:00
 
 ## the maximum memory usage of this job, (below 4G does not make much sense)
 #$ -l h_vmem=40G
 
 # Host and gpu settings
 #$ -l gpu
-##$ -l hostname=biwirender04  ## <-------------- Comment in or out to force a specific machine
+##$ -l hostname=bmicgpu02  ## <-------------- Comment in or out to force a specific machine
 
 ## stderr and stdout are merged together to stdout
 #$ -j y
 #
 # logging directory. preferably on your scratch
-#$ -o /scratch_net/brossa/jdietric/logs/test_gen_fclf/  ## <---------------- CHANGE TO MATCH YOUR SYSTEM
+#$ -o /scratch_net/brossa/jdietric/logs/adni_clf  ## <---------------- CHANGE TO MATCH YOUR SYSTEM
 #
 ## send mail on job's end and abort
 #$ -m a
@@ -53,7 +53,7 @@ eval "$(pyenv virtualenv-init -)"
 source $VIRTUAL_ENV_PATH/bin/activate
 
 ## EXECUTION OF PYTHON CODE:
-python $PROJECT_HOME/fieldstr_clf_GAN_test.py
+python $PROJECT_HOME/adni_clf_train.py
 
 echo "Hostname was: `hostname`"
 echo "Reached end of job file."

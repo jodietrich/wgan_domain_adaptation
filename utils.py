@@ -15,15 +15,15 @@ def fstr_to_label(fieldstrengths, field_strength_list, label_list):
     # returns a numpy array of labels
     assert len(label_list) == len(field_strength_list)
     labels = np.empty_like(fieldstrengths, dtype=np.int16)
-    for i in range(len(fieldstrengths)):
+    for fs_ind, current_field_strength in enumerate(fieldstrengths):
         valid_value = False
-        for k in range(len(field_strength_list)):
-            if(fieldstrengths[i] == field_strength_list[k]):
-                labels[i] = label_list[k]
+        for label_ind, current_label in enumerate(label_list):
+            if(current_field_strength == field_strength_list[label_ind]):
+                labels[fs_ind] = current_label
                 valid_value = True
                 break
         if(not valid_value):
-            raise ValueError('unexpected value in fieldstrengths: %s' % fieldstrengths[i])
+            raise ValueError('unexpected value in fieldstrengths: %s' % current_field_strength)
     return labels
 
 
