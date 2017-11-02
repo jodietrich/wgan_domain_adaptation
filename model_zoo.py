@@ -260,7 +260,7 @@ def bousmalis_discriminator(x, training, batch_normalization, middle_layers, ini
                 previous_layer = layers.conv3D_layer(previous_layer, 'convs2_' + str(current_layer), kernel_size=(3,3,3), num_filters=num_filters, strides=(2,2,2),
                             activation=leaky_relu)
             if current_layer >= dropout_start:
-                previous_layer = layers.dropout_layer(previous_layer, 'dropout_' + str(current_layer), training)
+                previous_layer = layers.dropout_layer(previous_layer, 'dropout_' + str(current_layer), training, keep_prob=0.9)
 
         dense_out = layers.dense_layer(previous_layer, 'dense_out', hidden_units=1, activation=tf.identity)
 
@@ -370,9 +370,9 @@ def jia_xi_net_multitask_ordinal(images, training, nlabels, n_age_thresholds=5, 
 
 def jia_xi_net_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=5, bn_momentum=0.99,
                                     scope_name='classifier', scope_reuse=False):
-    with tf.variable_scope(scope_name) as scope:
-        if scope_reuse:
-            scope.reuse_variables()
+    # with tf.variable_scope(scope_name) as scope:
+    #     if scope_reuse:
+    #         scope.reuse_variables()
 
         conv1_1 = layers.conv3D_layer_bn(images, 'conv1_1', num_filters=32, training=training, bn_momentum=bn_momentum)
 

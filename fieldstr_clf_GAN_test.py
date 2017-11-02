@@ -43,6 +43,36 @@ def log_stats(prediction_count):
     return score
 
 
+def build_clf_graph(img_tensor_shape, clf_config):
+    graph_classifier = tf.Graph()
+    with graph_classifier.as_default():
+        # Generate placeholders for the images and labels.
+        training_clf_pl = tf.placeholder(tf.bool, name='training_phase')
+
+        # source image (batch size = 1)
+        xs_clf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
+
+        # generated fake image batch
+        xf_clf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
+
+        # classification of the real source image and the fake target image
+        source_predicted_label, source_softmax, _ = predict(xs_clf_pl, clf_config)
+        scope = tf.get_variable_scope()
+        scope.reuse_variables()
+        fake_predicted_label, fake_softmax, _ = predict(xf_clf_pl, clf_config)
+
+        # Add the variable initializer Op.
+        init = tf.global_variables_initializer()
+
+        # Create a savers for writing training checkpoints.
+        saver = tf.train.Saver()  # disc loss is scaled negative EM distance
+        placeholders = {'source_img': xs_clf_pl, 'fake_img': xf_clf_pl, 'training': training_clf_pl}
+        predictions = {'source_label': source_predicted_label[0], 'source_softmax': source_softmax,
+                       'fake_label': fake_predicted_label[0], 'fake_softmax': fake_softmax}
+        return graph_classifier, placeholders, predictions, init, saver
+
+
+
 def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_name, verbose=True, num_saved_images=0, image_saving_path=None):
     """
 
@@ -76,7 +106,10 @@ def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_na
             force_overwrite=False
         )
 
-    graph_classifier = tf.Graph()
+    im_s = fclf_config.image_size
+    img_tensor_shape = [batch_size, im_s[0], im_s[1], im_s[2], fclf_config.n_channels]
+
+    graph_fclf, fclf_pl, predictions_fclf, init_fclf, saver_fclf = build_clf_graph(img_tensor_shape, fclf_config)
 
     scores = {}
     for gan_experiment_name in gan_experiment_list:
@@ -104,9 +137,6 @@ def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_na
         # build a separate graph for the generator and the classifier respectively
         graph_generator = tf.Graph()
 
-        # Generate placeholders for the images and labels.
-        im_s = gan_config.image_size
-        img_tensor_shape = [batch_size, im_s[0], im_s[1], im_s[2], gan_config.n_channels]
 
         with graph_generator.as_default():
             training_gan_pl = tf.placeholder(tf.bool, name='training_phase')
@@ -123,27 +153,6 @@ def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_na
             # Create a savers for writing training checkpoints.
             saver_latest_gan = tf.train.Saver()
 
-        with graph_classifier.as_default():
-            # Generate placeholders for the images and labels.
-            training_fclf_pl = tf.placeholder(tf.bool, name='training_phase')
-
-            # source image (batch size = 1)
-            z_fclf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
-
-            # generated fake image batch
-            x_fclf_pl_ = tf.placeholder(tf.float32, img_tensor_shape, name='z')
-
-            # classification of the real source image and the fake target image
-            source_predicted_label, source_softmax, _ = predict(z_fclf_pl, fclf_config)
-            scope = tf.get_variable_scope()
-            scope.reuse_variables()
-            fake_predicted_label, fake_softmax, _ = predict(x_fclf_pl_, fclf_config)
-
-            # Add the variable initializer Op.
-            init_fclf = tf.global_variables_initializer()
-
-            # Create a savers for writing training checkpoints.
-            saver_best_fclf = tf.train.Saver()  # disc loss is scaled negative EM distance
 
         # prevents ResourceExhaustError when a lot of memory is used
         config = tf.ConfigProto()
@@ -153,7 +162,7 @@ def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_na
 
         # Create a session for running Ops on the Graph.
         sess_gan = tf.Session(config=config, graph=graph_generator)
-        sess_fclf = tf.Session(config=config, graph=graph_classifier)
+        sess_fclf = tf.Session(config=config, graph=graph_fclf)
 
 
         # Run the Op to initialize the variables.
@@ -161,7 +170,7 @@ def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_na
         sess_fclf.run(init_fclf)
 
         saver_latest_gan.restore(sess_gan, init_checkpoint_path_gan)
-        saver_best_fclf.restore(sess_fclf, init_checkpoint_path_fclf)
+        saver_fclf.restore(sess_fclf, init_checkpoint_path_fclf)
 
         # path where the generated images are saved
         experiment_generate_path = os.path.join(image_saving_path, gan_experiment_name)
@@ -175,19 +184,16 @@ def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_na
         for img_num, source_img in enumerate(itertools.chain(itertools.compress(images_train, train_source_sel),
                                           itertools.compress(images_val, val_source_sel))):
             source_image_input = np.reshape(source_img, img_tensor_shape)
-            # classify source_img
-            source_prediction_list, source_sm_prob = sess_fclf.run([source_predicted_label, source_softmax], feed_dict={z_fclf_pl: source_image_input, training_fclf_pl: False})
             # generate image
             fake_img = sess_gan.run(x_gan_pl_, feed_dict={z_gan_pl: source_image_input, training_gan_pl: False})
-            # classify fake_img
-            fake_prediction_list, fake_sm_prob = sess_fclf.run([fake_predicted_label, fake_softmax], feed_dict={x_fclf_pl_: fake_img, training_fclf_pl: False})
-            source_prediction = source_prediction_list[0]
-            fake_prediction = fake_prediction_list[0]
+            # classify images
+            feeddict_fclf = {fclf_pl['source_img']: source_image_input, fclf_pl['fake_img']: fake_img, fclf_pl['training']: False}
+            fclf_predictions_dict = sess_fclf.run(predictions_fclf, feed_dict=feeddict_fclf)
             source_label = fclf_config.fs_label_list[fclf_config.field_strength_list.index(gan_config.source_field_strength)]
 
 
             # save image
-            if num_saved_images > 0:
+            if img_num < num_saved_images:
                 source_img_name = 'source_img_%.1fT_%d.nii.gz' % (gan_config.source_field_strength, img_num)
                 generated_img_name = 'generated_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, img_num)
                 utils.create_and_save_nii(np.squeeze(source_img), os.path.join(experiment_generate_path, source_img_name))
@@ -195,13 +201,13 @@ def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_na
 
 
             # record occurences of the four possible combinations of source_prediction and fake_prediction
-            if source_prediction == source_label:
-                if fake_prediction == source_label:
+            if predictions_fclf['source_label'] == source_label:
+                if predictions_fclf['fake_label'] == source_label:
                     prediction_count['ss'] += 1
                 else:
                     prediction_count['st'] += 1
             else:
-                if fake_prediction == source_label:
+                if predictions_fclf['fake_label'] == source_label:
                     prediction_count['ts'] += 1
                 else:
                     prediction_count['tt'] += 1
@@ -209,9 +215,10 @@ def generate_and_evaluate_adapted_images(gan_experiment_list, fclf_experiment_na
             if verbose:
                 logging.info("NEW IMAGE")
                 logging.info("real label of source image: " + str(source_label))
-                logging.info("predicted label of source image: " + str(source_prediction))
-                logging.info("predicted label of fake image: " + str(fake_prediction))
-                logging.info("softmax output for fake image: " + fake_softmax)
+                logging.info("predictions: " + str(fclf_predictions_dict))
+                # logging.info("predicted label of source image: " + str(source_prediction))
+                # logging.info("predicted label of fake image: " + str(fake_prediction))
+                # logging.info("softmax output for fake image: " + fake_softmax)
 
         scores[gan_experiment_name] = log_stats(prediction_count)
 
