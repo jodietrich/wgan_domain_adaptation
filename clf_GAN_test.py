@@ -16,6 +16,7 @@ import model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
+import adni_data_loader_all
 import data_utils
 from model_multitask import predict
 import experiments.gan.standard_parameters as std_params
@@ -140,7 +141,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     # graph_fclf.get_tensor_by_name('?')
 
     # import data
-    data = adni_data_loader.load_and_maybe_process_data(
+    data = adni_data_loader_all.load_and_maybe_process_data(
             input_folder=clf_config.data_root,
             preprocessing_folder=clf_config.preproc_folder,
             size=clf_config.image_size,
@@ -153,6 +154,9 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     images_test = data['images_test']
     labels_test = data['diagnosis_test']
     ages_test = data['age_test']
+
+    num_images = images_test.shape[0]
+    logging.info('there are %d test images')
 
     scores = {}
     for gan_experiment_name in gan_experiment_list:
@@ -182,10 +186,13 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         # create selectors
         source_selector = [field_strength == gan_config.source_field_strength for field_strength in data['field_strength_test']]
 
-        # s for source, t for target. First the prediction on the source image, then the prediction on the generated image
-        prediction_count = {(0, 0): 0, (0, 1): 0, (1, 0): 0, (1, 1): 0}
+        num_source_images = np.sum([1 for is_source in source_selector if is_source])
+
+        # create a dictionary with labellist^3 as keys and all values initialized as 0
+        # to count all possible combinations of (ground truth label, predicted label of source image, predicted label of generated image)
+        prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=3)}
         # loops through all images from the source domain
-        for img_num, source_img in enumerate(itertools.compress(images_test, source_selector)):
+        for img_num, source_img, label in enumerate(itertools.compress(itertools.izip(images_test, labels_test), source_selector)):
             source_image_input = np.reshape(source_img, img_tensor_shape)
             # generate image
             feeddict_gan = {gan_pl['source_img']: source_image_input, gan_pl['training']: False}
@@ -193,9 +200,6 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
             # classify images
             feeddict_fclf = {clf_pl['source_img']: source_image_input, clf_pl['fake_img']: fake_img, clf_pl['training']: False}
             fclf_predictions_dict = sess_clf.run(predictions_clf_op, feed_dict=feeddict_fclf)
-            source_label, target_label = utils.fstr_to_label([gan_config.source_field_strength, gan_config.target_field_strength],
-                                                             clf_config.field_strength_list, clf_config.fs_label_list)
-
 
             # save images
             if img_num < num_saved_images:
@@ -207,15 +211,16 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
 
 
             # record occurences of the four possible combinations of source_prediction and fake_prediction
-            label_tuple = (fclf_predictions_dict['source_label'], fclf_predictions_dict['fake_label'])
+            label_tuple = (label, fclf_predictions_dict['source_label'], fclf_predictions_dict['fake_label'])
             prediction_count[label_tuple] += 1
 
             if verbose:
                 logging.info("NEW IMAGE")
-                logging.info("real label of source image: " + str(source_label))
+                logging.info("ground truth label of source image: " + str(label))
                 logging.info("predictions: " + str(fclf_predictions_dict))
 
-        scores[gan_experiment_name] = log_stats_fclf(prediction_count, source_label, target_label)
+        true_predictions = np.sum([prediction_count[labels] for labels in prediction_count if labels[0] == labels[2]])
+        scores[gan_experiment_name] = true_predictions/num_source_images
 
     return scores
 
