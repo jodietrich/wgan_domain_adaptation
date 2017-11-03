@@ -1,34 +1,37 @@
 import model_zoo
-import tensorflow as tf
 import config.system as sys_config
-import os
+import tensorflow as tf
+import os.path
 import batch_augmentors
 
-experiment_name = 'adni_clf_jiaxi_net_only_diag_lr0.0001_flipaug_bn_mom0.99_i1'
+experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_data_bn_i1'
 
 # Model settings
-model_handle = model_zoo.jia_xi_net_multitask_ordinal_bn
+model_handle = model_zoo.FCN_multitask_ordinal_bn
 multi_task_model = True
 
 # Data settings
-image_size = (128, 160, 112)
+image_size = (64, 80, 64)
 target_resolution =  (1.5, 1.5, 1.5)
+offset = (0, 0, -10)
 label_list = (0,2)  # 0 - normal, 1 - mci, 2 - alzheimer's
 age_bins = (65, 70, 75, 80, 85)
 nlabels = len(label_list)
 data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
+rescale_to_one = True
+use_sigmoid = False
 
 # Cost function
-age_weight = 0.0   # setting this to zero turns it off
+age_weight = 0.0
 diag_weight = 1.0
-weight_decay = 0.00000  # L2 regularisatino of weights 0.0 turns it off
+weight_decay = 0.0  #5e-4  #0.00000
 
 # Training settings
 age_ordinal_regression = True
-batch_size = 3
-n_accum_batches = 1   # Accumulate the gradients over multiple batches (does not seem to help much).
-learning_rate = 0.0001
+batch_size = 20
+n_accum_batches = 1
+learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
 schedule_lr = False
 warmup_training = False
@@ -42,10 +45,10 @@ do_scaleaug = False
 do_fliplr = True
 
 # Rarely changed settings
-use_data_fraction = False
+use_data_fraction = False  # Should normally be False
 max_epochs = 20000
 schedule_gradient_threshold = 0.00001  # When the gradient of the learning curve is smaller than this value the LR will
                                        # be reduced
 
-train_eval_frequency = 200
+train_eval_frequency = 500
 val_eval_frequency = 100

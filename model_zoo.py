@@ -479,3 +479,49 @@ def g_encoder_decoder_skip_notanh(z, training, scope_name='generator', scope_reu
         layer9 = layers.conv3D_layer(layer8, 'glayer9', num_filters=1, kernel_size=(1, 1, 1), activation=tf.identity)
 
         return z+layer9
+
+
+# braucht andere Kostenfunktion wegen Sigmoid
+def allconv_multitask_ordinal_sigmoid_bn(images, training, nlabels, n_age_thresholds=5, bn_momentum=0.99):
+
+    conv1_1 = layers.conv3D_layer_bn(images, 'conv1_1', num_filters=32, training=training, bn_momentum=bn_momentum, strides=(2,2,2))
+
+    conv2_1 = layers.conv3D_layer_bn(conv1_1, 'conv2_1', num_filters=64, training=training, bn_momentum=bn_momentum, strides=(2,2,2))
+
+    conv3_1 = layers.conv3D_layer_bn(conv2_1, 'conv3_1', num_filters=128, training=training, bn_momentum=bn_momentum)
+    conv3_2 = layers.conv3D_layer_bn(conv3_1, 'conv3_2', num_filters=128, training=training, bn_momentum=bn_momentum, strides=(2,2,2))
+
+    conv4_1 = layers.conv3D_layer_bn(conv3_2, 'conv4_1', num_filters=256, training=training, bn_momentum=bn_momentum)
+    conv4_2 = layers.conv3D_layer_bn(conv4_1, 'conv4_2', num_filters=256, training=training, bn_momentum=bn_momentum, strides=(2,2,2))
+
+    conv5_1 = layers.conv3D_layer_bn(conv4_2, 'conv5_1', num_filters=256, training=training, bn_momentum=bn_momentum)
+    conv5_2 = layers.conv3D_layer_bn(conv5_1, 'conv5_2', num_filters=256, training=training, bn_momentum=bn_momentum)
+
+    convD_1 = layers.conv3D_layer_bn(conv5_2, 'convD_1', num_filters=256, training=training, bn_momentum=bn_momentum)
+    convD_2 = layers.conv3D_layer_bn(convD_1,
+                                     'convD_2',
+                                     num_filters=1,
+                                     training=training,
+                                     bn_momentum=bn_momentum,
+                                     kernel_size=(1,1,1),
+                                     activation=tf.identity)
+
+    diag_logits = layers.reduce_avg_layer3D(convD_2, name='diagnosis_avg')
+
+    convA_1 = layers.conv3D_layer_bn(conv4_2, 'convA_1', num_filters=256, training=training, bn_momentum=bn_momentum)
+
+    ages_logits = []
+    for ii in range(n_age_thresholds):
+
+        age_activations = layers.conv3D_layer_bn(convA_1,
+                                                 'convA_2_%d' % ii,
+                                                 num_filters=2,
+                                                 training=training,
+                                                 bn_momentum=bn_momentum,
+                                                 kernel_size=(1, 1, 1),
+                                                 activation=tf.identity)
+
+        ages_logits.append(layers.reduce_avg_layer3D(age_activations, name='age_avg_%d' % ii))
+
+
+    return diag_logits, ages_logits

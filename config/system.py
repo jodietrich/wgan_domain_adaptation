@@ -13,7 +13,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 # when it is executed on one of the clusters.
 
 project_root = '/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt'
-data_root = '/usr/bmicnas01/data-biwi-01/bmicdatasets/Processed/ADNI_Christian/ADNI_ender_selection_allPP_robex'
+data_root = '/usr/bmicnas01/data-biwi-01/bmicdatasets/Processed/ADNI_Christian/ADNI_all_allPP_robex'
+# data_root = '/usr/bmicnas01/data-biwi-01/bmicdatasets/Processed/ADNI_Christian/ADNI_ender_selection_allPP_robex'
 local_hostnames = ['brossa']
 
 ##################################################################################
