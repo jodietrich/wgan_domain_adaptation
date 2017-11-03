@@ -34,8 +34,8 @@ cut_index = 50  # index of the cut for visualization
 diff_threshold = 1  # maximum absolute value for visualization of difference between images. Gets mapped to 255
 
 # Training settings
-batch_size = 2
-num_val_batches = 10 # of batches used for validation. Validation happens with a set of size batch_size*num_val_batches
+batch_size = 20
+num_val_batches = 5 # of batches used for validation. Validation happens with a set of size batch_size*num_val_batches
 learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
 

@@ -59,30 +59,21 @@ def log_stats_fclf(prediction_count, source_label, target_label):
 def build_clf_graph(img_tensor_shape, clf_config):
     graph_classifier = tf.Graph()
     with graph_classifier.as_default():
-        # Generate placeholders for the images and labels.
-        training_clf_pl = tf.placeholder(tf.bool, name='training_phase')
-
-        # source image (batch size = 1)
-        xs_clf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
-
-        # generated fake image batch
-        xf_clf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
+        # image (batch size = 1)
+        x_clf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
 
         # classification of the real source image and the fake target image
-        source_predicted_label, source_softmax, _ = predict(xs_clf_pl, clf_config)
-        scope = tf.get_variable_scope()
-        scope.reuse_variables()
-        fake_predicted_label, fake_softmax, _ = predict(xf_clf_pl, clf_config)
+        predicted_label, softmax, _ = predict(x_clf_pl, clf_config)
+        # scope = tf.get_variable_scope()
+        # scope.reuse_variables()
 
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
 
         # Create a savers for writing training checkpoints.
         saver = tf.train.Saver()  # disc loss is scaled negative EM distance
-        placeholders = {'source_img': xs_clf_pl, 'fake_img': xf_clf_pl, 'training': training_clf_pl}
-        predictions = {'source_label': source_predicted_label[0], 'source_softmax': source_softmax,
-                       'fake_label': fake_predicted_label[0], 'fake_softmax': fake_softmax}
-        return graph_classifier, placeholders, predictions, init, saver
+        predictions = {'label': predicted_label[0], 'softmax': softmax}
+        return graph_classifier, x_clf_pl, predictions, init, saver
 
 
 def build_gen_graph(img_tensor_shape, gan_config):
@@ -131,14 +122,11 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
 
     # open field strength classifier save file from the selected experiment
     logging.info("loading Alzheimer's disease classifier")
-    graph_clf, clf_pl, predictions_clf_op, init_clf_op, saver_clf = build_clf_graph(img_tensor_shape, clf_config)
+    graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = build_clf_graph(img_tensor_shape, clf_config)
     init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_xent.ckpt')
     sess_clf = tf.Session(config=config, graph=graph_clf)
     sess_clf.run(init_clf_op)
     saver_clf.restore(sess_clf, init_checkpoint_path_clf)
-
-    #TODO: report the f1 score of the classifier on the validation set from the training run
-    # graph_fclf.get_tensor_by_name('?')
 
     # import data
     data = adni_data_loader_all.load_and_maybe_process_data(
@@ -185,41 +173,51 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
 
         # create selectors
         source_selector = [field_strength == gan_config.source_field_strength for field_strength in data['field_strength_test']]
+        target_selector = [field_strength == gan_config.target_field_strength for field_strength in data['field_strength_test']]
 
         num_source_images = np.sum([1 for is_source in source_selector if is_source])
 
-        # create a dictionary with labellist^3 as keys and all values initialized as 0
-        # to count all possible combinations of (ground truth label, predicted label of source image, predicted label of generated image)
-        prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=3)}
+        # TODO: record all predictions in a better form (maybe matrix) and compute the recall, precision and f1 at the end
+        # create a dictionary with labellist^2 as keys and all values initialized as 0
+        # to count all possible combinations of (ground truth label, predicted label)
+        source_prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=2)}
+        target_prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=2)}
+        generated_prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=2)}
         # loops through all images from the source domain
-        for img_num, source_img, label in enumerate(itertools.compress(itertools.izip(images_test, labels_test), source_selector)):
-            source_image_input = np.reshape(source_img, img_tensor_shape)
-            # generate image
-            feeddict_gan = {gan_pl['source_img']: source_image_input, gan_pl['training']: False}
-            fake_img = sess_gan.run(x_fake_op, feed_dict=feeddict_gan)
-            # classify images
-            feeddict_fclf = {clf_pl['source_img']: source_image_input, clf_pl['fake_img']: fake_img, clf_pl['training']: False}
-            fclf_predictions_dict = sess_clf.run(predictions_clf_op, feed_dict=feeddict_fclf)
+        for img_num, source_img, label in enumerate(itertools.izip(images_test, labels_test)):
+            image_real_input = np.reshape(source_img, img_tensor_shape)
+            clf_prediction_real = sess_clf.run(predictions_clf_op, feed_dict={image_pl: image_real_input})
+            if source_selector[img_num]:
+                # current image is a source domain image
+                # generate image
+                feeddict_gan = {gan_pl['source_img']: image_real_input, gan_pl['training']: False}
+                fake_img = sess_gan.run(x_fake_op, feed_dict=feeddict_gan)
+                # classify fake image
+                clf_prediction_fake = sess_clf.run(predictions_clf_op, feed_dict={image_pl: fake_img})
 
-            # save images
-            if img_num < num_saved_images:
-                source_img_name = 'source_img_%.1fT_%d.nii.gz' % (gan_config.source_field_strength, img_num)
-                generated_img_name = 'generated_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, img_num)
-                utils.create_and_save_nii(np.squeeze(source_img), os.path.join(experiment_generate_path, source_img_name))
-                utils.create_and_save_nii(np.squeeze(fake_img), os.path.join(experiment_generate_path, generated_img_name))
-                logging.info('images saved')
+                # save images
+                if img_num < num_saved_images:
+                    source_img_name = 'source_img_%.1fT_%d.nii.gz' % (gan_config.source_field_strength, img_num)
+                    generated_img_name = 'generated_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, img_num)
+                    utils.create_and_save_nii(np.squeeze(source_img), os.path.join(experiment_generate_path, source_img_name))
+                    utils.create_and_save_nii(np.squeeze(fake_img), os.path.join(experiment_generate_path, generated_img_name))
+                    logging.info('images saved')
 
 
-            # record occurences of the four possible combinations of source_prediction and fake_prediction
-            label_tuple = (label, fclf_predictions_dict['source_label'], fclf_predictions_dict['fake_label'])
-            prediction_count[label_tuple] += 1
+                # record occurences of the four possible combinations of source_prediction and fake_prediction
+                source_prediction_count[(label, clf_prediction_real['label'])] += 1
+                generated_prediction_count[(label, clf_prediction_fake['label'])] += 1
 
-            if verbose:
-                logging.info("NEW IMAGE")
-                logging.info("ground truth label of source image: " + str(label))
-                logging.info("predictions: " + str(fclf_predictions_dict))
+                if verbose:
+                    logging.info("NEW IMAGE")
+                    logging.info("ground truth label of source image: " + str(label))
+                    logging.info("predictions: " + str(clf_prediction_fake))
 
-        true_predictions = np.sum([prediction_count[labels] for labels in prediction_count if labels[0] == labels[2]])
+            elif target_selector[img_num]:
+                # current image is a target domain image
+                target_prediction_count[(label, clf_prediction_fake['label'])] += 1
+
+        true_predictions = np.sum([source_prediction_count[labels] for labels in source_prediction_count if labels[0] == labels[2]])
         scores[gan_experiment_name] = true_predictions/num_source_images
 
     return scores
@@ -255,9 +253,6 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf
     sess_fclf = tf.Session(config=config, graph=graph_fclf)
     sess_fclf.run(init_fclf_op)
     saver_fclf.restore(sess_fclf, init_checkpoint_path_fclf)
-
-    #TODO: report the f1 score of the fieldstrenght_classifier on the validation set from the training run
-    # graph_fclf.get_tensor_by_name('?')
 
     # import data
     data = adni_data_loader.load_and_maybe_process_data(
@@ -303,6 +298,9 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf
         # create selectors
         train_source_sel, val_source_sel = utils.index_sets_to_selectors(source_images_train_ind, source_images_val_ind)
 
+        source_label, target_label = utils.fstr_to_label([gan_config.source_field_strength, gan_config.target_field_strength],
+                                                             fclf_config.field_strength_list, fclf_config.fs_label_list)
+
         # s for source, t for target. First the prediction on the source image, then the prediction on the generated image
         prediction_count = {(0, 0): 0, (0, 1): 0, (1, 0): 0, (1, 1): 0}
         # loops through all images from the source domain
@@ -315,9 +313,6 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf
             # classify images
             feeddict_fclf = {fclf_pl['source_img']: source_image_input, fclf_pl['fake_img']: fake_img, fclf_pl['training']: False}
             fclf_predictions_dict = sess_fclf.run(predictions_fclf_op, feed_dict=feeddict_fclf)
-            source_label, target_label = utils.fstr_to_label([gan_config.source_field_strength, gan_config.target_field_strength],
-                                                             fclf_config.field_strength_list, fclf_config.fs_label_list)
-
 
             # save images
             if img_num < num_saved_images:
