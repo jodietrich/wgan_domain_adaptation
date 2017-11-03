@@ -14,6 +14,7 @@ import config.system as sys_config
 import model
 from tfwrapper import utils as tf_utils
 import utils
+import adni_data_loader_all
 import adni_data_loader
 import data_utils
 
@@ -54,12 +55,13 @@ def run_training(continue_run):
         logging.info('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
     # import data
-    data = adni_data_loader.load_and_maybe_process_data(
+    data = adni_data_loader_all.load_and_maybe_process_data(
         input_folder=exp_config.data_root,
         preprocessing_folder=exp_config.preproc_folder,
         size=exp_config.image_size,
         target_resolution=exp_config.target_resolution,
         label_list = exp_config.label_list,
+        offset=exp_config.offset,
         rescale_to_one=True,
         force_overwrite=False
     )

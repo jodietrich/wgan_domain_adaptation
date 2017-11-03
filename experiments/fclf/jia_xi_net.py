@@ -11,8 +11,11 @@ model_handle = model_zoo.jia_xi_net_multitask_ordinal_bn
 multi_task_model = True
 
 # Data settings
-image_size = (128, 160, 112)
+# image_size = (128, 160, 112)
+# target_resolution =  (1.5, 1.5, 1.5)
+image_size = (64, 80, 64)
 target_resolution =  (1.5, 1.5, 1.5)
+offset = (0, 0, -10)
 diagnosis_list = (0, 1, 2)  # 0 - normal, 1 - mci, 2 - alzheimer's
 field_strength_list = (1.5, 3.0)
 fs_label_list = (0, 1)
