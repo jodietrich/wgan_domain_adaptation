@@ -26,7 +26,7 @@ def iterate_minibatches(images,
     if shuffle_data:
         np.random.shuffle(random_indices)
 
-    n_images = images.shape[0]
+    n_images = len(random_indices)
 
     for b_i in range(0,n_images,batch_size):
 
