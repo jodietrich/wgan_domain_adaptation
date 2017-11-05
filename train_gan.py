@@ -68,7 +68,7 @@ def run_training(continue_run):
 
     # extract images and indices of source/target images for the training and validation set
     images_train, source_images_train_ind, target_images_train_ind,\
-    images_val, source_images_val_ind, target_images_val_ind = adni_data_loader.get_images_and_fieldstrength_indices(
+    images_val, source_images_val_ind, target_images_val_ind = data_utils.get_images_and_fieldstrength_indices(
         data, exp_config.source_field_strength, exp_config.target_field_strength)
 
     generator = exp_config.generator

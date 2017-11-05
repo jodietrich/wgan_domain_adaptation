@@ -16,6 +16,43 @@ from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
 
+def get_images_and_fieldstrength_indices(data, source_field_strength, target_field_strength):
+    """
+    extract images and indices of source/target images for the training and validation set
+    gives back indices instead of subsets to use hdf5 datasets instead of ndarrays (to save memory)
+    :param data: hdf5 dataset of ADNI data
+    :param source_field_strength: value of the magnetic field strength [T] in the source domain
+    :param target_field_strength: value of the magnetic field strength [T] in the target domain
+    :return:images_train: training images hdf5 dataset contains ndarray with shape [number_of_images, x, y, z]
+            source_images_train_ind: indices of the images from the source domain in images_train
+            target_images_train_ind: indices of the images from the target domain in images_train
+            analogous for validation set
+    """
+    images_train = data['images_train']
+    images_val = data['images_val']
+
+    source_images_train_ind = []
+    target_images_train_ind = []
+    source_images_val_ind = []
+    target_images_val_ind = []
+
+    for train_ind, _ in enumerate(images_train):
+        field_str = data['field_strength_train'][train_ind]
+        if field_str == source_field_strength:
+            source_images_train_ind.append(train_ind)
+        elif field_str == target_field_strength:
+            target_images_train_ind.append(train_ind)
+
+    for val_ind, _ in enumerate(images_val):
+        field_str = data['field_strength_val'][val_ind]
+        if field_str == source_field_strength:
+            source_images_val_ind.append(val_ind)
+        elif field_str == target_field_strength:
+            target_images_val_ind.append(val_ind)
+
+    return images_train, source_images_train_ind, target_images_train_ind,\
+           images_val, source_images_val_ind, target_images_val_ind
+
 
 class DataSampler(object):
     def __init__(self, train_images, images_train_indices, validation_images, images_val_indices):

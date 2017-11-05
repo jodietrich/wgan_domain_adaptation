@@ -15,6 +15,7 @@ import config.system as sys_config
 import model_multitask as model_mt
 import utils
 from batch_generator_list import iterate_minibatches
+import data_utils
 
 
 
@@ -76,9 +77,11 @@ def run_training(continue_run):
     )
 
     # the following are HDF5 datasets, not numpy arrays
-    images_train = data['images_train']
     labels_train = data['diagnosis_train']
     ages_train = data['age_train']
+
+    images_train, source_images_train_ind, target_images_train_ind, \
+    images_val, source_images_val_ind, target_images_val_ind = data_utils.get_images_and_fieldstrength_indices(data, exp_config.source_field_strength, exp_config.target_field_strength)
 
     if exp_config.age_ordinal_regression:
         ages_train = utils.age_to_ordinal_reg_format(ages_train, bins=exp_config.age_bins)
@@ -87,9 +90,19 @@ def run_training(continue_run):
         ages_train = utils.age_to_bins(ages_train, bins=exp_config.age_bins)
         ordinal_reg_weights = None
 
-    images_val = data['images_val']
     labels_val = data['diagnosis_val']
     ages_val = data['age_val']
+
+    # select on which images to train on
+    if exp_config.training_domain == 'source':
+        train_image_selection = source_images_train_ind
+        val_image_selection = source_images_val_ind
+    elif exp_config.training_domain == 'target':
+        train_image_selection = target_images_train_ind
+        val_image_selection = target_images_val_ind
+    elif exp_config.training_domain == 'all':
+        train_image_selection = None
+        val_image_selection = None
 
     if exp_config.age_ordinal_regression:
         ages_val = utils.age_to_ordinal_reg_format(ages_val, bins=exp_config.age_bins)
@@ -277,6 +290,7 @@ def run_training(continue_run):
             for batch in iterate_minibatches(images_train,
                                              [labels_train, ages_train],
                                              batch_size=exp_config.batch_size,
+                                             selection_indices = train_image_selection,
                                              augmentation_function=exp_config.augmentation_function,
                                              exp_config=exp_config):
 
@@ -351,7 +365,8 @@ def run_training(continue_run):
                                                                              images_train,
                                                                              [labels_train, ages_train],
                                                                              batch_size=exp_config.batch_size,
-                                                                             do_ordinal_reg=exp_config.age_ordinal_regression)
+                                                                             do_ordinal_reg=exp_config.age_ordinal_regression,
+                                                                             selection_indices=train_image_selection)
 
 
                         train_summary_msg = sess.run(train_summary, feed_dict={train_error_: train_loss,
@@ -404,7 +419,8 @@ def run_training(continue_run):
                                                                        images_val,
                                                                        [labels_val, ages_val],
                                                                        batch_size=exp_config.batch_size,
-                                                                       do_ordinal_reg=exp_config.age_ordinal_regression)
+                                                                       do_ordinal_reg=exp_config.age_ordinal_regression,
+                                                                       selection_indices=val_image_selection)
 
 
                         val_summary_msg = sess.run(val_summary, feed_dict={val_error_: val_loss,
@@ -448,7 +464,8 @@ def do_eval(sess,
             images,
             labels_list,
             batch_size,
-            do_ordinal_reg):
+            do_ordinal_reg,
+            selection_indices=None):
 
     '''
     Function for running the evaluations every X iterations on the training and validation sets. 
@@ -474,6 +491,7 @@ def do_eval(sess,
     for batch in iterate_minibatches(images,
                                      labels_list,
                                      batch_size=batch_size,
+                                     selection_indices=selection_indices,
                                      augmentation_function=None,
                                      exp_config=exp_config):  # No aug in evaluation
     # As before you can wrap the iterate_minibatches function in the BackgroundGenerator class for speed improvements

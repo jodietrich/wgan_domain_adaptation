@@ -272,7 +272,7 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf
 
         # extract images and indices of source/target images for the training and validation set
         images_train, source_images_train_ind, target_images_train_ind,\
-        images_val, source_images_val_ind, target_images_val_ind = adni_data_loader.get_images_and_fieldstrength_indices(
+        images_val, source_images_val_ind, target_images_val_ind = data_utils.get_images_and_fieldstrength_indices(
             data, gan_config.source_field_strength, gan_config.target_field_strength)
 
         # open GAN save file from the selected experiment

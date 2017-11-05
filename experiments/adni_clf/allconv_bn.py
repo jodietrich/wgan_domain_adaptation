@@ -21,6 +21,9 @@ data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
 rescale_to_one = True
 use_sigmoid = False
+source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
+target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
+training_domain = 'target' # from {'source', 'target', 'all'}. From which domain are the training and validation images.
 
 # Cost function
 age_weight = 0.0
