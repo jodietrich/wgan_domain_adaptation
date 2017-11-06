@@ -107,7 +107,7 @@ def build_gen_graph(img_tensor_shape, gan_config):
         return graph_generator, placeholders, xf, init, saver
 
 
-def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, verbose=True, num_saved_images=0, image_saving_path=None):
+def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, num_saved_images=0, image_saving_path=None):
     """
 
     :param gan_experiment_list: list of GAN experiment names to be evaluated. They must all have the same image settings
@@ -203,6 +203,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         generated_prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=2)}
         # loops through all images from the source domain
         for img_num, source_img, label in enumerate(itertools.izip(images_test, labels_test)):
+            logging.info("NEW IMAGE")
             image_real_input = np.reshape(source_img, img_tensor_shape)
             clf_prediction_real = sess_clf.run(predictions_clf_op, feed_dict={image_pl: image_real_input})
             if img_num in source_indices:
@@ -225,13 +226,16 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
                 source_true_labels.append(label)
                 source_pred.append(clf_prediction_real['label'])
                 generated_pred.append(clf_prediction_fake['label'])
-                if verbose:
-                    logging.info("NEW IMAGE")
-                    logging.info("ground truth label of source image: " + str(label))
-                    logging.info("predictions: " + str(clf_prediction_fake))
+
+                logging.info("NEW IMAGE")
+                logging.info("source domain image with ground truth label: " + str(label))
+                logging.info("predictions for the source image: " + str(clf_prediction_real))
+                logging.info("predictions for the generated image: " + str(clf_prediction_fake))
 
             elif img_num in target_indices:
                 # current image is a target domain image
+                logging.info("target domain image with ground truth label: " + str(label))
+                logging.info("predictions for the target image: " + str(clf_prediction_real))
                 target_true_labels.append(label)
                 target_pred.append(clf_prediction_real['label'])
 
@@ -365,20 +369,21 @@ if __name__ == '__main__':
         'residual_identity_gen_bs2_std_disc_i2',
         'std_cnn_identity_gen_v5'
     ]
-    fclf_experiment_name = 'fclf_jiaxi_net_small_data'
+    fclf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_data_bn_i1'
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images')
 
     # import config file for field strength classifier
     logging.info('Classifier used: ' + fclf_experiment_name)
 
-    fclf_scores = generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf_experiment_name, verbose=True, num_saved_images=10, image_saving_path=image_saving_path)
+    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_list, fclf_experiment_name, num_saved_images=10, image_saving_path=image_saving_path)
 
-    logging.info('FINAL SUMMARY:\nFraction of generated images classified as from the target domain (score):')
-    logging.info(fclf_scores)
-    # gives the name of the experiment with the largest score (dictionary iterates over keys)
-    best_experiment = max(fclf_scores, key=fclf_scores.get)
-    best_score = fclf_scores[best_experiment]
-    logging.info('The best experiment was %s with score %f' % (best_experiment, best_score))
+    logging.info('FINAL SUMMARY:')
+    logging.info(clf_scores)
+    # gives the name of the experiment with the best f1 score on the generated images
+    gen_f1_score = lambda exp_name: clf_scores[exp_name]['f1']['generated']
+    best_experiment = max(clf_scores, key=gen_f1_score)
+    best_score = gen_f1_score(best_experiment)
+    logging.info('The best experiment was %s with f1 score %f for the generated images' % (best_experiment, best_score))
 
 
 

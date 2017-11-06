@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_data_bn_i1'
+experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
 
 # Model settings
 model_handle = model_zoo.FCN_multitask_ordinal_bn

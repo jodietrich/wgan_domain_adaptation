@@ -195,20 +195,22 @@ def run_training(continue_run):
         # create a op to initialize all accums vars
         zero_ops = [tv.assign(tf.zeros_like(tv)) for tv in accum_tvars]
 
-        # compute gradients for a batch
-        batch_grads_vars = optimiser.compute_gradients(loss, t_vars)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            # compute gradients for a batch
+            batch_grads_vars = optimiser.compute_gradients(loss, t_vars)
 
-        # collect the batch gradient into accumulated vars
+            # collect the batch gradient into accumulated vars
 
-        accum_ops = [accum_tvar.assign_add(batch_grad_var[0]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars)]
+            accum_ops = [accum_tvar.assign_add(batch_grad_var[0]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars)]
 
-        accum_normaliser_pl = tf.placeholder(dtype=tf.float32, name='accum_normaliser')
-        accum_mean_op = [accum_tvar.assign(tf.divide(accum_tvar, accum_normaliser_pl)) for accum_tvar in accum_tvars]
+            accum_normaliser_pl = tf.placeholder(dtype=tf.float32, name='accum_normaliser')
+            accum_mean_op = [accum_tvar.assign(tf.divide(accum_tvar, accum_normaliser_pl)) for accum_tvar in accum_tvars]
 
-        # apply accums gradients
-        train_op = optimiser.apply_gradients(
-            [(accum_tvar, batch_grad_var[1]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars)]
-        )
+            # apply accums gradients
+            train_op = optimiser.apply_gradients(
+                [(accum_tvar, batch_grad_var[1]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars)]
+            )
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits, ages_logits,
                                                                                          diag_placeholder,
@@ -329,7 +331,7 @@ def run_training(continue_run):
 
                     # Average gradient over batches
                     sess.run(accum_mean_op, feed_dict={accum_normaliser_pl: float(exp_config.n_accum_batches)})
-                    sess.run(train_op, feed_dict={learning_rate_placeholder: curr_lr, training_time_placeholder: True})
+                    sess.run(train_op, feed_dict=feed_dict)
 
                     # Reset all counters etc.
                     sess.run(zero_ops)
