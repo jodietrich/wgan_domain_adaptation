@@ -10,6 +10,7 @@ import os
 import tensorflow as tf
 import shutil
 from importlib.machinery import SourceFileLoader
+from sklearn.metrics import f1_score, recall_score, precision_score
 
 import config.system as sys_config
 import model
@@ -54,6 +55,15 @@ def log_stats_fclf(prediction_count, source_label, target_label):
     if target_real_count > 0:
         logging.info('fraction of generated pictures classified as target domain images: ' + str(tt/target_real_count))
     return score
+
+def evaluate_scores(source_true_labels, source_pred, generated_pred, target_true_labels, target_pred, measures_dict):
+    domain_dict = {'source': np.nan, 'target': np.isnan, 'generated': np.isnan}
+    scores_one_exp = {score_name: domain_dict.copy() for score_name in measures_dict}
+    for measure_name, measure in measures_dict.items():
+        scores_one_exp[measure_name]['source'] = measure(np.asarray(source_true_labels), np.asarray(source_pred), average='micro')  # micro is overall, macro doesn't take class imbalance into account
+        scores_one_exp[measure_name]['target'] = measure(np.asarray(target_true_labels), np.asarray(target_pred), average='micro')
+        scores_one_exp[measure_name]['generated'] = measure(np.asarray(source_true_labels), np.asarray(generated_pred), average='micro')
+    return scores_one_exp
 
 
 def build_clf_graph(img_tensor_shape, clf_config):
@@ -146,7 +156,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     num_images = images_test.shape[0]
     logging.info('there are %d test images')
 
-    scores = {}
+    scores = {gan_experiment_name: {} for gan_experiment_name in gan_experiment_list}
     for gan_experiment_name in gan_experiment_list:
         gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_name)
         logging.info('\nGAN Experiment (%f T to %f T): %s' % (gan_config.source_field_strength,
@@ -172,22 +182,30 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         utils.makefolder(experiment_generate_path)
 
         # create selectors
-        source_selector = [field_strength == gan_config.source_field_strength for field_strength in data['field_strength_test']]
-        target_selector = [field_strength == gan_config.target_field_strength for field_strength in data['field_strength_test']]
+        # source_selector = [field_strength == gan_config.source_field_strength for field_strength in data['field_strength_test']]
+        # target_selector = [field_strength == gan_config.target_field_strength for field_strength in data['field_strength_test']]
 
-        num_source_images = np.sum([1 for is_source in source_selector if is_source])
+        source_indices = set()
+        target_indices = set()
+        for i, field_strength in enumerate(data['field_strength_test']):
+            if field_strength == gan_config.source_field_strength:
+                source_indices.add(i)
+            elif field_strength == gan_config.target_field_strength:
+                target_indices.add(i)
 
-        # TODO: record all predictions in a better form (maybe matrix) and compute the recall, precision and f1 at the end
         # create a dictionary with labellist^2 as keys and all values initialized as 0
         # to count all possible combinations of (ground truth label, predicted label)
-        source_prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=2)}
-        target_prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=2)}
+        source_pred = []
+        generated_pred = []
+        source_true_labels = []
+        target_pred = []
+        target_true_labels = []
         generated_prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=2)}
         # loops through all images from the source domain
         for img_num, source_img, label in enumerate(itertools.izip(images_test, labels_test)):
             image_real_input = np.reshape(source_img, img_tensor_shape)
             clf_prediction_real = sess_clf.run(predictions_clf_op, feed_dict={image_pl: image_real_input})
-            if source_selector[img_num]:
+            if img_num in source_indices:
                 # current image is a source domain image
                 # generate image
                 feeddict_gan = {gan_pl['source_img']: image_real_input, gan_pl['training']: False}
@@ -203,22 +221,22 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
                     utils.create_and_save_nii(np.squeeze(fake_img), os.path.join(experiment_generate_path, generated_img_name))
                     logging.info('images saved')
 
-
-                # record occurences of the four possible combinations of source_prediction and fake_prediction
-                source_prediction_count[(label, clf_prediction_real['label'])] += 1
-                generated_prediction_count[(label, clf_prediction_fake['label'])] += 1
-
+                # record predicted and real labels
+                source_true_labels.append(label)
+                source_pred.append(clf_prediction_real['label'])
+                generated_pred.append(clf_prediction_fake['label'])
                 if verbose:
                     logging.info("NEW IMAGE")
                     logging.info("ground truth label of source image: " + str(label))
                     logging.info("predictions: " + str(clf_prediction_fake))
 
-            elif target_selector[img_num]:
+            elif img_num in target_indices:
                 # current image is a target domain image
-                target_prediction_count[(label, clf_prediction_fake['label'])] += 1
+                target_true_labels.append(label)
+                target_pred.append(clf_prediction_real['label'])
 
-        true_predictions = np.sum([source_prediction_count[labels] for labels in source_prediction_count if labels[0] == labels[2]])
-        scores[gan_experiment_name] = true_predictions/num_source_images
+        measures_dict = {'f1': f1_score, 'recall': recall_score, 'precision': precision_score}
+        scores[gan_experiment_name] = evaluate_scores(source_true_labels, source_pred, generated_pred, target_true_labels, target_pred, measures_dict)
 
     return scores
 

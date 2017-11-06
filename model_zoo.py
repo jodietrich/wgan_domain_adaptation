@@ -443,7 +443,7 @@ def FCN_disc_bn(images, training, nlabels, bn_momentum=0.99, scope_name='discrim
 
         return diag_logits
 
-def FCN_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=5, bn_momentum=0.99, scope_name='classifier',
+def  FCN_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=5, bn_momentum=0.99, scope_name='classifier',
                              scope_reuse=False):
     with tf.variable_scope(scope_name) as scope:
         if scope_reuse:

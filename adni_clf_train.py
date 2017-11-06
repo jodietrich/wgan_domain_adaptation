@@ -541,7 +541,6 @@ def do_eval(sess,
     avg_loss = (diag_loss_ii / num_batches) + (ages_loss_ii / num_batches)
 
 
-    # TODO: Add other measures such as F1 score here
     f1_diag_score = f1_score(np.asarray(predictions_diag_gt), np.asarray(predictions_diag), average='micro')  # micro is overall, macro doesn't take class imbalance into account
     # f1_ages_score = f1_score(np.asarray(predictions_ages_gt), np.asarray(predictions_ages), average='micro')  # micro is overall, macro doesn't take class imbalance into account
 
