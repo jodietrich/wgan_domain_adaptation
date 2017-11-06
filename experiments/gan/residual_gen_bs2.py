@@ -1,6 +1,6 @@
 from experiments.gan.standard_parameters import *
 
-experiment_name = 'residual_identity_gen_bs2_std_disc_i3'
+experiment_name = 'residual_identity_gen_bs2_std_disc_all_small_data_i1'
 
 # Model settings
 residual = True

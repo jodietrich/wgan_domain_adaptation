@@ -17,7 +17,7 @@ VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 ## otherwise the default shell would be used
 #$ -S /bin/bash
 #
-## <= 1h is short queue, <= 6h is middle queue, <= 48 h is long queue
+## <= 2h is short queue, <= 24h is middle queue, <= 120 h is long queue
 #$ -l h_rt=6:00:00
 
 ## the maximum memory usage of this job, (below 4G does not make much sense)

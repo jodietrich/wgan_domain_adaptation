@@ -2,7 +2,7 @@ __author__ = 'jdietric'
 
 from experiments.gan.standard_parameters import *
 
-experiment_name = 'FCN_disc_res_gen_n64b4_bn_i1'
+experiment_name = 'FCN_disc_res_gen_n64b4_all_small_data_bn_i1'
 
 # Model settings
 batch_normalization = True

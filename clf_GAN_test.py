@@ -369,7 +369,7 @@ if __name__ == '__main__':
         'residual_identity_gen_bs2_std_disc_i2',
         'std_cnn_identity_gen_v5'
     ]
-    fclf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_data_bn_i1'
+    fclf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images')
 
     # import config file for field strength classifier
