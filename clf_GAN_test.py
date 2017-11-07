@@ -107,7 +107,7 @@ def build_gen_graph(img_tensor_shape, gan_config):
         return graph_generator, placeholders, xf, init, saver
 
 
-def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, num_saved_images=0, image_saving_path=None):
+def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, num_saved_images=0, image_saving_path=None, max_batch_size = np.inf):
     """
 
     :param gan_experiment_list: list of GAN experiment names to be evaluated. They must all have the same image settings
@@ -155,6 +155,8 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
 
     num_images = images_test.shape[0]
     logging.info('there are %d test images')
+
+
 
     scores = {gan_experiment_name: {} for gan_experiment_name in gan_experiment_list}
     for gan_experiment_name in gan_experiment_list:

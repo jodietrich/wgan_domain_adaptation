@@ -48,6 +48,7 @@ w_reg_gen_l1 = 0.0
 w_reg_disc_l1 = 0.0
 w_reg_gen_l2 = 0.0
 w_reg_disc_l2 = 0.0
+w_reg_img_dist_l1 = 0.0  # weight of l1 distance to source image in gen loss
 
 # Rarely changed settings
 max_iterations = 100000

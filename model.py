@@ -7,7 +7,7 @@ import tensorflow as tf
 from tfwrapper import losses
 from math import sqrt
 
-def gan_loss(logits_real, logits_fake, w_reg_gen_l1, w_reg_disc_l1, w_reg_gen_l2, w_reg_disc_l2):
+def gan_loss(logits_real, logits_fake, l1_img_dist, w_reg_img_dist_l1, w_reg_gen_l1, w_reg_disc_l1, w_reg_gen_l2, w_reg_disc_l2):
 
     disc_loss = tf.reduce_mean(logits_real) - tf.reduce_mean(logits_fake)
     gen_loss = tf.reduce_mean(logits_fake)
@@ -32,7 +32,8 @@ def gan_loss(logits_real, logits_fake, w_reg_gen_l1, w_reg_disc_l1, w_reg_gen_l2
         l2_regularizer_gen = tf.contrib.layers.l2_regularizer(scale=w_reg_gen_l2, scope=None)
         reg_gen_l1 = tf.contrib.layers.apply_regularization(l1_regularizer_gen, gen_weights)
         reg_gen_l2 = tf.contrib.layers.apply_regularization(l2_regularizer_gen, gen_weights)
-        reg_gen = reg_gen_l1 + reg_gen_l2
+        reg_img_dist_l1 = w_reg_img_dist_l1 * l1_img_dist
+        reg_gen = reg_gen_l1 + reg_gen_l2 + reg_img_dist_l1
 
         reg_all = reg_disc + reg_gen
 
@@ -47,6 +48,7 @@ def gan_loss(logits_real, logits_fake, w_reg_gen_l1, w_reg_disc_l1, w_reg_gen_l2
     print('Generator Regularisation:')
     print(' - L1: %f' % w_reg_gen_l1)
     print(' - L2: %f' % w_reg_gen_l2)
+    print(' - L1 distance between generated and source image: %f' % w_reg_gen_l2)
     for v in gen_weights:
         print(v.name)
 
@@ -90,6 +92,8 @@ def training_ops(logits_real,
                  logits_fake,
                  optimizer_handle,
                  learning_rate,
+                 l1_img_dist,
+                 w_reg_img_dist_l1=0.0,
                  w_reg_gen_l1=2.5e-5,
                  w_reg_disc_l1=2.5e-5,
                  w_reg_gen_l2=0.0,
@@ -115,6 +119,8 @@ def training_ops(logits_real,
 
     discriminator_loss, gen_loss, discriminator_loss_no_reg, gen_loss_no_reg = gan_loss(logits_real,
                                                                                         logits_fake,
+                                                                                        l1_img_dist,
+                                                                                        w_reg_img_dist_l1,
                                                                                         w_reg_gen_l1,
                                                                                         w_reg_disc_l1,
                                                                                         w_reg_gen_l2,

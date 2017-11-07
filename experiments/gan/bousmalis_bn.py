@@ -1,9 +1,12 @@
 from experiments.gan.standard_parameters import *
 
-experiment_name = 'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1'
+experiment_name = 'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_5e5l1_i1'
 
 # Model settings
 batch_normalization = True
+
+# regularization settings
+w_reg_img_dist_l1 = 5.0e5
 
 # model to use
 def generator(xs, training, scope_reuse=False, scope_name='generator'):

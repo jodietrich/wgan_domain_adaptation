@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 sys_config.setup_GPU_environment()
 
 #######################################################################
-from experiments.gan import bousmalis_bn as exp_config
+from experiments.gan import residual_gen_bs2 as exp_config
 from experiments.gan import standard_parameters
 #######################################################################
 
@@ -129,12 +129,16 @@ def run_training(continue_run):
             x_hat = epsilon * x_pl + (1 - epsilon) * x_pl_
             d_hat = discriminator(x_hat, training_placeholder, scope_reuse=True)
 
+        dist_l1 = tf.reduce_mean(tf.abs(diff_img_pl))
+
         # nr means no regularization, meaning the loss without the regularization term
         discriminator_train_op, generator_train_op, \
         disc_loss_pl, gen_loss_pl, \
         disc_loss_nr_pl, gen_loss_nr_pl = model.training_ops(d_pl, d_pl_,
                                                              optimizer_handle=exp_config.optimizer_handle,
                                                              learning_rate=exp_config.learning_rate,
+                                                             l1_img_dist=dist_l1,
+                                                             w_reg_img_dist_l1=exp_config.w_reg_img_dist_l1,
                                                              w_reg_gen_l1=exp_config.w_reg_gen_l1,
                                                              w_reg_disc_l1=exp_config.w_reg_disc_l1,
                                                              w_reg_gen_l2=exp_config.w_reg_gen_l2,
@@ -146,8 +150,7 @@ def run_training(continue_run):
         d_clip_op = model.clip_op()
 
         # Put L1 distance of generated image and original image on summary
-        dist_l1_pl = tf.reduce_mean(tf.abs(diff_img_pl))
-        dist_l1_summary_op = tf.summary.scalar('L1_distance_to_source_img', dist_l1_pl)
+        dist_l1_summary_op = tf.summary.scalar('L1_distance_to_source_img', dist_l1)
 
         # Build the summary Tensor based on the TF collection of Summaries.
         summary_op = tf.summary.merge_all()
