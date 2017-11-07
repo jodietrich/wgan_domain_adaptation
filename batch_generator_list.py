@@ -9,7 +9,8 @@ def iterate_minibatches(images,
                         selection_indices=None,
                         augmentation_function=None,
                         map_labels_to_standard_range=True,
-                        shuffle_data=True):
+                        shuffle_data=True,
+                        skip_remainder=True):
     '''
     Function to create mini batches from the dataset of a certain batch size
     :param images: hdf5 dataset
@@ -17,6 +18,7 @@ def iterate_minibatches(images,
     :param batch_size: batch size
     :param selection_indices: indices from which images are selected. If this is None the selection is from all images
     :param augment_batch: should batch be augmented?
+    :param skip_remainder: skip the last images if the batch size is larger than their number
     :return: mini batches
     '''
     if selection_indices is None:
@@ -30,11 +32,16 @@ def iterate_minibatches(images,
 
     for b_i in range(0,n_images,batch_size):
 
-        if b_i + batch_size > n_images:
-            continue
+        end_of_batch = b_i+batch_size
+
+        if end_of_batch > n_images:
+            if skip_remainder:
+                continue
+            else:
+                end_of_batch = n_images
 
         # HDF5 requires indices to be in increasing order
-        batch_indices = np.sort(random_indices[b_i:b_i+batch_size])
+        batch_indices = np.sort(random_indices[b_i:end_of_batch])
 
         X = images[batch_indices, ...]
         # y = labels[batch_indices, ...]

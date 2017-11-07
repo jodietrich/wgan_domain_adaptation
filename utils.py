@@ -165,3 +165,15 @@ def load_log_exp_config(experiment_name):
     # remove the .py with [:-3]
     return SourceFileLoader(py_file_name[:-3], py_file_path).load_module(), logdir
 
+def string_dict_in_order(dict, key=None, key_string='', value_string=''):
+    # key is a function to give the elements in the dictionary a numerical value that is used for the order
+    separator = '\n'
+    lines = []
+    for key, value in sorted(dict.items(), key=key):
+        lines.append(key_string + str(key) + ' ' + value_string + str(value))
+    print_string = separator.join(lines)
+    return print_string
+
+
+
+

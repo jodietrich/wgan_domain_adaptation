@@ -21,6 +21,7 @@ import adni_data_loader_all
 import data_utils
 from model_multitask import predict
 import experiments.gan.standard_parameters as std_params
+from batch_generator_list import iterate_minibatches
 
 
 def get_latest_checkpoint_and_log(logdir, filename):
@@ -56,13 +57,10 @@ def log_stats_fclf(prediction_count, source_label, target_label):
         logging.info('fraction of generated pictures classified as target domain images: ' + str(tt/target_real_count))
     return score
 
-def evaluate_scores(source_true_labels, source_pred, generated_pred, target_true_labels, target_pred, measures_dict):
-    domain_dict = {'source': np.nan, 'target': np.isnan, 'generated': np.isnan}
-    scores_one_exp = {score_name: domain_dict.copy() for score_name in measures_dict}
+def evaluate_scores(true_labels, prediction, measures_dict):
+    scores_one_exp = {}
     for measure_name, measure in measures_dict.items():
-        scores_one_exp[measure_name]['source'] = measure(np.asarray(source_true_labels), np.asarray(source_pred), average='micro')  # micro is overall, macro doesn't take class imbalance into account
-        scores_one_exp[measure_name]['target'] = measure(np.asarray(target_true_labels), np.asarray(target_pred), average='micro')
-        scores_one_exp[measure_name]['generated'] = measure(np.asarray(source_true_labels), np.asarray(generated_pred), average='micro')
+        scores_one_exp[measure_name] = measure(y_true = np.asarray(true_labels), y_pred = np.asarray(prediction), average='micro')  # micro is overall, macro doesn't take class imbalance into account
     return scores_one_exp
 
 
@@ -73,7 +71,7 @@ def build_clf_graph(img_tensor_shape, clf_config):
         x_clf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
 
         # classification of the real source image and the fake target image
-        predicted_label, softmax, _ = predict(x_clf_pl, clf_config)
+        predicted_labels, softmax, age_softmaxs = predict(x_clf_pl, clf_config)
         # scope = tf.get_variable_scope()
         # scope.reuse_variables()
 
@@ -82,7 +80,7 @@ def build_clf_graph(img_tensor_shape, clf_config):
 
         # Create a savers for writing training checkpoints.
         saver = tf.train.Saver()  # disc loss is scaled negative EM distance
-        predictions = {'label': predicted_label[0], 'softmax': softmax}
+        predictions = {'label': predicted_labels, 'diag_softmax': softmax, 'age_softmaxs': age_softmaxs}
         return graph_classifier, x_clf_pl, predictions, init, saver
 
 
@@ -90,40 +88,57 @@ def build_gen_graph(img_tensor_shape, gan_config):
     generator = gan_config.generator
     graph_generator = tf.Graph()
     with graph_generator.as_default():
-        training_pl = tf.placeholder(tf.bool, name='training_phase')
-
         # source image (batch size = 1)
         xs_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
 
         # generated fake image batch
-        xf = generator(xs_pl, training_pl)
+        xf = generator(xs_pl, training=False)
 
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
 
         # Create a savers for writing training checkpoints.
         saver = tf.train.Saver()
-        placeholders = {'source_img': xs_pl, 'training': training_pl}
-        return graph_generator, placeholders, xf, init, saver
+        return graph_generator, xs_pl, xf, init, saver
 
 
-def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, num_saved_images=0, image_saving_path=None, max_batch_size = np.inf):
+def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, num_images_to_save=0, image_saving_path=None, max_batch_size = np.inf):
     """
 
-    :param gan_experiment_list: list of GAN experiment names to be evaluated. They must all have the same image settings
+    :param gan_experiment_list: list of GAN experiment names to be evaluated. They must all have the same image settings and source/target field strengths as the classifier
     :param clf_experiment_name: AD classifier used
     :param verbose: boolean. log all image classifications
-    :param num_saved_images: how many images to save as nii files. 0 if none should be saved
+    :param num_images_to_save: how many images to save as nii files. 0 if none should be saved
     :param image_saving_path: where to save the images. They are saved in subfolders for each experiment
     :return:
     """
-    # bigger does not work currently (because of the statistics)
-    batch_size = 1
 
     clf_config, logdir_clf = utils.load_log_exp_config(clf_experiment_name)
 
+    # Load data
+    data = adni_data_loader_all.load_and_maybe_process_data(
+        input_folder=clf_config.data_root,
+        preprocessing_folder=clf_config.preproc_folder,
+        size=clf_config.image_size,
+        target_resolution=clf_config.target_resolution,
+        label_list=clf_config.label_list,
+        offset=clf_config.offset,
+        rescale_to_one=clf_config.rescale_to_one,
+        force_overwrite=False
+    )
+
+    # extract images and indices of source/target images for the test set
+    images_test = data['images_test']
+    labels_test = data['diagnosis_test']
+    ages_test = data['age_test']
+
+    num_images = images_test.shape[0]
+    logging.info('there are %d test images')
+
     im_s = clf_config.image_size
+    batch_size = min(clf_config.batch_size, std_params.batch_size, max_batch_size)
     img_tensor_shape = [batch_size, im_s[0], im_s[1], im_s[2], 1]
+    clf_remainder_batch_size = images_test.shape[0] % batch_size
 
     # prevents ResourceExhaustError when a lot of memory is used
     config = tf.ConfigProto()
@@ -138,27 +153,54 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     sess_clf.run(init_clf_op)
     saver_clf.restore(sess_clf, init_checkpoint_path_clf)
 
-    # import data
-    data = adni_data_loader_all.load_and_maybe_process_data(
-            input_folder=clf_config.data_root,
-            preprocessing_folder=clf_config.preproc_folder,
-            size=clf_config.image_size,
-            target_resolution=clf_config.target_resolution,
-            label_list = (0, 1, 2),
-            force_overwrite=False
-        )
+    # make a separate graph for the last batch where the batchsize is smaller
+    if clf_remainder_batch_size > 0:
+        img_tensor_shape_gan_remainder = [clf_remainder_batch_size, im_s[0], im_s[1], im_s[2], 1]
+        graph_clf_rem, image_pl_rem, predictions_clf_op_rem, init_clf_op_rem, saver_clf_rem = build_clf_graph(img_tensor_shape_gan_remainder, clf_config)
+        sess_clf_rem = tf.Session(config=config, graph=graph_clf_rem)
+        sess_clf_rem.run(init_clf_op_rem)
+        saver_clf_rem.restore(sess_clf_rem, init_checkpoint_path_clf)
 
-     # extract images and indices of source/target images for the test set
-    images_test = data['images_test']
-    labels_test = data['diagnosis_test']
-    ages_test = data['age_test']
+    # classifiy all real test images
+    real_pred = []
+    for batch in iterate_minibatches(images_test,
+                                     [labels_test, ages_test],
+                                     batch_size=batch_size,
+                                     exp_config=clf_config,
+                                     shuffle_data=False,
+                                     skip_remainder=False):
+        # ignore the labels because data are in order, which means the label list in data can be used
+        image_batch = batch[0]
 
-    num_images = images_test.shape[0]
-    logging.info('there are %d test images')
+        current_batch_size = image_batch.shape[0]
+        if current_batch_size < batch_size:
+            clf_prediction_real = sess_clf_rem.run(predictions_clf_op_rem, feed_dict={image_pl_rem: image_batch})
+        else:
+            clf_prediction_real = sess_clf.run(predictions_clf_op, feed_dict={image_pl: image_batch})
 
+        real_pred = real_pred + clf_prediction_real['label']
 
+    source_indices = set()
+    target_indices = set()
+    source_true_labels = []
+    source_pred = []
+    target_true_labels = []
+    target_pred = []
+    for i, field_strength in enumerate(data['field_strength_test']):
+        if field_strength == clf_config.source_field_strength:
+            source_indices.add(i)
+            source_true_labels.append(labels_test[i])
+            source_pred.append(real_pred[i])
+        elif field_strength == clf_config.target_field_strength:
+            target_indices.add(i)
+            target_true_labels.append(labels_test[i])
+            target_pred.append(real_pred[i])
 
-    scores = {gan_experiment_name: {} for gan_experiment_name in gan_experiment_list}
+    num_source_images = len(source_indices)
+    gan_remainder_batch_size = num_source_images % batch_size
+
+    scores = {}
+    num_images_already_saved = 0
     for gan_experiment_name in gan_experiment_list:
         gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_name)
         logging.info('\nGAN Experiment (%f T to %f T): %s' % (gan_config.source_field_strength,
@@ -168,8 +210,8 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         logging.info('loading GAN')
         init_checkpoint_path_gan = get_latest_checkpoint_and_log(logdir_gan, 'model.ckpt')
 
-        # build a separate graph for the generator and the classifier respectively
-        graph_generator, gan_pl, x_fake_op, init_gan_op, saver_gan = build_gen_graph(img_tensor_shape, gan_config)
+        # build a separate graph for the generator
+        graph_generator, generator_img_pl, x_fake_op, init_gan_op, saver_gan = build_gen_graph(img_tensor_shape, gan_config)
 
         # Create a session for running Ops on the Graph.
         sess_gan = tf.Session(config=config, graph=graph_generator)
@@ -183,66 +225,69 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         # make a folder for the generated images
         utils.makefolder(experiment_generate_path)
 
-        # create selectors
-        # source_selector = [field_strength == gan_config.source_field_strength for field_strength in data['field_strength_test']]
-        # target_selector = [field_strength == gan_config.target_field_strength for field_strength in data['field_strength_test']]
+        # make separate graphs for the last batch where the batchsize is smaller
+        if clf_remainder_batch_size > 0:
+            img_tensor_shape_gan_remainder = [gan_remainder_batch_size, im_s[0], im_s[1], im_s[2], 1]
+            # classifier
+            graph_clf_rem, image_pl_rem, predictions_clf_op_rem, init_clf_op_rem, saver_clf_rem = build_clf_graph(img_tensor_shape_gan_remainder, clf_config)
+            sess_clf_rem = tf.Session(config=config, graph=graph_clf_rem)
+            sess_clf_rem.run(init_clf_op_rem)
+            saver_clf_rem.restore(sess_clf_rem, init_checkpoint_path_clf)
 
-        source_indices = set()
-        target_indices = set()
-        for i, field_strength in enumerate(data['field_strength_test']):
-            if field_strength == gan_config.source_field_strength:
-                source_indices.add(i)
-            elif field_strength == gan_config.target_field_strength:
-                target_indices.add(i)
+            # generator
+            graph_generator_rem, generator_img_rem_pl, x_fake_op_rem, init_gan_op_rem, saver_gan_rem = build_gen_graph(img_tensor_shape_gan_remainder, gan_config)
+            # Create a session for running Ops on the Graph.
+            sess_gan_rem = tf.Session(config=config, graph=graph_generator_rem)
+            # Run the Op to initialize the variables.
+            sess_gan_rem.run(init_gan_op_rem)
+            saver_gan_rem.restore(sess_gan_rem, init_checkpoint_path_gan)
 
-        # create a dictionary with labellist^2 as keys and all values initialized as 0
-        # to count all possible combinations of (ground truth label, predicted label)
-        source_pred = []
+
+
         generated_pred = []
-        source_true_labels = []
-        target_pred = []
-        target_true_labels = []
-        generated_prediction_count = {combination: 0 for combination in itertools.product(clf_config.label_list, repeat=2)}
         # loops through all images from the source domain
-        for img_num, source_img, label in enumerate(itertools.izip(images_test, labels_test)):
-            logging.info("NEW IMAGE")
-            image_real_input = np.reshape(source_img, img_tensor_shape)
-            clf_prediction_real = sess_clf.run(predictions_clf_op, feed_dict={image_pl: image_real_input})
-            if img_num in source_indices:
-                # current image is a source domain image
-                # generate image
-                feeddict_gan = {gan_pl['source_img']: image_real_input, gan_pl['training']: False}
-                fake_img = sess_gan.run(x_fake_op, feed_dict=feeddict_gan)
+        for batch in iterate_minibatches(images_test,
+                                     [labels_test, ages_test],
+                                     batch_size=batch_size,
+                                     exp_config=clf_config,
+                                     selection_indices=list(source_indices),
+                                     shuffle_data=False,
+                                     skip_remainder=False):
+            # ignore the labels because data are in order, which means the label list in data can be used
+            image_batch = batch[0]
+
+            current_batch_size = image_batch.shape[0]
+            if current_batch_size < batch_size:
+                fake_img = sess_gan_rem.run(x_fake_op_rem, feed_dict={generator_img_rem_pl: image_batch})
+                # classify fake image
+                clf_prediction_fake = sess_clf_rem.run(predictions_clf_op_rem, feed_dict={image_pl_rem: fake_img})
+            else:
+                fake_img = sess_gan.run(x_fake_op, feed_dict={generator_img_pl: image_batch})
                 # classify fake image
                 clf_prediction_fake = sess_clf.run(predictions_clf_op, feed_dict={image_pl: fake_img})
 
-                # save images
-                if img_num < num_saved_images:
-                    source_img_name = 'source_img_%.1fT_%d.nii.gz' % (gan_config.source_field_strength, img_num)
-                    generated_img_name = 'generated_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, img_num)
-                    utils.create_and_save_nii(np.squeeze(source_img), os.path.join(experiment_generate_path, source_img_name))
-                    utils.create_and_save_nii(np.squeeze(fake_img), os.path.join(experiment_generate_path, generated_img_name))
+            generated_pred = generated_pred + clf_prediction_fake['label']
+
+            # save images
+            for real_image, generated_image in itertools.izip(image_batch, fake_img):
+                if num_images_already_saved < num_images_to_save:
+                    source_img_name = 'source_img_%.1fT_%d.nii.gz' % (gan_config.source_field_strength, num_images_already_saved)
+                    generated_img_name = 'generated_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, num_images_already_saved)
+                    utils.create_and_save_nii(np.squeeze(real_image), os.path.join(experiment_generate_path, source_img_name))
+                    utils.create_and_save_nii(np.squeeze(generated_image), os.path.join(experiment_generate_path, generated_img_name))
                     logging.info('images saved')
+                    num_images_already_saved += 1
+                else:
+                    break
 
-                # record predicted and real labels
-                source_true_labels.append(label)
-                source_pred.append(clf_prediction_real['label'])
-                generated_pred.append(clf_prediction_fake['label'])
+        # separate true labels and predicted labels for real images into source and target domain
 
-                logging.info("NEW IMAGE")
-                logging.info("source domain image with ground truth label: " + str(label))
-                logging.info("predictions for the source image: " + str(clf_prediction_real))
-                logging.info("predictions for the generated image: " + str(clf_prediction_fake))
-
-            elif img_num in target_indices:
-                # current image is a target domain image
-                logging.info("target domain image with ground truth label: " + str(label))
-                logging.info("predictions for the target image: " + str(clf_prediction_real))
-                target_true_labels.append(label)
-                target_pred.append(clf_prediction_real['label'])
 
         measures_dict = {'f1': f1_score, 'recall': recall_score, 'precision': precision_score}
-        scores[gan_experiment_name] = evaluate_scores(source_true_labels, source_pred, generated_pred, target_true_labels, target_pred, measures_dict)
+        scores[gan_experiment_name] = evaluate_scores(source_true_labels, generated_pred, measures_dict)
+
+    scores['source'] = evaluate_scores(source_true_labels, source_pred)
+    scores['target'] = evaluate_scores(target_true_labels, target_pred)
 
     return scores
 
@@ -365,11 +410,8 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf
 if __name__ == '__main__':
     # settings
     gan_experiment_list = [
-        'residual_identity_gen_bs1_std_disc_i1',
-        'residual_identity_gen_bs2_std_disc_bn_i1',
-        'residual_identity_gen_bs2_std_disc_i1',
-        'residual_identity_gen_bs2_std_disc_i2',
-        'std_cnn_identity_gen_v5'
+        'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1',
+        'residual_identity_gen_bs2_std_disc_all_small_data_i1'
     ]
     fclf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images')
@@ -377,12 +419,14 @@ if __name__ == '__main__':
     # import config file for field strength classifier
     logging.info('Classifier used: ' + fclf_experiment_name)
 
-    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_list, fclf_experiment_name, num_saved_images=10, image_saving_path=image_saving_path)
-
-    logging.info('FINAL SUMMARY:')
+    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_list, fclf_experiment_name, num_images_to_save=10, image_saving_path=image_saving_path, max_batch_size=np.inf)
     logging.info(clf_scores)
+    gen_f1_score = lambda exp_name: clf_scores[exp_name]['f1']
+
+    scores_string = utils.string_dict_in_order(clf_scores, key=gen_f1_score)
+    logging.info('FINAL SUMMARY:\nordered by f1 score\n' + scores_string)
+
     # gives the name of the experiment with the best f1 score on the generated images
-    gen_f1_score = lambda exp_name: clf_scores[exp_name]['f1']['generated']
     best_experiment = max(clf_scores, key=gen_f1_score)
     best_score = gen_f1_score(best_experiment)
     logging.info('The best experiment was %s with f1 score %f for the generated images' % (best_experiment, best_score))
