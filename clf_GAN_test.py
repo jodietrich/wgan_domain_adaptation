@@ -178,21 +178,21 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         else:
             clf_prediction_real = sess_clf.run(predictions_clf_op, feed_dict={image_pl: image_batch})
 
-        real_pred = real_pred + clf_prediction_real['label']
+        real_pred = real_pred + list(clf_prediction_real['label'])
 
-    source_indices = set()
-    target_indices = set()
+    source_indices = []
+    target_indices = []
     source_true_labels = []
     source_pred = []
     target_true_labels = []
     target_pred = []
     for i, field_strength in enumerate(data['field_strength_test']):
         if field_strength == clf_config.source_field_strength:
-            source_indices.add(i)
+            source_indices.append(i)
             source_true_labels.append(labels_test[i])
             source_pred.append(real_pred[i])
         elif field_strength == clf_config.target_field_strength:
-            target_indices.add(i)
+            target_indices.append(i)
             target_true_labels.append(labels_test[i])
             target_pred.append(real_pred[i])
 
@@ -250,7 +250,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
                                      [labels_test, ages_test],
                                      batch_size=batch_size,
                                      exp_config=clf_config,
-                                     selection_indices=list(source_indices),
+                                     selection_indices=source_indices,
                                      shuffle_data=False,
                                      skip_remainder=False):
             # ignore the labels because data are in order, which means the label list in data can be used
@@ -416,6 +416,7 @@ if __name__ == '__main__':
     ]
     fclf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images')
+    image_saving_indices = range(0, 200, 20)
 
     # import config file for field strength classifier
     logging.info('Classifier used: ' + fclf_experiment_name)
