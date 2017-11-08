@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 sys_config.setup_GPU_environment()
 
 #######################################################################
-from experiments.gan import bousmalis_bn as exp_config
+from experiments.gan import FCN_disc_res_gen_bn as exp_config
 from experiments.gan import standard_parameters
 #######################################################################
 
