@@ -170,7 +170,11 @@ def load_log_exp_config(experiment_name, file_name = None, other_py_files = ['st
 
     # import config file
     # remove the .py with [:-3]
-    return SourceFileLoader(py_file_name[:-3], py_file_path).load_module(), logdir
+    experiment_module = SourceFileLoader(py_file_name[:-3], py_file_path).load_module()
+
+    assert experiment_module.experiment_name == experiment_name
+
+    return experiment_module, logdir
 
 def string_dict_in_order(dict, key_function=None, key_string='', value_string=''):
     # key is a function to give the elements in the dictionary a numerical value that is used for the order

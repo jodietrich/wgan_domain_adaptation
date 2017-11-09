@@ -138,9 +138,6 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     labels_test = data['diagnosis_test']
     ages_test = data['age_test']
 
-    num_images = images_test.shape[0]
-    logging.info('there are %d test images')
-
     im_s = clf_config.image_size
     batch_size = min(clf_config.batch_size, std_params.batch_size, max_batch_size)
     logging.info('batch size %d is used for everything' % batch_size)
@@ -155,6 +152,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     # open field strength classifier save file from the selected experiment
     logging.info("loading Alzheimer's disease classifier")
     graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = build_clf_graph(img_tensor_shape, clf_config)
+    # get savepoint with best crossentropy
     init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_xent.ckpt')
     sess_clf = tf.Session(config=config, graph=graph_clf)
     sess_clf.run(init_clf_op)
@@ -245,13 +243,13 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     target_saving_indices = [target_indices[index] for index in sorted_saving_indices]
     for target_index in target_saving_indices:
         target_img_name = 'target_img_%.1fT_%d.nii.gz' % (clf_config.target_field_strength, target_index)
-        utils.create_and_save_nii(np.squeeze(images_test[target_index]), os.path.join(target_image_path, target_img_name))
+        utils.create_and_save_nii(images_test[target_index], os.path.join(target_image_path, target_img_name))
         logging.info(target_img_name + ' saved')
 
     source_saving_indices = [source_indices[index] for index in sorted_saving_indices]
     for source_index in source_saving_indices:
         source_img_name = 'source_img_%.1fT_%d.nii.gz' % (clf_config.source_field_strength, source_index)
-        utils.create_and_save_nii(np.squeeze(images_test[source_index]), os.path.join(source_image_path, source_img_name))
+        utils.create_and_save_nii(images_test[source_index], os.path.join(source_image_path, source_img_name))
         logging.info(source_img_name + ' saved')
 
     logging.info('source and target images saved')
@@ -274,6 +272,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         logging.info(gan_config)
         # open GAN save file from the selected experiment
         logging.info('loading GAN')
+        # open the latest GAN savepoint
         init_checkpoint_path_gan = get_latest_checkpoint_and_log(logdir_gan, 'model.ckpt')
 
         # build a separate graph for the generator
@@ -335,7 +334,12 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
             generated_pred = generated_pred + list(clf_prediction_fake['label'])
 
             # save images
-            source_indices_to_save = image_saving_indices.intersection(set(range(batch_beginning_index, batch_beginning_index + current_batch_size)))
+            current_source_indices = range(batch_beginning_index, batch_beginning_index + current_batch_size)
+
+            # test whether minibatches are really iterated in order by checking if the labels are as expected
+            assert [source_true_labels[i] for i in current_source_indices] == list(real_label)
+
+            source_indices_to_save = image_saving_indices.intersection(set(current_source_indices))
             for source_index in source_indices_to_save:
                 batch_index = source_index - batch_beginning_index
                 # index of the image in the complete test data
@@ -488,16 +492,18 @@ if __name__ == '__main__':
         'residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1',
         'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1'
     ]
-    fclf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
+    clf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/all_data_size_64_80_64_res_1.5_1.5_1.5_lbl_0_2_intrangeone_offset_0_0_-10')
     image_saving_indices = set(range(0, 120, 20))
 
     # import config file for field strength classifier
-    logging.info('Classifier used: ' + fclf_experiment_name)
+    logging.info('Classifier used: ' + clf_experiment_name)
 
-    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_list, fclf_experiment_name, image_saving_indices=image_saving_indices, image_saving_path=image_saving_path, max_batch_size=np.inf)
-    logging.info(clf_scores)
-    logging.info(clf_scores.items())
+    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_list,
+                                                         clf_experiment_name,
+                                                         image_saving_indices=image_saving_indices,
+                                                         image_saving_path=image_saving_path,
+                                                         max_batch_size=np.inf)
 
     # function to get the f1 score from an element of clf_scores.items()
     get_f1_score = lambda dict_key: clf_scores[dict_key]['f1']
