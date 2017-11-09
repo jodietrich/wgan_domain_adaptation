@@ -21,7 +21,7 @@ VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 #$ -l h_rt=12:00:00
 
 ## the maximum memory usage of this job, (below 4G does not make much sense)
-#$ -l h_vmem=40G
+#$ -l h_vmem=15G
 
 # Host and gpu settings
 #$ -l gpu

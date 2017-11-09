@@ -66,6 +66,13 @@ def evaluate_scores(true_labels, prediction, measures_dict):
         scores_one_exp[measure_name] = measure(y_true = np.asarray(true_labels), y_pred = np.asarray(prediction), average='micro')  # micro is overall, macro doesn't take class imbalance into account
     return scores_one_exp
 
+def map_labels_to_list(labels, label_list):
+    # label_list is a python list with the labels
+    # map labels in range(len(label_list)) to the labels in label_list
+    # E.g. [0,0,1,1] becomes [0,0,2,2] (if 1 doesnt exist in the data)
+    # label gets mapped to label_list[label]
+    label_lookup = tf.constant(np.array(label_list))
+    return tf.gather(label_lookup, labels)
 
 def build_clf_graph(img_tensor_shape, clf_config):
     graph_classifier = tf.Graph()
@@ -78,12 +85,16 @@ def build_clf_graph(img_tensor_shape, clf_config):
         # scope = tf.get_variable_scope()
         # scope.reuse_variables()
 
+        # map labels in range(len(label_list)) to the labels in label_list
+        # E.g. [0,0,1,1] becomes [0,0,2,2] (if 1 doesnt exist in the data)
+        predicted_labels_mapped = map_labels_to_list(predicted_labels, clf_config.label_list)
+
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
 
         # Create a savers for writing training checkpoints.
         saver = tf.train.Saver()  # disc loss is scaled negative EM distance
-        predictions = {'label': predicted_labels, 'diag_softmax': softmax, 'age_softmaxs': age_softmaxs}
+        predictions = {'label': predicted_labels_mapped, 'diag_softmax': softmax, 'age_softmaxs': age_softmaxs}
         return graph_classifier, x_clf_pl, predictions, init, saver
 
 
@@ -173,6 +184,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
                                      [labels_test, ages_test],
                                      batch_size=batch_size,
                                      exp_config=clf_config,
+                                     map_labels_to_standard_range=False,
                                      shuffle_data=False,
                                      skip_remainder=False):
         # ignore the labels because data are in order, which means the label list in data can be used
@@ -204,6 +216,12 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
             target_indices.append(i)
             target_true_labels.append(labels_test[i])
             target_pred.append(real_pred[i])
+
+    # no unexpected labels
+    assert all([label in clf_config.label_list for label in source_true_labels])
+    assert all([label in clf_config.label_list for label in target_true_labels])
+    assert all([label in clf_config.label_list for label in source_pred])
+    assert all([label in clf_config.label_list for label in target_pred])
 
     num_source_images = len(source_indices)
     num_target_images = len(target_indices)
@@ -315,6 +333,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
                                      [labels_test, ages_test],
                                      batch_size=batch_size,
                                      exp_config=clf_config,
+                                     map_labels_to_standard_range=False,
                                      selection_indices=source_indices,
                                      shuffle_data=False,
                                      skip_remainder=False):
@@ -357,10 +376,17 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
             logging.info('new image batch')
             logging.info('ground truth labels: ' + str(real_label))
             logging.info('predicted labels for generated images: ' + str(clf_prediction_fake['label']))
+            # no unexpected labels
+            assert all([label in clf_config.label_list for label in clf_prediction_fake['label']])
 
             batch_beginning_index += current_batch_size
-
+        logging.info('generated prediction for %s: %s' % (gan_experiment_name, str(generated_pred)))
         scores[gan_experiment_name] = evaluate_scores(source_true_labels, generated_pred, measures_dict)
+
+    logging.info('source prediction: ' + str(source_pred))
+    logging.info('source ground truth: ' + str(source_true_labels))
+    logging.info('target prediction: ' + str(target_pred))
+    logging.info('target ground truth: ' + str(target_true_labels))
 
     scores['source'] = evaluate_scores(source_true_labels, source_pred, measures_dict)
     scores['target'] = evaluate_scores(target_true_labels, target_pred, measures_dict)
