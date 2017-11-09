@@ -63,7 +63,7 @@ def evaluate_scores(true_labels, prediction, measures_dict):
     for measure_name, measure in measures_dict.items():
         logging.info('evaluating ' + measure_name)
         logging.info(measure)
-        scores_one_exp[measure_name] = measure(y_true = np.asarray(true_labels), y_pred = np.asarray(prediction), average='micro')  # micro is overall, macro doesn't take class imbalance into account
+        scores_one_exp[measure_name] = measure(y_true = np.asarray(true_labels), y_pred = np.asarray(prediction))
     return scores_one_exp
 
 def map_labels_to_list(labels, label_list):
@@ -116,7 +116,7 @@ def build_gen_graph(img_tensor_shape, gan_config):
         return graph_generator, xs_pl, xf, init, saver
 
 
-def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, image_saving_indices=set(), image_saving_path=None, max_batch_size = np.inf):
+def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, score_functions, image_saving_indices=set(), image_saving_path=None, max_batch_size = np.inf):
     """
 
     :param gan_experiment_list: list of GAN experiment names to be evaluated. They must all have the same image settings and source/target field strengths as the classifier
@@ -126,9 +126,6 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     :param image_saving_path: where to save the images. They are saved in subfolders for each experiment
     :return:
     """
-
-    # what is scored for source, target and generated images
-    measures_dict = {'f1': f1_score, 'recall': recall_score, 'precision': precision_score}
 
     clf_config, logdir_clf = utils.load_log_exp_config(clf_experiment_name)
 
@@ -381,15 +378,15 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
 
             batch_beginning_index += current_batch_size
         logging.info('generated prediction for %s: %s' % (gan_experiment_name, str(generated_pred)))
-        scores[gan_experiment_name] = evaluate_scores(source_true_labels, generated_pred, measures_dict)
+        scores[gan_experiment_name] = evaluate_scores(source_true_labels, generated_pred, score_functions)
 
     logging.info('source prediction: ' + str(source_pred))
     logging.info('source ground truth: ' + str(source_true_labels))
     logging.info('target prediction: ' + str(target_pred))
     logging.info('target ground truth: ' + str(target_true_labels))
 
-    scores['source'] = evaluate_scores(source_true_labels, source_pred, measures_dict)
-    scores['target'] = evaluate_scores(target_true_labels, target_pred, measures_dict)
+    scores['source'] = evaluate_scores(source_true_labels, source_pred, score_functions)
+    scores['target'] = evaluate_scores(target_true_labels, target_pred, score_functions)
 
     return scores
 
@@ -525,8 +522,15 @@ if __name__ == '__main__':
     # import config file for field strength classifier
     logging.info('Classifier used: ' + clf_experiment_name)
 
-    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_list,
-                                                         clf_experiment_name,
+    # what is scored for source, target and generated images
+    score_functions = {'f1': lambda y_true, y_pred: f1_score(y_true, y_pred, pos_label=2, average='binary'),
+                       'recall':  lambda y_true, y_pred: recall_score(y_true, y_pred, pos_label=2, average='binary'),
+                       'precision': lambda y_true, y_pred: precision_score(y_true, y_pred, pos_label=2, average='binary')
+    }
+
+    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_list=gan_experiment_list,
+                                                         clf_experiment_name=clf_experiment_name,
+                                                         score_functions=score_functions,
                                                          image_saving_indices=image_saving_indices,
                                                          image_saving_path=image_saving_path,
                                                          max_batch_size=np.inf)
