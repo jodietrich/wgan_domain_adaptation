@@ -61,6 +61,8 @@ def log_stats_fclf(prediction_count, source_label, target_label):
 def evaluate_scores(true_labels, prediction, measures_dict):
     scores_one_exp = {}
     for measure_name, measure in measures_dict.items():
+        logging.info('evaluating ' + measure_name)
+        logging.info(measure)
         scores_one_exp[measure_name] = measure(y_true = np.asarray(true_labels), y_pred = np.asarray(prediction), average='micro')  # micro is overall, macro doesn't take class imbalance into account
     return scores_one_exp
 
@@ -208,6 +210,17 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     num_source_images = len(source_indices)
     num_target_images = len(target_indices)
 
+    # count how many there are of each label
+    label_count = {label: 0 for label in clf_config.label_list}
+    source_label_count = label_count.copy()
+    target_label_count = label_count.copy()
+    for label in labels_test:
+        label_count[label] += 1
+    for label in source_true_labels:
+        source_label_count[label] += 1
+    for label in target_true_labels:
+        target_label_count[label] += 1
+
     logging.info('Data summary:')
     logging.info(' - Images:')
     logging.info(images_test.shape)
@@ -215,9 +228,13 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     logging.info(' - Labels:')
     logging.info(labels_test.shape)
     logging.info(labels_test.dtype)
+    logging.info('number of images for each label')
+    logging.info(label_count)
     logging.info(' - Domains:')
     logging.info('number of source images: ' + str(num_source_images))
+    logging.info('source label distribution ' + str(source_label_count))
     logging.info('number of target images: ' + str(num_target_images))
+    logging.info('target label distribution ' + str(target_label_count))
 
     # save real images
     target_image_path = os.path.join(image_saving_path, 'target')
@@ -244,6 +261,14 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     scores = {}
     for gan_experiment_name in gan_experiment_list:
         gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_name)
+
+        # make sure the experiments all have the same configuration as the classifier
+        assert gan_config.source_field_strength == clf_config.source_field_strength
+        assert gan_config.target_field_strength == clf_config.target_field_strength
+        assert gan_config.image_size == clf_config.image_size
+        assert gan_config.target_resolution == clf_config.target_resolution
+        assert gan_config.offset == clf_config.offset
+
         logging.info('\nGAN Experiment (%.1f T to %.1f T): %s' % (gan_config.source_field_strength,
                                                               gan_config.target_field_strength, gan_experiment_name))
         logging.info(gan_config)
@@ -310,13 +335,20 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
             generated_pred = generated_pred + list(clf_prediction_fake['label'])
 
             # save images
-            global_indices_to_save = image_saving_indices.intersection(set(range(batch_beginning_index, batch_beginning_index + current_batch_size)))
-            for global_index in global_indices_to_save:
-                batch_index = global_index - batch_beginning_index
-                # number for saved image is index in data
-                generated_img_name = 'generated_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, source_indices[global_index])
+            source_indices_to_save = image_saving_indices.intersection(set(range(batch_beginning_index, batch_beginning_index + current_batch_size)))
+            for source_index in source_indices_to_save:
+                batch_index = source_index - batch_beginning_index
+                # index of the image in the complete test data
+                global_index = source_indices[source_index]
+                generated_img_name = 'generated_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, global_index)
                 utils.create_and_save_nii(np.squeeze(fake_img[batch_index]), os.path.join(experiment_generate_path, generated_img_name))
                 logging.info(generated_img_name + ' saved')
+                # save the difference g(xs)-xs
+                corresponding_source_img = images_test[global_index]
+                difference_image_gs = np.squeeze(fake_img[batch_index]) - corresponding_source_img
+                difference_img_name = 'difference_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, global_index)
+                utils.create_and_save_nii(difference_image_gs, os.path.join(experiment_generate_path, difference_img_name))
+                logging.info(difference_img_name + ' saved')
 
             logging.info('new image batch')
             logging.info('ground truth labels: ' + str(real_label))
@@ -453,7 +485,8 @@ if __name__ == '__main__':
     gan_experiment_list = [
         'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1',
         'residual_identity_gen_bs2_std_disc_all_small_data_i1',
-        'residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1'
+        'residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1',
+        'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1'
     ]
     fclf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/all_data_size_64_80_64_res_1.5_1.5_1.5_lbl_0_2_intrangeone_offset_0_0_-10')
