@@ -2,6 +2,71 @@ import numpy as np
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
+def iterate_minibatches_endlessly(images,
+                                labels_list,
+                                batch_size,
+                                exp_config,
+                                selection_indices=None,
+                                augmentation_function=None,
+                                map_labels_to_standard_range=True,
+                                shuffle_data=True):
+    '''
+    Function to create mini batches from the dataset of a certain batch size
+    :param images: hdf5 dataset
+    :param labels: hdf5 dataset
+    :param batch_size: batch size
+    :param selection_indices: indices from which images are selected. If this is None the selection is from all images
+    :param augment_batch: should batch be augmented?
+    :param skip_remainder: skip the last images if the batch size is larger than their number
+    :return: mini batches
+    '''
+    if selection_indices is None:
+        random_indices = np.arange(images.shape[0])
+    else:
+        random_indices = selection_indices
+    if shuffle_data:
+        np.random.shuffle(random_indices)
+
+    initial_indices = random_indices
+    n_images = len(random_indices)
+
+    for b_i in range(0,n_images,batch_size):
+
+        end_of_batch = b_i+batch_size
+
+        if end_of_batch > n_images:
+            random_indices = initial_indices
+            if shuffle_data:
+                np.random.shuffle(random_indices)
+            continue
+
+        # HDF5 requires indices to be in increasing order
+        batch_indices = np.sort(random_indices[b_i:end_of_batch])
+
+        X = images[batch_indices, ...]
+        # y = labels[batch_indices, ...]
+
+        y_list = [y_ll[batch_indices,...] for y_ll in labels_list]
+
+        # DEBUG
+        # print(y_list)
+
+        if map_labels_to_standard_range:
+            # This puts the labels in a range from 0 to nlabels.
+            # E.g. [0,0,2,2] becomes [0,0,1,1] (if 1 doesnt exist in the data)
+            y_list[0] = np.asarray([np.argwhere(i==np.asarray(exp_config.label_list)) for i in y_list[0]]).flatten()
+
+        image_tensor_shape = [X.shape[0]] + list(exp_config.image_size) + [1]
+        X = np.reshape(X, image_tensor_shape)
+
+        if augmentation_function:
+            X, y_list = augmentation_function(X, y_list, do_fliplr=exp_config.do_fliplr)
+
+
+        yield X, y_list
+
+
+
 def iterate_minibatches(images,
                         labels_list,
                         batch_size,

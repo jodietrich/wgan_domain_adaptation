@@ -55,3 +55,4 @@ max_iterations = 100000
 save_frequency = 200
 validation_frequency = 100
 update_tensorboard_frequency = 10
+max_epochs = 20000

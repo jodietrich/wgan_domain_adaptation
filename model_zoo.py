@@ -9,7 +9,7 @@ import numpy as np
 
 
 # ---------------stand alone functions for discriminator and generator------------------------------
-def only_conv_generator(z, training, residual=True, batch_normalization=False, hidden_layers=2, filters=16,
+def only_conv_generator(z, training, residual=True, batch_normalization=False, hidden_layers=2, filters=16, input_noise_dim=0,
                         scope_name='generator', scope_reuse=False):
     # batch size 2: hidden_layers=2, filters=16
     # batch size 1: hidden_layers=3, filters=32
@@ -18,6 +18,17 @@ def only_conv_generator(z, training, residual=True, batch_normalization=False, h
         if scope_reuse:
             scope.reuse_variables()
         previous_layer = z
+        if input_noise_dim >= 1:
+            # create noise, push it through a fc layer and concatenate it as a new channel
+            noise_in = tf.random_uniform(shape=[previous_layer.get_shape().as_list()[0], input_noise_dim], minval=-1, maxval=1)
+            # make sure the last dimension is 1 but the others agree with the image input
+            noise_channel_shape = previous_layer.shape[:-1]
+            # the batchsize stays constant
+            fc_hidden_units = np.prod(noise_channel_shape[1:])
+            fc_noise_layer = layers.dense_layer(noise_in, 'fc_noise_layer', hidden_units=fc_hidden_units, activation=tf.identity)
+            noise_channel = tf.reshape(fc_noise_layer, noise_channel_shape)
+            noise_channel = tf.expand_dims(noise_channel, axis=-1)
+            previous_layer = tf.concat([previous_layer, noise_channel], axis=-1)
         for depth in range(1, hidden_layers + 1):
             if(batch_normalization):
                 previous_layer = layers.conv3D_layer_bn(previous_layer, 'gconv%d' % depth, training, num_filters=filters,
@@ -219,9 +230,6 @@ def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilt
             noise_channel_shape = x.shape[:-1]
             # the batchsize stays constant
             fc_hidden_units = np.prod(noise_channel_shape[1:])
-            logging.info(noise_in)
-            logging.info(noise_channel_shape)
-            logging.info(fc_hidden_units)
             fc_noise_layer = layers.dense_layer(noise_in, 'fc_noise_layer', hidden_units=fc_hidden_units, activation=tf.identity)
             noise_channel = tf.reshape(fc_noise_layer, noise_channel_shape)
             noise_channel = tf.expand_dims(noise_channel, axis=-1)
