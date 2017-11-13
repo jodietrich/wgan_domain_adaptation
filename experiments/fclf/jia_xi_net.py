@@ -6,6 +6,9 @@ import batch_augmentors
 
 experiment_name = 'fclf_jiaxi_net_small_data'
 
+# paths
+log_folder = 'fclf'
+
 # Model settings
 model_handle = model_zoo.jia_xi_net_multitask_ordinal_bn
 multi_task_model = True

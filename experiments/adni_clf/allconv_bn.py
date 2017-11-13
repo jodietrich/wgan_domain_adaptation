@@ -6,6 +6,9 @@ import batch_augmentors
 
 experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
 
+# paths
+log_folder = 'adni_clf'
+
 # Model settings
 model_handle = model_zoo.FCN_multitask_ordinal_bn
 multi_task_model = True

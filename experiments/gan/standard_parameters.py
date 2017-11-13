@@ -9,6 +9,7 @@ import os
 # paths
 data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
+log_folder = 'gan/all_small_images'
 
 # model settings
 gen_hidden_layers = 2

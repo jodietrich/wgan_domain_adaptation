@@ -116,18 +116,19 @@ def build_gen_graph(img_tensor_shape, gan_config):
         return graph_generator, xs_pl, xf, init, saver
 
 
-def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_name, score_functions, image_saving_indices=set(), image_saving_path=None, max_batch_size = np.inf):
+def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experiment_path, score_functions,
+                                            image_saving_indices=set(), image_saving_path=None, max_batch_size=np.inf):
     """
 
-    :param gan_experiment_list: list of GAN experiment names to be evaluated. They must all have the same image settings and source/target field strengths as the classifier
-    :param clf_experiment_name: AD classifier used
+    :param gan_experiment_path_list: list of GAN experiment paths to be evaluated. They must all have the same image settings and source/target field strengths as the classifier
+    :param clf_experiment_path: AD classifier used
     :param verbose: boolean. log all image classifications
     :param image_saving_indices: set of indices of the images to be saved
     :param image_saving_path: where to save the images. They are saved in subfolders for each experiment
     :return:
     """
 
-    clf_config, logdir_clf = utils.load_log_exp_config(clf_experiment_name)
+    clf_config, logdir_clf = utils.load_log_exp_config(clf_experiment_path)
 
     # Load data
     data = adni_data_loader_all.load_and_maybe_process_data(
@@ -272,8 +273,8 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
     gan_remainder_batch_size = num_source_images % batch_size
 
     scores = {}
-    for gan_experiment_name in gan_experiment_list:
-        gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_name)
+    for gan_experiment_path in gan_experiment_path_list:
+        gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_path)
 
         # make sure the experiments all have the same configuration as the classifier
         assert gan_config.source_field_strength == clf_config.source_field_strength
@@ -283,7 +284,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         assert gan_config.offset == clf_config.offset
 
         logging.info('\nGAN Experiment (%.1f T to %.1f T): %s' % (gan_config.source_field_strength,
-                                                              gan_config.target_field_strength, gan_experiment_name))
+                                                              gan_config.target_field_strength, gan_experiment_path))
         logging.info(gan_config)
         # open GAN save file from the selected experiment
         logging.info('loading GAN')
@@ -301,7 +302,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
         saver_gan.restore(sess_gan, init_checkpoint_path_gan)
 
         # path where the generated images are saved
-        experiment_generate_path = os.path.join(image_saving_path, gan_experiment_name)
+        experiment_generate_path = os.path.join(image_saving_path, gan_experiment_path)
         # make a folder for the generated images
         utils.makefolder(experiment_generate_path)
 
@@ -377,8 +378,8 @@ def generate_and_evaluate_ad_classification(gan_experiment_list, clf_experiment_
             assert all([label in clf_config.label_list for label in clf_prediction_fake['label']])
 
             batch_beginning_index += current_batch_size
-        logging.info('generated prediction for %s: %s' % (gan_experiment_name, str(generated_pred)))
-        scores[gan_experiment_name] = evaluate_scores(source_true_labels, generated_pred, score_functions)
+        logging.info('generated prediction for %s: %s' % (gan_experiment_path, str(generated_pred)))
+        scores[gan_experiment_path] = evaluate_scores(source_true_labels, generated_pred, score_functions)
 
     logging.info('source prediction: ' + str(source_pred))
     logging.info('source ground truth: ' + str(source_true_labels))
@@ -519,8 +520,14 @@ if __name__ == '__main__':
         'residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1'
     ]
     clf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
+    clf_log_root = os.path.join(sys_config.log_root, 'adni_clf')
+    gan_log_root = os.path.join(sys_config.log_root, 'gan/all_small_images')
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/all_data_size_64_80_64_res_1.5_1.5_1.5_lbl_0_2_intrangeone_offset_0_0_-10')
     image_saving_indices = set(range(0, 120, 20))
+
+    # put paths for experiments together
+    clf_log_path = os.path.join(clf_log_root, clf_experiment_name)
+    gan_log_path_list = [os.path.join(gan_log_root, gan_name) for gan_name in gan_experiment_list]
 
     # import config file for field strength classifier
     logging.info('Classifier used: ' + clf_experiment_name)
@@ -531,12 +538,11 @@ if __name__ == '__main__':
                        'precision': lambda y_true, y_pred: precision_score(y_true, y_pred, pos_label=2, average='binary')
     }
 
-    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_list=gan_experiment_list,
-                                                         clf_experiment_name=clf_experiment_name,
+    clf_scores = generate_and_evaluate_ad_classification(gan_experiment_path_list=gan_log_path_list,
+                                                         clf_experiment_path=clf_log_path,
                                                          score_functions=score_functions,
                                                          image_saving_indices=image_saving_indices,
-                                                         image_saving_path=image_saving_path,
-                                                         max_batch_size=np.inf)
+                                                         image_saving_path=image_saving_path, max_batch_size=np.inf)
 
     # function to get the f1 score from an element of clf_scores.items()
     get_f1_score = lambda dict_key: clf_scores[dict_key]['f1']

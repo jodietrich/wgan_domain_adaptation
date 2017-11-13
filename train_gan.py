@@ -17,6 +17,7 @@ import utils
 import adni_data_loader_all
 import adni_data_loader
 import data_utils
+from batch_generator_list import iterate_minibatches_endlessly
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
@@ -29,7 +30,7 @@ from experiments.gan import residual_gen_bs2_bn as exp_config
 from experiments.gan import standard_parameters
 #######################################################################
 
-log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+log_dir = os.path.join(sys_config.log_root, exp_config.log_folder, exp_config.experiment_name)
 
 
 def run_training(continue_run):
@@ -74,8 +75,14 @@ def run_training(continue_run):
     generator = exp_config.generator
     discriminator = exp_config.discriminator
 
-    z_sampler = data_utils.DataSampler(images_train, source_images_train_ind, images_val, source_images_val_ind)
-    x_sampler = data_utils.DataSampler(images_train, target_images_train_ind, images_val, target_images_val_ind)
+    z_sampler_train = iterate_minibatches_endlessly(images_train,
+                                                    batch_size=exp_config.batch_size,
+                                                    exp_config=exp_config,
+                                                    selection_indices=source_images_train_ind)
+    x_sampler_train = iterate_minibatches_endlessly(images_train,
+                                                    batch_size=exp_config.batch_size,
+                                                    exp_config=exp_config,
+                                                    selection_indices=target_images_train_ind)
 
 
     with tf.Graph().as_default():
@@ -203,8 +210,8 @@ def run_training(continue_run):
 
             for _ in range(d_iters):
 
-                x = x_sampler(exp_config.batch_size)
-                z = z_sampler(exp_config.batch_size)
+                x = x_sampler_train.next()
+                z = z_sampler_train.next()
 
                 # train discriminator
                 sess.run(discriminator_train_op,
@@ -216,15 +223,15 @@ def run_training(continue_run):
             elapsed_time = time.time() - start_time
 
             # train generator
-            z = z_sampler(exp_config.batch_size)  # why not sample a new x??
-            x = x_sampler(exp_config.batch_size)
+            x = x_sampler_train.next()  # why not sample a new x??
+            z = z_sampler_train.next()
             sess.run(generator_train_op,
                      feed_dict={z_pl: z, x_pl: x, training_placeholder: True})
 
             if step % exp_config.update_tensorboard_frequency == 0:
 
-                x = x_sampler(exp_config.batch_size)
-                z = z_sampler(exp_config.batch_size)
+                x = x_sampler_train.next()
+                z = z_sampler_train.next()
 
                 g_loss_train, d_loss_train, summary_str = sess.run(
                         [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={z_pl: z, x_pl: x, training_placeholder: False})
@@ -238,18 +245,24 @@ def run_training(continue_run):
 
             if step % exp_config.validation_frequency == 0:
 
-                x = x_sampler.get_validation_batch(exp_config.batch_size*exp_config.num_val_batches)
-                z = z_sampler.get_validation_batch(exp_config.batch_size*exp_config.num_val_batches)
+                z_sampler_val = iterate_minibatches_endlessly(images_val,
+                                                    batch_size=exp_config.batch_size,
+                                                    exp_config=exp_config,
+                                                    selection_indices=source_images_val_ind)
+                x_sampler_val = iterate_minibatches_endlessly(images_val,
+                                                    batch_size=exp_config.batch_size,
+                                                    exp_config=exp_config,
+                                                    selection_indices=target_images_val_ind)
 
                 # evaluate the validation batch with batch_size images (from each domain) at a time
                 g_loss_val_list = []
                 d_loss_val_list = []
-                b_size = exp_config.batch_size
-                for batch_num in range(exp_config.num_val_batches):
-                    current_indices = slice(batch_num*b_size, batch_num*b_size + b_size)
+                for _ in range(exp_config.num_val_batches):
+                    x = x_sampler_val.next()
+                    z = z_sampler_val.next()
                     g_loss_val, d_loss_val = sess.run(
-                        [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={z_pl: z[current_indices],
-                                                                      x_pl: x[current_indices],
+                        [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={z_pl: z,
+                                                                      x_pl: x,
                                                                       training_placeholder: False})
                     g_loss_val_list.append(g_loss_val)
                     d_loss_val_list.append(d_loss_val)

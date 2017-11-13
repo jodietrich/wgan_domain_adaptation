@@ -18,10 +18,10 @@ def iterate_minibatches_endlessly(images, batch_size, exp_config, labels_list=No
         random_indices = np.arange(images.shape[0])
     else:
         random_indices = selection_indices
+    initial_indices = random_indices
     if shuffle_data:
         np.random.shuffle(random_indices)
 
-    initial_indices = random_indices
     n_images = len(random_indices)
 
     for b_i in range(0,n_images,batch_size):

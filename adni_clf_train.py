@@ -27,7 +27,7 @@ from experiments.adni_clf import allconv_bn as exp_config
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-log_dir = os.path.join(sys_config.log_root, exp_config.experiment_name)
+log_dir = os.path.join(sys_config.log_root, exp_config.log_folder, exp_config.experiment_name)
 
 # Set SGE_GPU environment variable if we are not on the local host
 sys_config.setup_GPU_environment()

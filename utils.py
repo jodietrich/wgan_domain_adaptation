@@ -149,32 +149,30 @@ class Bunch:
         self.__dict__.update(kwds)
 
 
-def load_log_exp_config(experiment_name, file_name = None, other_py_files = ['standard_parameters.py']):
+def load_log_exp_config(experiment_path, file_name=None, other_py_files=['standard_parameters.py']):
     # loads the module of the experiment and returns a loader that can be used to access variables and classes in the
     # module (loader.myClass())
     # if the file_name of the module is not given then the file of the module must be the only .py file in the directory
     # except for the files in other_py_files
 
-    # log file path
-    logdir = os.path.join(sys_config.log_root, experiment_name)
     if file_name is None:
         # get experiment config file (assuming it is the first python file in log directory)
-        py_file_list = [file for file in os.listdir(logdir) if (file.endswith('.py') and file not in other_py_files)]
+        py_file_list = [file for file in os.listdir(experiment_path) if (file.endswith('.py') and file not in other_py_files)]
 
         if len(py_file_list) != 1:
             raise ValueError('unexpected py files in log directory or experiment file not found')
         py_file_name = py_file_list[0]
     else:
         py_file_name = file_name
-    py_file_path = os.path.join(logdir, py_file_name)
+    py_file_path = os.path.join(experiment_path, py_file_name)
 
     # import config file
     # remove the .py with [:-3]
     experiment_module = SourceFileLoader(py_file_name[:-3], py_file_path).load_module()
 
-    assert experiment_module.experiment_name == experiment_name
+    assert experiment_module.experiment_name == experiment_path
 
-    return experiment_module, logdir
+    return experiment_module, experiment_path
 
 def string_dict_in_order(dict, key_function=None, key_string='', value_string=''):
     # key is a function to give the elements in the dictionary a numerical value that is used for the order
