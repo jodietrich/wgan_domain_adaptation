@@ -1,0 +1,12 @@
+2017-11-13 15:33:14,072 FINAL SUMMARY:
+ordered by f1 score in descending order
+target {'f1': 0.79738562091503273, 'recall': 0.85314685314685312, 'precision': 0.74846625766871167}
+residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1 {'f1': 0.76381909547738702, 'recall': 0.80000000000000004, 'precision': 0.73076923076923073}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 {'f1': 0.76190476190476197, 'recall': 0.75789473684210529, 'precision': 0.76595744680851063}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1 {'f1': 0.7562189054726367, 'recall': 0.80000000000000004, 'precision': 0.71698113207547165}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1 {'f1': 0.75531914893617036, 'recall': 0.74736842105263157, 'precision': 0.76344086021505375}
+source {'f1': 0.74033149171270729, 'recall': 0.70526315789473681, 'precision': 0.77906976744186052}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1 {'f1': 0.72906403940886688, 'recall': 0.77894736842105261, 'precision': 0.68518518518518523}
+residual_identity_gen_bs2_std_disc_all_small_data_i1 {'f1': 0.67938931297709926, 'recall': 0.93684210526315792, 'precision': 0.53293413173652693}
+residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'f1': 0.63461538461538469, 'recall': 0.69473684210526321, 'precision': 0.58407079646017701}
+2017-11-13 15:33:14,072 The best experiment was target with f1 score 0.797386 for the generated images
