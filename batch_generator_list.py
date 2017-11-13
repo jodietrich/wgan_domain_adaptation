@@ -2,14 +2,8 @@ import numpy as np
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-def iterate_minibatches_endlessly(images,
-                                labels_list,
-                                batch_size,
-                                exp_config,
-                                selection_indices=None,
-                                augmentation_function=None,
-                                map_labels_to_standard_range=True,
-                                shuffle_data=True):
+def iterate_minibatches_endlessly(images, batch_size, exp_config, labels_list=None, selection_indices=None,
+                                  augmentation_function=None, map_labels_to_standard_range=True, shuffle_data=True):
     '''
     Function to create mini batches from the dataset of a certain batch size
     :param images: hdf5 dataset
@@ -31,7 +25,7 @@ def iterate_minibatches_endlessly(images,
     n_images = len(random_indices)
 
     for b_i in range(0,n_images,batch_size):
-
+        # one after the last index of the batch
         end_of_batch = b_i+batch_size
 
         if end_of_batch > n_images:
@@ -46,24 +40,30 @@ def iterate_minibatches_endlessly(images,
         X = images[batch_indices, ...]
         # y = labels[batch_indices, ...]
 
-        y_list = [y_ll[batch_indices,...] for y_ll in labels_list]
+        if labels_list is not None:
+            y_list = [y_ll[batch_indices,...] for y_ll in labels_list]
 
-        # DEBUG
-        # print(y_list)
+            # DEBUG
+            # print(y_list)
 
-        if map_labels_to_standard_range:
-            # This puts the labels in a range from 0 to nlabels.
-            # E.g. [0,0,2,2] becomes [0,0,1,1] (if 1 doesnt exist in the data)
-            y_list[0] = np.asarray([np.argwhere(i==np.asarray(exp_config.label_list)) for i in y_list[0]]).flatten()
+            if map_labels_to_standard_range:
+                # This puts the labels in a range from 0 to nlabels.
+                # E.g. [0,0,2,2] becomes [0,0,1,1] (if 1 doesnt exist in the data)
+                y_list[0] = np.asarray([np.argwhere(i==np.asarray(exp_config.label_list)) for i in y_list[0]]).flatten()
 
         image_tensor_shape = [X.shape[0]] + list(exp_config.image_size) + [1]
         X = np.reshape(X, image_tensor_shape)
 
         if augmentation_function:
-            X, y_list = augmentation_function(X, y_list, do_fliplr=exp_config.do_fliplr)
+            if labels_list is None:
+                X = augmentation_function(X, do_fliplr=exp_config.do_fliplr)
+            else:
+                X, y_list = augmentation_function(X, y_list, do_fliplr=exp_config.do_fliplr)
 
-
-        yield X, y_list
+        if labels_list is None:
+            yield X
+        else:
+            yield X, y_list
 
 
 

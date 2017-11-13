@@ -510,10 +510,13 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf
 if __name__ == '__main__':
     # settings
     gan_experiment_list = [
+        'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1',
+        'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1',
+        'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1',
         'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1',
-        'residual_identity_gen_bs2_std_disc_all_small_data_i1',
         'residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1',
-        'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1'
+        'residual_identity_gen_bs2_std_disc_all_small_data_i1',
+        'residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1'
     ]
     clf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/all_data_size_64_80_64_res_1.5_1.5_1.5_lbl_0_2_intrangeone_offset_0_0_-10')

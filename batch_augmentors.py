@@ -4,7 +4,7 @@ import adni_data_loader
 from batch_generator_list import iterate_minibatches
 
 
-def flip_augment(X, y_list, do_fliplr=True):
+def flip_augment(X, y_list=None, do_fliplr=True):
 
     N = X.shape[0]
 
@@ -25,7 +25,10 @@ def flip_augment(X, y_list, do_fliplr=True):
 
     X_ = np.asarray(X_list)
 
-    return X_, y_list
+    if y_list is None:
+        return X_
+    else:
+        return X_, y_list
 
 
 if __name__ == '__main__':
