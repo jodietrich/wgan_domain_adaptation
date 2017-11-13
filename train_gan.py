@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 sys_config.setup_GPU_environment()
 
 #######################################################################
-from experiments.gan import residual_gen_bs2_bn as exp_config
+from experiments.gan import bousmalis_bn as exp_config
 from experiments.gan import standard_parameters
 #######################################################################
 
@@ -210,8 +210,8 @@ def run_training(continue_run):
 
             for _ in range(d_iters):
 
-                x = x_sampler_train.next()
-                z = z_sampler_train.next()
+                x = next(x_sampler_train)
+                z = next(z_sampler_train)
 
                 # train discriminator
                 sess.run(discriminator_train_op,
@@ -223,15 +223,15 @@ def run_training(continue_run):
             elapsed_time = time.time() - start_time
 
             # train generator
-            x = x_sampler_train.next()  # why not sample a new x??
-            z = z_sampler_train.next()
+            x = next(x_sampler_train)  # why not sample a new x??
+            z = next(z_sampler_train)
             sess.run(generator_train_op,
                      feed_dict={z_pl: z, x_pl: x, training_placeholder: True})
 
             if step % exp_config.update_tensorboard_frequency == 0:
 
-                x = x_sampler_train.next()
-                z = z_sampler_train.next()
+                x = next(x_sampler_train)
+                z = next(z_sampler_train)
 
                 g_loss_train, d_loss_train, summary_str = sess.run(
                         [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={z_pl: z, x_pl: x, training_placeholder: False})
@@ -258,8 +258,8 @@ def run_training(continue_run):
                 g_loss_val_list = []
                 d_loss_val_list = []
                 for _ in range(exp_config.num_val_batches):
-                    x = x_sampler_val.next()
-                    z = z_sampler_val.next()
+                    x = next(x_sampler_val)
+                    z = next(z_sampler_val)
                     g_loss_val, d_loss_val = sess.run(
                         [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={z_pl: z,
                                                                       x_pl: x,

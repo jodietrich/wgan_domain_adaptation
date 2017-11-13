@@ -24,18 +24,18 @@ def iterate_minibatches_endlessly(images, batch_size, exp_config, labels_list=No
 
     n_images = len(random_indices)
 
-    for b_i in range(0,n_images,batch_size):
-        # one after the last index of the batch
-        end_of_batch = b_i+batch_size
-
-        if end_of_batch > n_images:
+    # starting index of the batch
+    b_i = 0
+    while True:
+        if b_i+batch_size > n_images:
+            # start a new epoch
             random_indices = initial_indices
             if shuffle_data:
                 np.random.shuffle(random_indices)
-            continue
+            b_i = 0
 
         # HDF5 requires indices to be in increasing order
-        batch_indices = np.sort(random_indices[b_i:end_of_batch])
+        batch_indices = np.sort(random_indices[b_i:(b_i+batch_size)])
 
         X = images[batch_indices, ...]
         # y = labels[batch_indices, ...]
@@ -64,6 +64,8 @@ def iterate_minibatches_endlessly(images, batch_size, exp_config, labels_list=No
             yield X
         else:
             yield X, y_list
+
+        b_i += batch_size
 
 
 
