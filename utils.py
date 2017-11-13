@@ -170,7 +170,8 @@ def load_log_exp_config(experiment_path, file_name=None, other_py_files=['standa
     # remove the .py with [:-3]
     experiment_module = SourceFileLoader(py_file_name[:-3], py_file_path).load_module()
 
-    assert experiment_module.experiment_name == experiment_path
+    # experiment name is the same as the folder name
+    assert experiment_module.experiment_name == experiment_path.split('/')[-1]
 
     return experiment_module, experiment_path
 

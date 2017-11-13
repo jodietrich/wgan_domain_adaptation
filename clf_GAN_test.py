@@ -276,6 +276,8 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     for gan_experiment_path in gan_experiment_path_list:
         gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_path)
 
+        gan_experiment_name = gan_config.experiment_name
+
         # make sure the experiments all have the same configuration as the classifier
         assert gan_config.source_field_strength == clf_config.source_field_strength
         assert gan_config.target_field_strength == clf_config.target_field_strength
@@ -284,7 +286,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
         assert gan_config.offset == clf_config.offset
 
         logging.info('\nGAN Experiment (%.1f T to %.1f T): %s' % (gan_config.source_field_strength,
-                                                              gan_config.target_field_strength, gan_experiment_path))
+                                                              gan_config.target_field_strength, gan_experiment_name))
         logging.info(gan_config)
         # open GAN save file from the selected experiment
         logging.info('loading GAN')
@@ -302,7 +304,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
         saver_gan.restore(sess_gan, init_checkpoint_path_gan)
 
         # path where the generated images are saved
-        experiment_generate_path = os.path.join(image_saving_path, gan_experiment_path)
+        experiment_generate_path = os.path.join(image_saving_path, gan_experiment_name)
         # make a folder for the generated images
         utils.makefolder(experiment_generate_path)
 
@@ -378,8 +380,8 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
             assert all([label in clf_config.label_list for label in clf_prediction_fake['label']])
 
             batch_beginning_index += current_batch_size
-        logging.info('generated prediction for %s: %s' % (gan_experiment_path, str(generated_pred)))
-        scores[gan_experiment_path] = evaluate_scores(source_true_labels, generated_pred, score_functions)
+        logging.info('generated prediction for %s: %s' % (gan_experiment_name, str(generated_pred)))
+        scores[gan_experiment_name] = evaluate_scores(source_true_labels, generated_pred, score_functions)
 
     logging.info('source prediction: ' + str(source_pred))
     logging.info('source ground truth: ' + str(source_true_labels))
@@ -393,11 +395,12 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
 
 
 
-def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf_experiment_name, verbose=True, num_saved_images=0, image_saving_path=None):
+def generate_and_evaluate_fieldstrength_classification(gan_experiment_path_list, fclf_experiment_path, verbose=True,
+                                                       num_saved_images=0, image_saving_path=None):
     """
 
-    :param gan_experiment_list:
-    :param fclf_experiment_name:
+    :param gan_experiment_path_list:
+    :param fclf_experiment_path:
     :param verbose:
     :param num_saved_images:
     :param image_saving_path:
@@ -406,7 +409,7 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf
     # bigger does not work currently (because of the statistics)
     batch_size = 1
 
-    fclf_config, logdir_fclf = utils.load_log_exp_config(fclf_experiment_name)
+    fclf_config, logdir_fclf = utils.load_log_exp_config(fclf_experiment_path)
 
     im_s = fclf_config.image_size
     img_tensor_shape = [batch_size, im_s[0], im_s[1], im_s[2], 1]
@@ -435,8 +438,9 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_list, fclf
         )
 
     scores = {}
-    for gan_experiment_name in gan_experiment_list:
-        gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_name)
+    for gan_experiment_path in gan_experiment_path_list:
+        gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_path)
+        gan_experiment_name = gan_config.experiment_name
         logging.info('\nGAN Experiment (%f T to %f T): %s' % (gan_config.source_field_strength,
                                                               gan_config.target_field_strength, gan_experiment_name))
 
