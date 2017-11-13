@@ -26,12 +26,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 sys_config.setup_GPU_environment()
 
 #######################################################################
-from experiments.gan import bousmalis_bn as exp_config
-from experiments.gan import standard_parameters
+from experiments.joined import clf_allconv_gan_bousmalis as exp_config
 #######################################################################
 
 log_dir = os.path.join(sys_config.log_root, exp_config.log_folder, exp_config.experiment_name)
 
+try:
+    import cv2
+except:
+    logging.warning('Could not find cv2. If you want to use augmentation '
+                    'function you need to setup OpenCV.')
 
 def run_training(continue_run):
 
@@ -72,16 +76,30 @@ def run_training(continue_run):
     images_val, source_images_val_ind, target_images_val_ind = data_utils.get_images_and_fieldstrength_indices(
         data, exp_config.source_field_strength, exp_config.target_field_strength)
 
+    # get labels
+    # the following are HDF5 datasets, not numpy arrays
+    labels_train = data['diagnosis_train']
+    ages_train = data['age_train']
+    labels_val = data['diagnosis_val']
+    ages_val = data['age_val']
+
+    if exp_config.age_ordinal_regression:
+        ages_val = utils.age_to_ordinal_reg_format(ages_val, bins=exp_config.age_bins)
+    else:
+        ages_val= utils.age_to_bins(ages_val, bins=exp_config.age_bins)
+
     generator = exp_config.generator
     discriminator = exp_config.discriminator
 
-    z_sampler_train = iterate_minibatches_endlessly(images_train,
+    s_sampler_train = iterate_minibatches_endlessly(images_train,
                                                     batch_size=exp_config.batch_size,
                                                     exp_config=exp_config,
+                                                    labels_list=[labels_train, ages_train],
                                                     selection_indices=source_images_train_ind)
-    x_sampler_train = iterate_minibatches_endlessly(images_train,
+    t_sampler_train = iterate_minibatches_endlessly(images_train,
                                                     batch_size=exp_config.batch_size,
                                                     exp_config=exp_config,
+                                                    labels_list=[labels_train, ages_train],
                                                     selection_indices=target_images_train_ind)
 
 
@@ -93,47 +111,49 @@ def run_training(continue_run):
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
 
+        # GAN
+
         # target image batch
-        x_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='x')
+        xt_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='x')
 
         # source image batch
-        z_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='z')
+        xs_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='z')
 
         # generated fake image batch
-        x_pl_ = generator(z_pl, training_placeholder)
+        xf_pl = generator(xs_pl, training_placeholder)
 
         # difference between generated and source images
-        diff_img_pl = x_pl_ - z_pl
+        diff_img_pl = xf_pl - xs_pl
 
         # visualize the images by showing one slice of them in the z direction
-        tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid3d(x_pl_, exp_config.cut_axis,
+        tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid3d(xf_pl, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
 
-        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid3d(x_pl, exp_config.cut_axis,
+        tf.summary.image('sample_xt', tf_utils.put_kernels_on_grid3d(xt_pl, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
 
-        tf.summary.image('sample_zs', tf_utils.put_kernels_on_grid3d(z_pl, exp_config.cut_axis,
+        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid3d(xs_pl, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
 
-        tf.summary.image('sample_difference_gx-x', tf_utils.put_kernels_on_grid3d(diff_img_pl, exp_config.cut_axis,
+        tf.summary.image('sample_difference_xf-xs', tf_utils.put_kernels_on_grid3d(diff_img_pl, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='centered',
                                                                           cutoff_abs=exp_config.diff_threshold))
 
         # output of the discriminator for real image
-        d_pl = discriminator(x_pl, training_placeholder, scope_reuse=False)
+        d_pl = discriminator(xt_pl, training_placeholder, scope_reuse=False)
 
         # output of the discriminator for fake image
-        d_pl_ = discriminator(x_pl_, training_placeholder, scope_reuse=True)
+        d_pl_ = discriminator(xf_pl, training_placeholder, scope_reuse=True)
 
         d_hat = None
         x_hat = None
         if exp_config.improved_training:
 
             epsilon = tf.random_uniform([], 0.0, 1.0)
-            x_hat = epsilon * x_pl + (1 - epsilon) * x_pl_
+            x_hat = epsilon * xt_pl + (1 - epsilon) * xf_pl
             d_hat = discriminator(x_hat, training_placeholder, scope_reuse=True)
 
         dist_l1 = tf.reduce_mean(tf.abs(diff_img_pl))
@@ -169,7 +189,10 @@ def run_training(continue_run):
         val_gen_loss_pl = tf.placeholder(tf.float32, shape=[], name='gen_val_loss')
         gen_val_summary_op = tf.summary.scalar('validation_generator_loss', val_gen_loss_pl)
 
-        val_summary_op = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
+        val_summary_op_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
+
+        # Classifier
+
 
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
@@ -210,12 +233,12 @@ def run_training(continue_run):
 
             for _ in range(d_iters):
 
-                x = next(x_sampler_train)
-                z = next(z_sampler_train)
+                x = next(t_sampler_train)
+                z = next(s_sampler_train)
 
                 # train discriminator
                 sess.run(discriminator_train_op,
-                         feed_dict={z_pl: z, x_pl: x, training_placeholder: True})
+                         feed_dict={xs_pl: z, xt_pl: x, training_placeholder: True})
 
                 if not exp_config.improved_training:
                     sess.run(d_clip_op)
@@ -223,18 +246,18 @@ def run_training(continue_run):
             elapsed_time = time.time() - start_time
 
             # train generator
-            x = next(x_sampler_train)  # why not sample a new x??
-            z = next(z_sampler_train)
+            x = next(t_sampler_train)  # why not sample a new x??
+            z = next(s_sampler_train)
             sess.run(generator_train_op,
-                     feed_dict={z_pl: z, x_pl: x, training_placeholder: True})
+                     feed_dict={xs_pl: z, xt_pl: x, training_placeholder: True})
 
             if step % exp_config.update_tensorboard_frequency == 0:
 
-                x = next(x_sampler_train)
-                z = next(z_sampler_train)
+                x = next(t_sampler_train)
+                z = next(s_sampler_train)
 
                 g_loss_train, d_loss_train, summary_str = sess.run(
-                        [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={z_pl: z, x_pl: x, training_placeholder: False})
+                        [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={xs_pl: z, xt_pl: x, training_placeholder: False})
 
                 summary_writer.add_summary(summary_str, step)
                 summary_writer.flush()
@@ -261,8 +284,8 @@ def run_training(continue_run):
                     x = next(x_sampler_val)
                     z = next(z_sampler_val)
                     g_loss_val, d_loss_val = sess.run(
-                        [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={z_pl: z,
-                                                                      x_pl: x,
+                        [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={xs_pl: z,
+                                                                      xt_pl: x,
                                                                       training_placeholder: False})
                     g_loss_val_list.append(g_loss_val)
                     d_loss_val_list.append(d_loss_val)
@@ -300,9 +323,8 @@ def main():
         tf.gfile.MakeDirs(log_dir)
         continue_run = False
 
-    # Copy experiment config file and standard_parameters file
+    # Copy experiment config file
     shutil.copy(exp_config.__file__, log_dir)
-    shutil.copy(standard_parameters.__file__, log_dir)
 
 
     run_training(continue_run)

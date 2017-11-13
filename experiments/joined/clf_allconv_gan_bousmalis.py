@@ -4,10 +4,10 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
+experiment_name = 'joined_first_try_clf_allconv_gan_bousmalis_all_small_no_augment_bs10_i1'
 
 # paths
-log_folder = 'adni_clf'
+log_folder = 'joined'
 
 # Model settings
 model_handle = model_zoo.FCN_multitask_ordinal_bn
