@@ -15,9 +15,10 @@ import model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader_all
-import adni_data_loader
 import data_utils
 from batch_generator_list import iterate_minibatches_endlessly
+import model_multitask as model_mt
+
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
@@ -84,12 +85,20 @@ def run_training(continue_run):
     ages_val = data['age_val']
 
     if exp_config.age_ordinal_regression:
+        ages_train = utils.age_to_ordinal_reg_format(ages_train, bins=exp_config.age_bins)
+        ordinal_reg_weights = utils.get_ordinal_reg_weights(ages_train)
+    else:
+        ages_train = utils.age_to_bins(ages_train, bins=exp_config.age_bins)
+        ordinal_reg_weights = None
+
+    if exp_config.age_ordinal_regression:
         ages_val = utils.age_to_ordinal_reg_format(ages_val, bins=exp_config.age_bins)
     else:
         ages_val= utils.age_to_bins(ages_val, bins=exp_config.age_bins)
 
     generator = exp_config.generator
     discriminator = exp_config.discriminator
+    classifier = exp_config.model_handle
 
     s_sampler_train = iterate_minibatches_endlessly(images_train,
                                                     batch_size=exp_config.batch_size,
@@ -107,17 +116,17 @@ def run_training(continue_run):
 
         # Generate placeholders for the images and labels.
 
-        im_s = exp_config.image_size
+        image_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size) + [exp_config.n_channels]
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
 
         # GAN
 
         # target image batch
-        xt_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='x')
+        xt_pl = tf.placeholder(tf.float32, image_tensor_shape, name='x')
 
         # source image batch
-        xs_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='z')
+        xs_pl = tf.placeholder(tf.float32, image_tensor_shape, name='z')
 
         # generated fake image batch
         xf_pl = generator(xs_pl, training_placeholder)
@@ -192,14 +201,124 @@ def run_training(continue_run):
         val_summary_op_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
 
         # Classifier
+        labels_tensor_shape = [exp_config.batch_size]
+
+        if exp_config.age_ordinal_regression:
+            ages_tensor_shape = [exp_config.batch_size, len(exp_config.age_bins)]
+        else:
+            ages_tensor_shape = [exp_config.batch_size]
+
+        images_placeholder = tf.placeholder(tf.float32, shape=image_tensor_shape, name='images')
+        diag_placeholder = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
+        ages_placeholder = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
+
+        learning_rate_placeholder = tf.placeholder(tf.float32, shape=[], name='learning_rate')
+        training_time_placeholder = tf.placeholder(tf.bool, shape=[], name='training_time')
+
+        tf.summary.scalar('learning_rate', learning_rate_placeholder)
+
+        # Build a Graph that computes predictions from the inference model.
+        diag_logits, ages_logits = exp_config.model_handle(images_placeholder,
+                                                           nlabels=exp_config.nlabels,
+                                                           training=training_time_placeholder,
+                                                           n_age_thresholds=len(exp_config.age_bins),
+                                                           bn_momentum=exp_config.bn_momentum)
+
+        # Add to the Graph the Ops for loss calculation.
+
+        [loss, diag_loss, age_loss, weights_norm] = model_mt.loss(diag_logits,
+                                                                  ages_logits,
+                                                                  diag_placeholder,
+                                                                  ages_placeholder,
+                                                                  nlabels=exp_config.nlabels,
+                                                                  weight_decay=exp_config.weight_decay,
+                                                                  diag_weight=exp_config.diag_weight,
+                                                                  age_weight=exp_config.age_weight,
+                                                                  use_ordinal_reg=exp_config.age_ordinal_regression,
+                                                                  ordinal_reg_weights=ordinal_reg_weights)
+
+        tf.summary.scalar('loss', loss)
+        tf.summary.scalar('diag_loss', diag_loss)
+        tf.summary.scalar('age_loss', age_loss)
+        tf.summary.scalar('weights_norm_term', weights_norm)
+
+        if exp_config.momentum is not None:
+            optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder,
+                                                    momentum=exp_config.momentum)
+        else:
+            optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder)
+
+        # create a copy of all trainable variables with `0` as initial values
+        t_vars = tf.global_variables()  # tf.trainable_variables()
+        accum_tvars = [tf.Variable(tf.zeros_like(tv.initialized_value()), trainable=False) for tv in t_vars]
+
+        # create a op to initialize all accums vars
+        zero_ops = [tv.assign(tf.zeros_like(tv)) for tv in accum_tvars]
+
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            # compute gradients for a batch
+            batch_grads_vars = optimiser.compute_gradients(loss, t_vars)
+
+            # collect the batch gradient into accumulated vars
+
+            accum_ops = [accum_tvar.assign_add(batch_grad_var[0]) for accum_tvar, batch_grad_var in
+                         zip(accum_tvars, batch_grads_vars)]
+
+            accum_normaliser_pl = tf.placeholder(dtype=tf.float32, name='accum_normaliser')
+            accum_mean_op = [accum_tvar.assign(tf.divide(accum_tvar, accum_normaliser_pl)) for accum_tvar in
+                             accum_tvars]
+
+            # apply accums gradients
+            train_op = optimiser.apply_gradients(
+                [(accum_tvar, batch_grad_var[1]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars)]
+            )
+
+        eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits, ages_logits,
+                                                                                         diag_placeholder,
+                                                                                         ages_placeholder,
+                                                                                         images_placeholder,
+                                                                                         diag_weight=exp_config.diag_weight,
+                                                                                         age_weight=exp_config.age_weight,
+                                                                                         nlabels=exp_config.nlabels,
+                                                                                         use_ordinal_reg=exp_config.age_ordinal_regression)
+
+        # Build the summary Tensor based on the TF collection of Summaries.
+        summary = tf.summary.merge_all()
 
 
         # Add the variable initializer Op.
         init = tf.global_variables_initializer()
 
         # Create a savers for writing training checkpoints.
-        saver_latest = tf.train.Saver(max_to_keep=3)
-        saver_best_disc = tf.train.Saver(max_to_keep=3)  # disc loss is scaled negative EM distance
+        saver_latest = tf.train.Saver(max_to_keep=2)
+        saver_best_disc = tf.train.Saver(max_to_keep=2)  # disc loss is scaled negative EM distance
+        saver_best_diag_f1 = tf.train.Saver(max_to_keep=2)
+        saver_best_ages_f1 = tf.train.Saver(max_to_keep=2)
+        saver_best_xent = tf.train.Saver(max_to_keep=2)
+
+        # Classifier summary
+        val_error_ = tf.placeholder(tf.float32, shape=[], name='val_error_diag')
+        val_error_summary = tf.summary.scalar('validation_loss', val_error_)
+
+        val_diag_f1_score_ = tf.placeholder(tf.float32, shape=[], name='val_diag_f1')
+        val_f1_diag_summary = tf.summary.scalar('validation_diag_f1', val_diag_f1_score_)
+
+        val_ages_f1_score_ = tf.placeholder(tf.float32, shape=[], name='val_ages_f1')
+        val_f1_ages_summary = tf.summary.scalar('validation_ages_f1', val_ages_f1_score_)
+
+        val_summary = tf.summary.merge([val_error_summary, val_f1_diag_summary, val_f1_ages_summary])
+
+        train_error_ = tf.placeholder(tf.float32, shape=[], name='train_error_diag')
+        train_error_summary = tf.summary.scalar('training_loss', train_error_)
+
+        train_diag_f1_score_ = tf.placeholder(tf.float32, shape=[], name='train_diag_f1')
+        train_diag_f1_summary = tf.summary.scalar('training_diag_f1', train_diag_f1_score_)
+
+        train_ages_f1_score_ = tf.placeholder(tf.float32, shape=[], name='train_ages_f1')
+        train_f1_ages_summary = tf.summary.scalar('training_ages_f1', train_ages_f1_score_)
+
+        train_summary = tf.summary.merge([train_error_summary, train_diag_f1_summary, train_f1_ages_summary])
 
         # prevents ResourceExhaustError when a lot of memory is used
         config = tf.ConfigProto()
@@ -293,7 +412,7 @@ def run_training(continue_run):
                 g_loss_val_avg = np.mean(g_loss_val_list)
                 d_loss_val_avg = np.mean(d_loss_val_list)
 
-                validation_summary_str = sess.run(val_summary_op, feed_dict={val_disc_loss_pl: d_loss_val_avg,
+                validation_summary_str = sess.run(val_summary_op_gan, feed_dict={val_disc_loss_pl: d_loss_val_avg,
                                                                                  val_gen_loss_pl: g_loss_val_avg}
                                              )
                 summary_writer.add_summary(validation_summary_str, step)
