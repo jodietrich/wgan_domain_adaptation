@@ -31,7 +31,7 @@ VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 #$ -j y
 #
 # logging directory. preferably on your scratch
-#$ -o /scratch_net/brossa/jdietric/logs/joined/  ## <---------------- CHANGE TO MATCH YOUR SYSTEM
+#$ -o /scratch_net/brossa/jdietric/logs/joint/  ## <---------------- CHANGE TO MATCH YOUR SYSTEM
 #
 ## send mail on job's end and abort
 #$ -m a
@@ -53,7 +53,7 @@ eval "$(pyenv virtualenv-init -)"
 source $VIRTUAL_ENV_PATH/bin/activate
 
 ## EXECUTION OF PYTHON CODE:
-python $PROJECT_HOME/joined_train.py
+python $PROJECT_HOME/joint_train.py
 
 echo "Hostname was: `hostname`"
 echo "Reached end of job file."
