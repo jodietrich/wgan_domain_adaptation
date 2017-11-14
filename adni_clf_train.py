@@ -192,7 +192,7 @@ def run_training(continue_run):
         t_vars = tf.global_variables() #tf.trainable_variables()
         accum_tvars = [tf.Variable(tf.zeros_like(tv.initialized_value()), trainable=False) for tv in t_vars]
 
-        # create a op to initialize all accums vars
+        # create an op to initialize all accums vars
         zero_ops = [tv.assign(tf.zeros_like(tv)) for tv in accum_tvars]
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)

@@ -226,7 +226,7 @@ def run_training(continue_run):
 
         # Add to the Graph the Ops for loss calculation.
 
-        [loss, diag_loss, age_loss, weights_norm] = model_mt.loss(diag_logits,
+        [classifier_loss, diag_loss, age_loss, weights_norm] = model_mt.loss(diag_logits,
                                                                   ages_logits,
                                                                   diag_placeholder,
                                                                   ages_placeholder,
@@ -237,7 +237,7 @@ def run_training(continue_run):
                                                                   use_ordinal_reg=exp_config.age_ordinal_regression,
                                                                   ordinal_reg_weights=ordinal_reg_weights)
 
-        tf.summary.scalar('loss', loss)
+        tf.summary.scalar('classifier loss', classifier_loss)
         tf.summary.scalar('diag_loss', diag_loss)
         tf.summary.scalar('age_loss', age_loss)
         tf.summary.scalar('weights_norm_term', weights_norm)
@@ -258,20 +258,20 @@ def run_training(continue_run):
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             # compute gradients for a batch
-            batch_grads_vars = optimiser.compute_gradients(loss, t_vars)
+            batch_grads_vars_clf = optimiser.compute_gradients(classifier_loss, t_vars)
 
             # collect the batch gradient into accumulated vars
 
-            accum_ops = [accum_tvar.assign_add(batch_grad_var[0]) for accum_tvar, batch_grad_var in
-                         zip(accum_tvars, batch_grads_vars)]
+            accum_ops_clf = [accum_tvar.assign_add(batch_grad_var[0]) for accum_tvar, batch_grad_var in
+                         zip(accum_tvars, batch_grads_vars_clf)]
 
-            accum_normaliser_pl = tf.placeholder(dtype=tf.float32, name='accum_normaliser')
-            accum_mean_op = [accum_tvar.assign(tf.divide(accum_tvar, accum_normaliser_pl)) for accum_tvar in
+            accum_normaliser_clf_pl = tf.placeholder(dtype=tf.float32, name='accum_normaliser')
+            accum_mean_clf_op = [accum_tvar.assign(tf.divide(accum_tvar, accum_normaliser_clf_pl)) for accum_tvar in
                              accum_tvars]
 
             # apply accums gradients
-            train_op = optimiser.apply_gradients(
-                [(accum_tvar, batch_grad_var[1]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars)]
+            train_clf_op = optimiser.apply_gradients(
+                [(accum_tvar, batch_grad_var[1]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars_clf)]
             )
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits, ages_logits,
@@ -341,11 +341,16 @@ def run_training(continue_run):
         # initialize value of lowest (i. e. best) discriminator loss
         best_d_loss = np.inf
 
-        for step in range(init_step, 1000000):
+        for step in range(init_step, exp_config.max_steps):
+
+            # TODO: mechanism to count Epochs and know when a new one begins
+            if new_epoch:
+                sess.run(zero_ops)
+                accum_counter = 0
 
             start_time = time.time()
 
-            # discriminator training iterations
+            # discriminator and classifier training iterations
             d_iters = 5
             if step % 500 == 0 or step < 25:
                 d_iters = 100
