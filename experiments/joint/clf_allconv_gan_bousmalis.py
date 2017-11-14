@@ -54,7 +54,7 @@ do_fliplr = True
 
 # Rarely changed settings
 use_data_fraction = False  # Should normally be False
-max_epochs = 20000
+max_steps = 1000000
 schedule_gradient_threshold = 0.00001  # When the gradient of the learning curve is smaller than this value the LR will
                                        # be reduced
 
@@ -62,12 +62,37 @@ train_eval_frequency = 500
 val_eval_frequency = 100
 
 # -------------- GAN ---------------------
+n_channels = 1
+image_range = (-1, 1)
+# image_range = (-0.512, 2.985) # approximately 1st percentile to 99th percentile of preprocessed ADNI images
+
+# visualization settings
+cut_axis = 2  # axis perpendicular to the cut plane (x=0, y=1, z=2)
+cut_index = 50  # index of the cut for visualization
+diff_threshold = 1  # maximum absolute value for visualization of difference between images. Gets mapped to 255
+
+# Training settings
+num_val_batches = 5 # of batches used for validation. Validation happens with a set of size batch_size*num_val_batches
+
+# Improved training settings
+improved_training = True
+scale=10.0
+
+# Regularisation settings
+w_reg_gen_l1 = 0.0
+w_reg_disc_l1 = 0.0
+w_reg_gen_l2 = 0.0
+w_reg_disc_l2 = 0.0
+w_reg_img_dist_l1 = 1.0e4  # weight of l1 distance to source image in gen loss
+
+# Rarely changed settings
+max_iterations = 100000
+save_frequency = 200
+validation_frequency = 100
+update_tensorboard_frequency = 10
 
 # Model settings
 batch_normalization = True
-
-# regularization settings
-w_reg_img_dist_l1 = 1.0e4
 
 # model to use
 def generator(xs, training, scope_reuse=False, scope_name='generator'):

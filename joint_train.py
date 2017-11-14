@@ -115,18 +115,17 @@ def run_training(continue_run):
     with tf.Graph().as_default():
 
         # Generate placeholders for the images and labels.
-
-        image_tensor_shape = [exp_config.batch_size] + list(exp_config.image_size) + [exp_config.n_channels]
+        image_tensor_shape_gan = [exp_config.batch_size] + list(exp_config.image_size) + [exp_config.n_channels]
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
 
         # GAN
 
-        # target image batch
-        xt_pl = tf.placeholder(tf.float32, image_tensor_shape, name='x')
+        # target image batchlllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
+        xt_pl = tf.placeholder(tf.float32, image_tensor_shape_gan, name='x')
 
         # source image batch
-        xs_pl = tf.placeholder(tf.float32, image_tensor_shape, name='z')
+        xs_pl = tf.placeholder(tf.float32, image_tensor_shape_gan, name='z')
 
         # generated fake image batch
         xf_pl = generator(xs_pl, training_placeholder)
@@ -201,14 +200,15 @@ def run_training(continue_run):
         val_summary_op_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
 
         # Classifier
-        labels_tensor_shape = [exp_config.batch_size]
+        image_tensor_shape_clf = [exp_config.batch_size * 2] + list(exp_config.image_size) + [exp_config.n_channels]
+        labels_tensor_shape = [exp_config.batch_size*2]
 
         if exp_config.age_ordinal_regression:
-            ages_tensor_shape = [exp_config.batch_size, len(exp_config.age_bins)]
+            ages_tensor_shape = [exp_config.batch_size*2, len(exp_config.age_bins)]
         else:
-            ages_tensor_shape = [exp_config.batch_size]
+            ages_tensor_shape = [exp_config.batch_size*2]
 
-        images_placeholder = tf.placeholder(tf.float32, shape=image_tensor_shape, name='images')
+        images_clf_pl = tf.placeholder(tf.float32, shape=image_tensor_shape_clf, name='images')
         diag_placeholder = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
         ages_placeholder = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
 
@@ -218,7 +218,7 @@ def run_training(continue_run):
         tf.summary.scalar('learning_rate', learning_rate_placeholder)
 
         # Build a Graph that computes predictions from the inference model.
-        diag_logits, ages_logits = exp_config.model_handle(images_placeholder,
+        diag_logits, ages_logits = exp_config.model_handle(images_clf_pl,
                                                            nlabels=exp_config.nlabels,
                                                            training=training_time_placeholder,
                                                            n_age_thresholds=len(exp_config.age_bins),
@@ -255,29 +255,16 @@ def run_training(continue_run):
         # create a op to initialize all accums vars
         zero_ops = [tv.assign(tf.zeros_like(tv)) for tv in accum_tvars]
 
+        train_variables = tf.trainable_variables()
+        classifier_variables = [v for v in train_variables if v.name.startswith("discriminator")]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            # compute gradients for a batch
-            batch_grads_vars_clf = optimiser.compute_gradients(classifier_loss, t_vars)
-
-            # collect the batch gradient into accumulated vars
-
-            accum_ops_clf = [accum_tvar.assign_add(batch_grad_var[0]) for accum_tvar, batch_grad_var in
-                         zip(accum_tvars, batch_grads_vars_clf)]
-
-            accum_normaliser_clf_pl = tf.placeholder(dtype=tf.float32, name='accum_normaliser')
-            accum_mean_clf_op = [accum_tvar.assign(tf.divide(accum_tvar, accum_normaliser_clf_pl)) for accum_tvar in
-                             accum_tvars]
-
-            # apply accums gradients
-            train_clf_op = optimiser.apply_gradients(
-                [(accum_tvar, batch_grad_var[1]) for accum_tvar, batch_grad_var in zip(accum_tvars, batch_grads_vars_clf)]
-            )
+            train_clf_op = optimiser.minimize(classifier_loss, var_list=classifier_variables)
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits, ages_logits,
                                                                                          diag_placeholder,
                                                                                          ages_placeholder,
-                                                                                         images_placeholder,
+                                                                                         images_clf_pl,
                                                                                          diag_weight=exp_config.diag_weight,
                                                                                          age_weight=exp_config.age_weight,
                                                                                          nlabels=exp_config.nlabels,
@@ -337,6 +324,7 @@ def run_training(continue_run):
             # Restore session
             saver_latest.restore(sess, init_checkpoint_path)
 
+        curr_lr = exp_config.learning_rate
 
         # initialize value of lowest (i. e. best) discriminator loss
         best_d_loss = np.inf
@@ -344,44 +332,59 @@ def run_training(continue_run):
         for step in range(init_step, exp_config.max_steps):
 
             # TODO: mechanism to count Epochs and know when a new one begins
-            if new_epoch:
-                sess.run(zero_ops)
-                accum_counter = 0
+            # if new_epoch:
+            #     sess.run(zero_ops)
+            #     accum_counter = 0
 
             start_time = time.time()
 
             # discriminator and classifier training iterations
             d_iters = 5
+            t_iters = 1
             if step % 500 == 0 or step < 25:
                 d_iters = 100
+            assert d_iters >= t_iters
+            for iteration in range(d_iters):
 
-            for _ in range(d_iters):
+                x_t, [diag_t, age_t] = next(t_sampler_train)
+                x_s, [diag_s, age_s] = next(s_sampler_train)
 
-                x = next(t_sampler_train)
-                z = next(s_sampler_train)
-
+                # TODO: only generate images from batch once (return them from discriminator_train_op?)
                 # train discriminator
                 sess.run(discriminator_train_op,
-                         feed_dict={xs_pl: z, xt_pl: x, training_placeholder: True})
+                         feed_dict={xs_pl: x_s, xt_pl: x_t, training_placeholder: True})
 
                 if not exp_config.improved_training:
                     sess.run(d_clip_op)
 
+                if iteration <= t_iters:
+                    # train classifier
+                    x_f = sess.run(xf_pl, feed_dict={xs_pl: x_s, training_placeholder: False})
+                    x_fs_all = tf.concat([x_f, x_s], axis=0)
+                    diag_fs_all = tf.concat([diag_s, diag_s], axis=0)
+                    age_fs_all = tf.concat([age_s, age_s], axis=0)
+                    feed_dict_clf = {images_clf_pl: x_fs_all,
+                                     learning_rate_placeholder: curr_lr,
+                                     diag_placeholder: diag_fs_all,
+                                     ages_placeholder: age_fs_all,
+                                     training_placeholder: True}
+                    sess.run(train_clf_op, feed_dict=feed_dict_clf)
+
             elapsed_time = time.time() - start_time
 
             # train generator
-            x = next(t_sampler_train)  # why not sample a new x??
-            z = next(s_sampler_train)
+            x_t = next(t_sampler_train)  # why not sample a new x??
+            x_s = next(s_sampler_train)
             sess.run(generator_train_op,
-                     feed_dict={xs_pl: z, xt_pl: x, training_placeholder: True})
+                     feed_dict={xs_pl: x_s, xt_pl: x_t, training_placeholder: True})
 
             if step % exp_config.update_tensorboard_frequency == 0:
 
-                x = next(t_sampler_train)
-                z = next(s_sampler_train)
+                x_t = next(t_sampler_train)
+                x_s = next(s_sampler_train)
 
                 g_loss_train, d_loss_train, summary_str = sess.run(
-                        [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={xs_pl: z, xt_pl: x, training_placeholder: False})
+                        [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={xs_pl: x_s, xt_pl: x_t, training_placeholder: False})
 
                 summary_writer.add_summary(summary_str, step)
                 summary_writer.flush()
@@ -405,11 +408,11 @@ def run_training(continue_run):
                 g_loss_val_list = []
                 d_loss_val_list = []
                 for _ in range(exp_config.num_val_batches):
-                    x = next(x_sampler_val)
-                    z = next(z_sampler_val)
+                    x_t = next(x_sampler_val)
+                    x_s = next(z_sampler_val)
                     g_loss_val, d_loss_val = sess.run(
-                        [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={xs_pl: z,
-                                                                      xt_pl: x,
+                        [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={xs_pl: x_s,
+                                                                      xt_pl: x_t,
                                                                       training_placeholder: False})
                     g_loss_val_list.append(g_loss_val)
                     d_loss_val_list.append(d_loss_val)
