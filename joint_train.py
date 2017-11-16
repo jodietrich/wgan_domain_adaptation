@@ -166,6 +166,15 @@ def run_training(continue_run):
 
         dist_l1 = tf.reduce_mean(tf.abs(diff_img_pl))
 
+        learning_rate_placeholder = tf.placeholder(tf.float32, shape=[], name='learning_rate')
+        training_time_placeholder = tf.placeholder(tf.bool, shape=[], name='training_time')
+
+        if exp_config.momentum is not None:
+            optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder,
+                                                    momentum=exp_config.momentum)
+        else:
+            optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder)
+
         # nr means no regularization, meaning the loss without the regularization term
         discriminator_train_op, generator_train_op, \
         disc_loss_pl, gen_loss_pl, \
@@ -208,17 +217,17 @@ def run_training(continue_run):
         else:
             ages_tensor_shape = [exp_config.batch_size*2]
 
-        images_clf_pl = tf.placeholder(tf.float32, shape=image_tensor_shape_clf, name='images')
-        diag_placeholder = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
-        ages_placeholder = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
+        diag_s_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
+        ages_s_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
 
-        learning_rate_placeholder = tf.placeholder(tf.float32, shape=[], name='learning_rate')
-        training_time_placeholder = tf.placeholder(tf.bool, shape=[], name='training_time')
+        x_clf_all = tf.concat([xf_pl, xs_pl], axis=0)
+        diag_all = tf.concat([diag_s_pl, diag_s_pl], axis=0)
+        ages_all = tf.concat([ages_s_pl, ages_s_pl], axis=0)
 
         tf.summary.scalar('learning_rate', learning_rate_placeholder)
 
         # Build a Graph that computes predictions from the inference model.
-        diag_logits, ages_logits = exp_config.model_handle(images_clf_pl,
+        diag_logits, ages_logits = exp_config.model_handle(x_clf_all,
                                                            nlabels=exp_config.nlabels,
                                                            training=training_time_placeholder,
                                                            n_age_thresholds=len(exp_config.age_bins),
@@ -228,8 +237,8 @@ def run_training(continue_run):
 
         [classifier_loss, diag_loss, age_loss, weights_norm] = model_mt.loss(diag_logits,
                                                                   ages_logits,
-                                                                  diag_placeholder,
-                                                                  ages_placeholder,
+                                                                  diag_all,
+                                                                  ages_all,
                                                                   nlabels=exp_config.nlabels,
                                                                   weight_decay=exp_config.weight_decay,
                                                                   diag_weight=exp_config.diag_weight,
@@ -242,29 +251,17 @@ def run_training(continue_run):
         tf.summary.scalar('age_loss', age_loss)
         tf.summary.scalar('weights_norm_term', weights_norm)
 
-        if exp_config.momentum is not None:
-            optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder,
-                                                    momentum=exp_config.momentum)
-        else:
-            optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder)
-
-        # create a copy of all trainable variables with `0` as initial values
-        t_vars = tf.global_variables()  # tf.trainable_variables()
-        accum_tvars = [tf.Variable(tf.zeros_like(tv.initialized_value()), trainable=False) for tv in t_vars]
-
-        # create a op to initialize all accums vars
-        zero_ops = [tv.assign(tf.zeros_like(tv)) for tv in accum_tvars]
-
+        # make sure these are the right variables
         train_variables = tf.trainable_variables()
-        classifier_variables = [v for v in train_variables if v.name.startswith("discriminator")]
+        classifier_variables = [v for v in train_variables if v.name.startswith("classifier")]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             train_clf_op = optimiser.minimize(classifier_loss, var_list=classifier_variables)
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits, ages_logits,
-                                                                                         diag_placeholder,
-                                                                                         ages_placeholder,
-                                                                                         images_clf_pl,
+                                                                                         diag_all,
+                                                                                         ages_all,
+                                                                                         x_clf_all,
                                                                                          diag_weight=exp_config.diag_weight,
                                                                                          age_weight=exp_config.age_weight,
                                                                                          nlabels=exp_config.nlabels,
@@ -331,44 +328,36 @@ def run_training(continue_run):
 
         for step in range(init_step, exp_config.max_steps):
 
-            # TODO: mechanism to count Epochs and know when a new one begins
-            # if new_epoch:
-            #     sess.run(zero_ops)
-            #     accum_counter = 0
-
             start_time = time.time()
 
-            # discriminator and classifier training iterations
+            # discriminator and classifier (task) training iterations
             d_iters = 5
             t_iters = 1
             if step % 500 == 0 or step < 25:
                 d_iters = 100
             assert d_iters >= t_iters
-            for iteration in range(d_iters):
+            for iteration in range(max(d_iters, t_iters)):
 
                 x_t, [diag_t, age_t] = next(t_sampler_train)
                 x_s, [diag_s, age_s] = next(s_sampler_train)
 
-                # TODO: only generate images from batch once (return them from discriminator_train_op?)
-                # train discriminator
-                sess.run(discriminator_train_op,
-                         feed_dict={xs_pl: x_s, xt_pl: x_t, training_placeholder: True})
+                feed_dict_dc = {xs_pl: x_s,
+                             xt_pl: x_t,
+                             learning_rate_placeholder: curr_lr,
+                             diag_s_pl: diag_s,
+                             ages_s_pl: age_s,
+                             training_placeholder: True}
+                train_ops = []
+                if iteration < t_iters:
+                    # train classifier
+                    train_ops.append(train_clf_op)
+                if iteration < d_iters:
+                    # train discriminator
+                    train_ops.append(discriminator_train_op)
+                sess.run(train_ops, feed_dict = feed_dict_dc)
 
                 if not exp_config.improved_training:
                     sess.run(d_clip_op)
-
-                if iteration <= t_iters:
-                    # train classifier
-                    x_f = sess.run(xf_pl, feed_dict={xs_pl: x_s, training_placeholder: False})
-                    x_fs_all = tf.concat([x_f, x_s], axis=0)
-                    diag_fs_all = tf.concat([diag_s, diag_s], axis=0)
-                    age_fs_all = tf.concat([age_s, age_s], axis=0)
-                    feed_dict_clf = {images_clf_pl: x_fs_all,
-                                     learning_rate_placeholder: curr_lr,
-                                     diag_placeholder: diag_fs_all,
-                                     ages_placeholder: age_fs_all,
-                                     training_placeholder: True}
-                    sess.run(train_clf_op, feed_dict=feed_dict_clf)
 
             elapsed_time = time.time() - start_time
 
