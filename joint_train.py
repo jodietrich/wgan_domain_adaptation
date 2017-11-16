@@ -121,7 +121,7 @@ def run_training(continue_run):
 
         # GAN
 
-        # target image batchlllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
+        # target image batch
         xt_pl = tf.placeholder(tf.float32, image_tensor_shape_gan, name='x')
 
         # source image batch

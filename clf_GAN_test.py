@@ -519,6 +519,9 @@ if __name__ == '__main__':
         'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1',
         'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1',
         'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1',
+        'bousmalis_gen_n8b4_disc_n16_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1',
+        'bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1',
+        'bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1',
         'residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1',
         'residual_identity_gen_bs2_std_disc_all_small_data_i1',
         'residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1'
