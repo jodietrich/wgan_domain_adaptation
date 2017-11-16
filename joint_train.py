@@ -361,16 +361,15 @@ def run_training(continue_run):
 
             elapsed_time = time.time() - start_time
 
-            # train generator
-            x_t = next(t_sampler_train)  # why not sample a new x??
-            x_s = next(s_sampler_train)
+            # train generator, discard the labels
+            x_t = next(t_sampler_train)[0]  # why not sample a new x??
+            x_s = next(s_sampler_train)[0]
             sess.run(generator_train_op,
                      feed_dict={xs_pl: x_s, xt_pl: x_t, training_time_placeholder: True})
 
             if step % exp_config.update_tensorboard_frequency == 0:
-
-                x_t = next(t_sampler_train)
-                x_s = next(s_sampler_train)
+                x_t, [diag_t, age_t] = next(t_sampler_train)
+                x_s, [diag_s, age_s] = next(s_sampler_train)
 
                 g_loss_train, d_loss_train, summary_str = sess.run(
                         [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={xs_pl: x_s, xt_pl: x_t, training_time_placeholder: False})
@@ -397,8 +396,8 @@ def run_training(continue_run):
                 g_loss_val_list = []
                 d_loss_val_list = []
                 for _ in range(exp_config.num_val_batches):
-                    x_t = next(x_sampler_val)
-                    x_s = next(z_sampler_val)
+                    x_t, [diag_t, age_t] = next(t_sampler_train)
+                    x_s, [diag_s, age_s] = next(s_sampler_train)
                     g_loss_val, d_loss_val = sess.run(
                         [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={xs_pl: x_s,
                                                                       xt_pl: x_t,
