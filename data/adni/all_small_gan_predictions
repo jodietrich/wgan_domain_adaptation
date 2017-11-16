@@ -12,4 +12,22 @@ residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'f1': 0
 2017-11-13 15:33:14,072 The best experiment was target with f1 score 0.797386 for the generated images
 
 
+2017-11-16 09:32:04,297 FINAL SUMMARY:
+ordered by f1 score in descending order
+target {'f1': 0.79738562091503273, 'recall': 0.85314685314685312, 'precision': 0.74846625766871167}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1 {'f1': 0.77450980392156865, 'recall': 0.83157894736842108, 'precision': 0.72477064220183485}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 {'f1': 0.77319587628865982, 'recall': 0.78947368421052633, 'precision': 0.75757575757575757}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i2 {'f1': 0.77083333333333326, 'recall': 0.77894736842105261, 'precision': 0.76288659793814428}
+residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1 {'f1': 0.76381909547738702, 'recall': 0.80000000000000004, 'precision': 0.73076923076923073}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 {'f1': 0.76190476190476197, 'recall': 0.75789473684210529, 'precision': 0.76595744680851063}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1 {'f1': 0.75531914893617036, 'recall': 0.74736842105263157, 'precision': 0.76344086021505375}
+source {'f1': 0.74033149171270729, 'recall': 0.70526315789473681, 'precision': 0.77906976744186052}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1 {'f1': 0.73999999999999999, 'recall': 0.77894736842105261, 'precision': 0.70476190476190481}
+residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'f1': 0.67942583732057416, 'recall': 0.74736842105263157, 'precision': 0.6228070175438597}
+residual_identity_gen_bs2_std_disc_all_small_data_i1 {'f1': 0.67938931297709926, 'recall': 0.93684210526315792, 'precision': 0.53293413173652693}
+2017-11-16 09:32:04,297 The best experiment was target with f1 score 0.797386 for the generated images
+
+
+
+
 WATCH OUT FOR UNEQUALY LONG TRAINED MODELS

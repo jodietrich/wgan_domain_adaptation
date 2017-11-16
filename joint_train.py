@@ -209,8 +209,7 @@ def run_training(continue_run):
         val_summary_op_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
 
         # Classifier
-        image_tensor_shape_clf = [exp_config.batch_size * 2] + list(exp_config.image_size) + [exp_config.n_channels]
-        labels_tensor_shape = [exp_config.batch_size*2]
+        labels_tensor_shape = [exp_config.batch_size]
 
         if exp_config.age_ordinal_regression:
             ages_tensor_shape = [exp_config.batch_size*2, len(exp_config.age_bins)]
@@ -220,6 +219,7 @@ def run_training(continue_run):
         diag_s_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
         ages_s_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
 
+        # combine source and generated images into one minibatch for the classifier
         x_clf_all = tf.concat([xf_pl, xs_pl], axis=0)
         diag_all = tf.concat([diag_s_pl, diag_s_pl], axis=0)
         ages_all = tf.concat([ages_s_pl, ages_s_pl], axis=0)
@@ -251,7 +251,7 @@ def run_training(continue_run):
         tf.summary.scalar('age_loss', age_loss)
         tf.summary.scalar('weights_norm_term', weights_norm)
 
-        # make sure these are the right variables
+        # TODO: make the train operation in a separate function and make sure these are the right variables
         train_variables = tf.trainable_variables()
         classifier_variables = [v for v in train_variables if v.name.startswith("classifier")]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
