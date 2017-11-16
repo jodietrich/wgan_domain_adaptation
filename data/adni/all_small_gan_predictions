@@ -1,3 +1,6 @@
+Residual GAN may be trained longer
+
+
 2017-11-13 15:33:14,072 FINAL SUMMARY:
 ordered by f1 score in descending order
 target {'f1': 0.79738562091503273, 'recall': 0.85314685314685312, 'precision': 0.74846625766871167}
@@ -27,7 +30,3 @@ residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'f1': 0
 residual_identity_gen_bs2_std_disc_all_small_data_i1 {'f1': 0.67938931297709926, 'recall': 0.93684210526315792, 'precision': 0.53293413173652693}
 2017-11-16 09:32:04,297 The best experiment was target with f1 score 0.797386 for the generated images
 
-
-
-
-WATCH OUT FOR UNEQUALY LONG TRAINED MODELS
