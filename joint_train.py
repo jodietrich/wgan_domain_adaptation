@@ -383,11 +383,11 @@ def run_training(continue_run):
 
             if step % exp_config.validation_frequency == 0:
 
-                z_sampler_val = iterate_minibatches_endlessly(images_val,
+                s_sampler_val = iterate_minibatches_endlessly(images_val,
                                                     batch_size=exp_config.batch_size,
                                                     exp_config=exp_config,
                                                     selection_indices=source_images_val_ind)
-                x_sampler_val = iterate_minibatches_endlessly(images_val,
+                t_sampler_val = iterate_minibatches_endlessly(images_val,
                                                     batch_size=exp_config.batch_size,
                                                     exp_config=exp_config,
                                                     selection_indices=target_images_val_ind)
@@ -396,8 +396,8 @@ def run_training(continue_run):
                 g_loss_val_list = []
                 d_loss_val_list = []
                 for _ in range(exp_config.num_val_batches):
-                    x_t, [diag_t, age_t] = next(t_sampler_train)
-                    x_s, [diag_s, age_s] = next(s_sampler_train)
+                    x_t, [diag_t, age_t] = next(t_sampler_val)
+                    x_s, [diag_s, age_s] = next(s_sampler_val)
                     g_loss_val, d_loss_val = sess.run(
                         [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={xs_pl: x_s,
                                                                       xt_pl: x_t,
