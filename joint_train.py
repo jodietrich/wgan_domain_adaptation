@@ -212,9 +212,9 @@ def run_training(continue_run):
         labels_tensor_shape = [exp_config.batch_size]
 
         if exp_config.age_ordinal_regression:
-            ages_tensor_shape = [exp_config.batch_size*2, len(exp_config.age_bins)]
+            ages_tensor_shape = [exp_config.batch_size, len(exp_config.age_bins)]
         else:
-            ages_tensor_shape = [exp_config.batch_size*2]
+            ages_tensor_shape = [exp_config.batch_size]
 
         diag_s_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
         ages_s_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
