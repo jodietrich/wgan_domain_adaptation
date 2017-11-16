@@ -37,7 +37,7 @@ weight_decay = 0.0  #5e-4  #0.00000
 
 # Training settings
 age_ordinal_regression = True
-batch_size = 10
+batch_size = 8
 n_accum_batches = 1
 learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer

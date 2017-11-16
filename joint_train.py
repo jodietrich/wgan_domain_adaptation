@@ -117,7 +117,7 @@ def run_training(continue_run):
         # Generate placeholders for the images and labels.
         image_tensor_shape_gan = [exp_config.batch_size] + list(exp_config.image_size) + [exp_config.n_channels]
 
-        training_placeholder = tf.placeholder(tf.bool, name='training_phase')
+        training_time_placeholder = tf.placeholder(tf.bool, shape=[], name='training_time')
 
         # GAN
 
@@ -128,7 +128,7 @@ def run_training(continue_run):
         xs_pl = tf.placeholder(tf.float32, image_tensor_shape_gan, name='z')
 
         # generated fake image batch
-        xf_pl = generator(xs_pl, training_placeholder)
+        xf_pl = generator(xs_pl, training_time_placeholder)
 
         # difference between generated and source images
         diff_img_pl = xf_pl - xs_pl
@@ -151,10 +151,10 @@ def run_training(continue_run):
                                                                           cutoff_abs=exp_config.diff_threshold))
 
         # output of the discriminator for real image
-        d_pl = discriminator(xt_pl, training_placeholder, scope_reuse=False)
+        d_pl = discriminator(xt_pl, training_time_placeholder, scope_reuse=False)
 
         # output of the discriminator for fake image
-        d_pl_ = discriminator(xf_pl, training_placeholder, scope_reuse=True)
+        d_pl_ = discriminator(xf_pl, training_time_placeholder, scope_reuse=True)
 
         d_hat = None
         x_hat = None
@@ -162,12 +162,11 @@ def run_training(continue_run):
 
             epsilon = tf.random_uniform([], 0.0, 1.0)
             x_hat = epsilon * xt_pl + (1 - epsilon) * xf_pl
-            d_hat = discriminator(x_hat, training_placeholder, scope_reuse=True)
+            d_hat = discriminator(x_hat, training_time_placeholder, scope_reuse=True)
 
         dist_l1 = tf.reduce_mean(tf.abs(diff_img_pl))
 
         learning_rate_placeholder = tf.placeholder(tf.float32, shape=[], name='learning_rate')
-        training_time_placeholder = tf.placeholder(tf.bool, shape=[], name='training_time')
 
         if exp_config.momentum is not None:
             optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder,
@@ -208,7 +207,8 @@ def run_training(continue_run):
 
         val_summary_op_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
 
-        # Classifier
+        # Classifier ----------------------------------------------------------------------------------------
+
         labels_tensor_shape = [exp_config.batch_size]
 
         if exp_config.age_ordinal_regression:
@@ -346,7 +346,7 @@ def run_training(continue_run):
                              learning_rate_placeholder: curr_lr,
                              diag_s_pl: diag_s,
                              ages_s_pl: age_s,
-                             training_placeholder: True}
+                             training_time_placeholder: True}
                 train_ops = []
                 if iteration < t_iters:
                     # train classifier
@@ -365,7 +365,7 @@ def run_training(continue_run):
             x_t = next(t_sampler_train)  # why not sample a new x??
             x_s = next(s_sampler_train)
             sess.run(generator_train_op,
-                     feed_dict={xs_pl: x_s, xt_pl: x_t, training_placeholder: True})
+                     feed_dict={xs_pl: x_s, xt_pl: x_t, training_time_placeholder: True})
 
             if step % exp_config.update_tensorboard_frequency == 0:
 
@@ -373,7 +373,7 @@ def run_training(continue_run):
                 x_s = next(s_sampler_train)
 
                 g_loss_train, d_loss_train, summary_str = sess.run(
-                        [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={xs_pl: x_s, xt_pl: x_t, training_placeholder: False})
+                        [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={xs_pl: x_s, xt_pl: x_t, training_time_placeholder: False})
 
                 summary_writer.add_summary(summary_str, step)
                 summary_writer.flush()
@@ -402,7 +402,7 @@ def run_training(continue_run):
                     g_loss_val, d_loss_val = sess.run(
                         [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={xs_pl: x_s,
                                                                       xt_pl: x_t,
-                                                                      training_placeholder: False})
+                                                                      training_time_placeholder: False})
                     g_loss_val_list.append(g_loss_val)
                     d_loss_val_list.append(d_loss_val)
 
