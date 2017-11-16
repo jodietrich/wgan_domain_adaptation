@@ -1,6 +1,6 @@
 Residual GAN may be trained longer
 
-
+Best cross entropy classifier
 2017-11-13 15:33:14,072 FINAL SUMMARY:
 ordered by f1 score in descending order
 target {'f1': 0.79738562091503273, 'recall': 0.85314685314685312, 'precision': 0.74846625766871167}
@@ -15,12 +15,13 @@ residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'f1': 0
 2017-11-13 15:33:14,072 The best experiment was target with f1 score 0.797386 for the generated images
 
 
+Best cross entropy classifier
 2017-11-16 09:32:04,297 FINAL SUMMARY:
 ordered by f1 score in descending order
 target {'f1': 0.79738562091503273, 'recall': 0.85314685314685312, 'precision': 0.74846625766871167}
 bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1 {'f1': 0.77450980392156865, 'recall': 0.83157894736842108, 'precision': 0.72477064220183485}
 bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 {'f1': 0.77319587628865982, 'recall': 0.78947368421052633, 'precision': 0.75757575757575757}
-bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i2 {'f1': 0.77083333333333326, 'recall': 0.77894736842105261, 'precision': 0.76288659793814428}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1 {'f1': 0.77083333333333326, 'recall': 0.77894736842105261, 'precision': 0.76288659793814428}
 residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1 {'f1': 0.76381909547738702, 'recall': 0.80000000000000004, 'precision': 0.73076923076923073}
 bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 {'f1': 0.76190476190476197, 'recall': 0.75789473684210529, 'precision': 0.76595744680851063}
 bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1 {'f1': 0.75531914893617036, 'recall': 0.74736842105263157, 'precision': 0.76344086021505375}
@@ -29,4 +30,55 @@ bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1 {'f1': 0.73999999999
 residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'f1': 0.67942583732057416, 'recall': 0.74736842105263157, 'precision': 0.6228070175438597}
 residual_identity_gen_bs2_std_disc_all_small_data_i1 {'f1': 0.67938931297709926, 'recall': 0.93684210526315792, 'precision': 0.53293413173652693}
 2017-11-16 09:32:04,297 The best experiment was target with f1 score 0.797386 for the generated images
+
+
+Best f1 score classifier
+2017-11-16 09:32:04,297 FINAL SUMMARY:
+ordered by f1 score in descending order
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 {'f1': 0.78453038674033149, 'recall': 0.74736842105263157, 'precision': 0.82558139534883723}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1 {'f1': 0.78431372549019607, 'recall': 0.84210526315789469, 'precision': 0.73394495412844041}
+residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1 {'f1': 0.7772020725388602, 'recall': 0.78947368421052633, 'precision': 0.76530612244897955}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1 {'f1': 0.77348066298342533, 'recall': 0.73684210526315785, 'precision': 0.81395348837209303}
+target {'f1': 0.77288135593220353, 'recall': 0.79720279720279719, 'precision': 0.75}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1 {'f1': 0.77157360406091369, 'recall': 0.80000000000000004, 'precision': 0.74509803921568629}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_0l1_i1 {'f1': 0.7675675675675675, 'recall': 0.74736842105263157, 'precision': 0.78888888888888886}
+source {'f1': 0.75000000000000011, 'recall': 0.69473684210526321, 'precision': 0.81481481481481477}
+residual_identity_gen_bs2_std_disc_all_small_data_i1 {'f1': 0.73949579831932777, 'recall': 0.9263157894736842, 'precision': 0.61538461538461542}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1 {'f1': 0.70056497175141241, 'recall': 0.65263157894736845, 'precision': 0.75609756097560976}
+residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'f1': 0.67724867724867721, 'recall': 0.67368421052631577, 'precision': 0.68085106382978722}
+2017-11-16 13:37:32,011 The best experiment was bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 with f1 score 0.784530 for the generated images
+
+
+Best cross entropy classifier
+2017-11-16 13:49:16,763 FINAL SUMMARY:
+ordered by f1 score in descending order
+target {'recall': 0.85314685314685312, 'f1': 0.79738562091503273, 'precision': 0.74846625766871167}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1 {'recall': 0.83157894736842108, 'f1': 0.77832512315270941, 'precision': 0.73148148148148151}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_0l1_i1 {'recall': 0.78947368421052633, 'f1': 0.77319587628865982, 'precision': 0.75757575757575757}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1 {'recall': 0.77894736842105261, 'f1': 0.77083333333333326, 'precision': 0.76288659793814428}
+residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1 {'recall': 0.80000000000000004, 'f1': 0.76381909547738702, 'precision': 0.73076923076923073}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 {'recall': 0.75789473684210529, 'f1': 0.76190476190476197, 'precision': 0.76595744680851063}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1 {'recall': 0.74736842105263157, 'f1': 0.75531914893617036, 'precision': 0.76344086021505375}
+source {'recall': 0.70526315789473681, 'f1': 0.74033149171270729, 'precision': 0.77906976744186052}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1 {'recall': 0.76842105263157889, 'f1': 0.71568627450980382, 'precision': 0.66972477064220182}
+residual_identity_gen_bs2_std_disc_all_small_data_i1 {'recall': 0.93684210526315792, 'f1': 0.67938931297709926, 'precision': 0.53293413173652693}
+residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'recall': 0.70526315789473681, 'f1': 0.65048543689320393, 'precision': 0.60360360360360366}
+2017-11-16 13:49:16,763 The best experiment was target with f1 score 0.797386 for the generated images
+
+
+Best f1 score classifier
+2017-11-16 13:47:11,991 FINAL SUMMARY:
+ordered by f1 score in descending order
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1 {'precision': 0.78947368421052633, 'f1': 0.78947368421052633, 'recall': 0.78947368421052633}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1 {'precision': 0.82558139534883723, 'f1': 0.78453038674033149, 'recall': 0.74736842105263157}
+residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1 {'precision': 0.76530612244897955, 'f1': 0.7772020725388602, 'recall': 0.78947368421052633}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1 {'precision': 0.81395348837209303, 'f1': 0.77348066298342533, 'recall': 0.73684210526315785}
+target {'precision': 0.75, 'f1': 0.77288135593220353, 'recall': 0.79720279720279719}
+bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_0l1_i1 {'precision': 0.78888888888888886, 'f1': 0.7675675675675675, 'recall': 0.74736842105263157}
+bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1 {'precision': 0.71171171171171166, 'f1': 0.76699029126213591, 'recall': 0.83157894736842108}
+source {'precision': 0.81481481481481477, 'f1': 0.75000000000000011, 'recall': 0.69473684210526321}
+residual_identity_gen_bs2_std_disc_all_small_data_i1 {'precision': 0.61538461538461542, 'f1': 0.73949579831932777, 'recall': 0.9263157894736842}
+bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1 {'precision': 0.75609756097560976, 'f1': 0.70056497175141241, 'recall': 0.65263157894736845}
+residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1 {'precision': 0.6428571428571429, 'f1': 0.65284974093264247, 'recall': 0.66315789473684206}
+2017-11-16 13:47:11,992 The best experiment was bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1 with f1 score 0.789474 for the generated images
 

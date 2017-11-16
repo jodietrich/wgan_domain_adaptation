@@ -161,8 +161,10 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     # open field strength classifier save file from the selected experiment
     logging.info("loading Alzheimer's disease classifier")
     graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = build_clf_graph(img_tensor_shape, clf_config)
-    # get savepoint with best crossentropy
+    logging.info("getting savepoint with the best cross entropy")
     init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_xent.ckpt')
+    # logging.info("getting savepoint with the best f1 score")
+    # init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_diag_f1.ckpt')
     sess_clf = tf.Session(config=config, graph=graph_clf)
     sess_clf.run(init_clf_op)
     saver_clf.restore(sess_clf, init_checkpoint_path_clf)
@@ -519,7 +521,7 @@ if __name__ == '__main__':
         'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1',
         'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1',
         'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1',
-        'bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i2',
+        'bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1',
         'bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1',
         'residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1',
         'residual_identity_gen_bs2_std_disc_all_small_data_i1',

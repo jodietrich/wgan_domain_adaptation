@@ -8,6 +8,7 @@ import os
 import glob
 from importlib.machinery import SourceFileLoader
 import config.system as sys_config
+import logging
 
 def fstr_to_label(fieldstrengths, field_strength_list, label_list):
     # input fieldstrenghts hdf5 list
@@ -171,7 +172,10 @@ def load_log_exp_config(experiment_path, file_name=None, other_py_files=['standa
     experiment_module = SourceFileLoader(py_file_name[:-3], py_file_path).load_module()
 
     # experiment name is the same as the folder name
-    assert experiment_module.experiment_name == experiment_path.split('/')[-1]
+    experiment_folder_name = experiment_path.split('/')[-1]
+    if experiment_folder_name != experiment_module.experiment_name:
+        logging.warning('warning: the experiment folder name %s is different from the experiment name %s'
+                        % (experiment_folder_name, experiment_module.experiment_name))
 
     return experiment_module, experiment_path
 
