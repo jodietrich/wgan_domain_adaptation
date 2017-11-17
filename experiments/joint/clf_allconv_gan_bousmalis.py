@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'joint_first_try_clf_allconv_gan_bousmalis_all_small_no_augment_bs10_i1'
+experiment_name = 'joint_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_all_small_no_augment_bs8_i1'
 
 # paths
 log_folder = 'joint'
@@ -47,6 +47,7 @@ momentum = None
 bn_momentum = 0.99
 
 # Augmentation settings
+use_augmentation = False
 augmentation_function = batch_augmentors.flip_augment
 do_rotations = False
 do_scaleaug = False

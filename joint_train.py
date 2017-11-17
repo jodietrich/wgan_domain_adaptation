@@ -99,18 +99,21 @@ def run_training(continue_run):
 
     generator = exp_config.generator
     discriminator = exp_config.discriminator
-    classifier = exp_config.model_handle
+    augmentation_function = exp_config.augmentation_function if exp_config.use_augmentation else None
 
     s_sampler_train = iterate_minibatches_endlessly(images_train,
                                                     batch_size=exp_config.batch_size,
                                                     exp_config=exp_config,
                                                     labels_list=[labels_train, ages_train],
-                                                    selection_indices=source_images_train_ind)
+                                                    selection_indices=source_images_train_ind,
+                                                    augmentation_function=augmentation_function)
+
     t_sampler_train = iterate_minibatches_endlessly(images_train,
                                                     batch_size=exp_config.batch_size,
                                                     exp_config=exp_config,
                                                     labels_list=[labels_train, ages_train],
-                                                    selection_indices=target_images_train_ind)
+                                                    selection_indices=target_images_train_ind,
+                                                    augmentation_function=augmentation_function)
 
 
     with tf.Graph().as_default():
