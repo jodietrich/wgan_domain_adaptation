@@ -206,9 +206,10 @@ def run_training(continue_run):
         val_gen_loss_pl = tf.placeholder(tf.float32, shape=[], name='gen_val_loss')
         gen_val_summary_op = tf.summary.scalar('validation_generator_loss', val_gen_loss_pl)
 
-        val_summary_op_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
+        val_summary_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
 
         # Classifier ----------------------------------------------------------------------------------------
+        directly_feed_clf_pl = tf.placeholder(tf.bool, shape=[], name='direct_classifier_feeding')
 
         labels_tensor_shape = [exp_config.batch_size]
 
@@ -219,44 +220,47 @@ def run_training(continue_run):
 
         # the classifier has double the batch size of the GAN
         # TODO: indexing lists does not work like this. List comprehension would work
-        image_tensor_shape_clf = [exp_config.batch_size * 2] + image_tensor_shape_gan[1:-1, ...]
-        labels_tensor_shape_clf = [exp_config.batch_size * 2] + labels_tensor_shape[1:-1]
-        ages_tensor_shape_clf = [exp_config.batch_size * 2] + ages_tensor_shape[1:-1]
+        image_tensor_shape_clf = image_tensor_shape_gan.copy()
+        labels_tensor_shape_clf = labels_tensor_shape.copy()
+        ages_tensor_shape_clf = ages_tensor_shape.copy()
+
+        # batchsize is bigger for the classifier
+        for shape in [image_tensor_shape_clf, labels_tensor_shape_clf, ages_tensor_shape_clf]:
+            shape[0] = shape[0]*2
 
         diag_s_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
         ages_s_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
 
         # combine source and generated images into one minibatch for the classifier
-        x_clf_all = tf.concat([xf_pl, xs_pl], axis=0)
-        diag_all = tf.concat([diag_s_pl, diag_s_pl], axis=0)
-        ages_all = tf.concat([ages_s_pl, ages_s_pl], axis=0)
+        x_clf_fs = tf.concat([xf_pl, xs_pl], axis=0)
+        diag_fs = tf.concat([diag_s_pl, diag_s_pl], axis=0)
+        ages_fs = tf.concat([ages_s_pl, ages_s_pl], axis=0)
+
+        images_direct_pl = tf.placeholder(tf.float32, image_tensor_shape_clf, name='x_val')
+        diag_direct_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape_clf, name='labels')
+        ages_direct_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape_clf, name='ages')
+
+        # conditionally assign either a concatenation of the generated dataset and the source data
+        # or a given dataset as data (images and labels) for the classifier
+        x_clf = tf.select(directly_feed_clf_pl, images_direct_pl, x_clf_fs)
+        diag_clf = tf.select(directly_feed_clf_pl, diag_direct_pl, diag_fs)
+        ages_clf = tf.select(directly_feed_clf_pl, ages_direct_pl, ages_fs)
 
         tf.summary.scalar('learning_rate', learning_rate_placeholder)
 
         # Build a Graph that computes predictions from the inference model.
-        diag_logits_train, ages_logits_train = exp_config.model_handle(x_clf_all,
-                                                           nlabels=exp_config.nlabels,
-                                                           training=training_time_placeholder,
-                                                           n_age_thresholds=len(exp_config.age_bins),
-                                                           bn_momentum=exp_config.bn_momentum)
-
-        images_val_pl = tf.placeholder(tf.float32, image_tensor_shape_clf, name='x_val')
-        diag_val_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape_clf, name='labels')
-        ages_val_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape_clf, name='ages')
-
-        diag_logits_val, ages_logits_val = exp_config.model_handle(images_val_pl,
-                                                                     nlabels=exp_config.nlabels,
-                                                                     training=False,
-                                                                     n_age_thresholds=len(exp_config.age_bins),
-                                                                     bn_momentum=exp_config.bn_momentum,
-                                                                     scope_reuse=True)
+        diag_logits_train, ages_logits_train = exp_config.model_handle(x_clf,
+                                                                       nlabels=exp_config.nlabels,
+                                                                       training=training_time_placeholder,
+                                                                       n_age_thresholds=len(exp_config.age_bins),
+                                                                       bn_momentum=exp_config.bn_momentum)
 
         # Add to the Graph the Ops for loss calculation.
 
         [classifier_loss, diag_loss, age_loss, weights_norm] = model_mt.loss(diag_logits_train,
                                                                   ages_logits_train,
-                                                                  diag_all,
-                                                                  ages_all,
+                                                                  diag_clf,
+                                                                  ages_clf,
                                                                   nlabels=exp_config.nlabels,
                                                                   weight_decay=exp_config.weight_decay,
                                                                   diag_weight=exp_config.diag_weight,
@@ -277,9 +281,9 @@ def run_training(continue_run):
             train_clf_op = optimiser.minimize(classifier_loss, var_list=classifier_variables)
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits_train, ages_logits_train,
-                                                                                         diag_all,
-                                                                                         ages_all,
-                                                                                         x_clf_all,
+                                                                                         diag_clf,
+                                                                                         ages_clf,
+                                                                                         x_clf,
                                                                                          diag_weight=exp_config.diag_weight,
                                                                                          age_weight=exp_config.age_weight,
                                                                                          nlabels=exp_config.nlabels,
@@ -300,8 +304,8 @@ def run_training(continue_run):
         saver_best_xent = tf.train.Saver(max_to_keep=2)
 
         # Classifier summary
-        val_error_ = tf.placeholder(tf.float32, shape=[], name='val_error_diag')
-        val_error_summary = tf.summary.scalar('validation_loss', val_error_)
+        val_error_clf_ = tf.placeholder(tf.float32, shape=[], name='val_error_diag')
+        val_error_summary = tf.summary.scalar('classifier_validation_loss', val_error_clf_)
 
         val_diag_f1_score_ = tf.placeholder(tf.float32, shape=[], name='val_diag_f1')
         val_f1_diag_summary = tf.summary.scalar('validation_diag_f1', val_diag_f1_score_)
@@ -309,10 +313,11 @@ def run_training(continue_run):
         val_ages_f1_score_ = tf.placeholder(tf.float32, shape=[], name='val_ages_f1')
         val_f1_ages_summary = tf.summary.scalar('validation_ages_f1', val_ages_f1_score_)
 
-        val_summary = tf.summary.merge([val_error_summary, val_f1_diag_summary, val_f1_ages_summary])
+        val_summary_clf = tf.summary.merge([val_error_summary, val_f1_diag_summary, val_f1_ages_summary])
+        val_summary = tf.summary.merge([val_summary_clf, val_summary_gan])
 
-        train_error_ = tf.placeholder(tf.float32, shape=[], name='train_error_diag')
-        train_error_summary = tf.summary.scalar('training_loss', train_error_)
+        train_error_clf_ = tf.placeholder(tf.float32, shape=[], name='train_error_diag')
+        train_error_clf_summary = tf.summary.scalar('classifier_training_loss', train_error_clf_)
 
         train_diag_f1_score_ = tf.placeholder(tf.float32, shape=[], name='train_diag_f1')
         train_diag_f1_summary = tf.summary.scalar('training_diag_f1', train_diag_f1_score_)
@@ -320,7 +325,7 @@ def run_training(continue_run):
         train_ages_f1_score_ = tf.placeholder(tf.float32, shape=[], name='train_ages_f1')
         train_f1_ages_summary = tf.summary.scalar('training_ages_f1', train_ages_f1_score_)
 
-        train_summary = tf.summary.merge([train_error_summary, train_diag_f1_summary, train_f1_ages_summary])
+        train_summary = tf.summary.merge([train_error_clf_summary, train_diag_f1_summary, train_f1_ages_summary])
 
         # prevents ResourceExhaustError when a lot of memory is used
         config = tf.ConfigProto()
@@ -342,6 +347,13 @@ def run_training(continue_run):
         # TODO: change learning rate over time
         curr_lr = exp_config.learning_rate
 
+        no_improvement_counter = 0
+        best_val = np.inf
+        last_train = np.inf
+        loss_history = []
+        loss_gradient = np.inf
+        best_diag_f1_score = 0
+        best_ages_f1_score = 0
         # initialize value of lowest (i. e. best) discriminator loss
         best_d_loss = np.inf
 
@@ -365,7 +377,8 @@ def run_training(continue_run):
                              learning_rate_placeholder: curr_lr,
                              diag_s_pl: diag_s,
                              ages_s_pl: age_s,
-                             training_time_placeholder: True}
+                             training_time_placeholder: True,
+                                directly_feed_clf_pl: False}
                 train_ops = []
                 if iteration < t_iters:
                     # train classifier
@@ -396,7 +409,8 @@ def run_training(continue_run):
                     diag_s_pl: diag_s,
                     ages_s_pl: age_s,
                     learning_rate_placeholder: curr_lr,
-                    training_time_placeholder: True
+                    training_time_placeholder: True,
+                    directly_feed_clf_pl: False
                 }
 
                 g_loss_train, d_loss_train, summary_str = sess.run(
@@ -417,17 +431,18 @@ def run_training(continue_run):
                                                                                 eval_ages_loss,
                                                                                 pred_labels,
                                                                                 ages_softmaxs,
-                                                                                images_val_pl,
-                                                                                diag_val_pl,
-                                                                                ages_val_pl,
+                                                                                images_direct_pl,
+                                                                                diag_direct_pl,
+                                                                                ages_direct_pl,
                                                                                 training_time_placeholder,
+                                                                                directly_feed_clf_pl,
                                                                                 images_train,
                                                                                 [labels_train, ages_train],
                                                                                 batch_size=exp_config.batch_size,
                                                                                 do_ordinal_reg=exp_config.age_ordinal_regression,
                                                                                 selection_indices=target_images_train_ind)
 
-                train_summary_msg = sess.run(train_summary, feed_dict={train_error_: train_loss,
+                train_summary_msg = sess.run(train_summary, feed_dict={train_error_clf_: train_loss,
                                                                        train_diag_f1_score_: train_diag_f1,
                                                                        train_ages_f1_score_: train_ages_f1}
                                              )
@@ -459,35 +474,46 @@ def run_training(continue_run):
 
             if (step + 1) % exp_config.validation_frequency == 0:
 
-                s_sampler_val = iterate_minibatches_endlessly(images_val,
-                                                    batch_size=exp_config.batch_size,
-                                                    exp_config=exp_config,
-                                                    selection_indices=source_images_val_ind)
-                t_sampler_val = iterate_minibatches_endlessly(images_val,
-                                                    batch_size=exp_config.batch_size,
-                                                    exp_config=exp_config,
-                                                    selection_indices=target_images_val_ind)
+                # evaluate gan losses
+                d_loss_val_avg, g_loss_val_avg = do_eval_gan(sess,
+                                                             [gen_loss_nr_pl, disc_loss_nr_pl],
+                                                             xs_pl,
+                                                             xt_pl,
+                                                             training_time_placeholder,
+                                                             images_val,
+                                                             source_images_val_ind,
+                                                             target_images_val_ind
+                                                             )
 
-                # evaluate the validation batch with batch_size images (from each domain) at a time
-                g_loss_val_list = []
-                d_loss_val_list = []
-                for _ in range(exp_config.num_val_batches):
-                    x_t, [diag_t, age_t] = next(t_sampler_val)
-                    x_s, [diag_s, age_s] = next(s_sampler_val)
-                    g_loss_val, d_loss_val = sess.run(
-                        [gen_loss_nr_pl, disc_loss_nr_pl], feed_dict={xs_pl: x_s,
-                                                                      xt_pl: x_t,
-                                                                      training_time_placeholder: False})
-                    g_loss_val_list.append(g_loss_val)
-                    d_loss_val_list.append(d_loss_val)
+                # evaluate classifier losses
+                [val_loss, val_diag_f1, val_ages_f1] = do_eval_classifier(sess,
+                                                                       eval_diag_loss,
+                                                                       eval_ages_loss,
+                                                                       pred_labels,
+                                                                       ages_softmaxs,
+                                                                       images_direct_pl,
+                                                                       diag_direct_pl,
+                                                                       ages_direct_pl,
+                                                                       training_time_placeholder,
+                                                                       images_val,
+                                                                       [labels_val, ages_val],
+                                                                       batch_size=exp_config.batch_size,
+                                                                       do_ordinal_reg=exp_config.age_ordinal_regression,
+                                                                       selection_indices=target_images_val_ind)
 
-                g_loss_val_avg = np.mean(g_loss_val_list)
-                d_loss_val_avg = np.mean(d_loss_val_list)
 
-                validation_summary_str = sess.run(val_summary_op_gan, feed_dict={val_disc_loss_pl: d_loss_val_avg,
+                feed_dict_val = {
+                    val_error_clf_: val_loss,
+                    val_diag_f1_score_: val_diag_f1,
+                    val_ages_f1_score_: val_ages_f1,
+                    val_disc_loss_pl: d_loss_val_avg,
+                    val_gen_loss_pl: g_loss_val_avg
+                }
+
+                validation_summary_msg = sess.run(val_summary, feed_dict={val_disc_loss_pl: d_loss_val_avg,
                                                                                  val_gen_loss_pl: g_loss_val_avg}
                                              )
-                summary_writer.add_summary(validation_summary_str, step)
+                summary_writer.add_summary(validation_summary_msg, step)
                 summary_writer.flush()
 
                 # save best variables (if discriminator loss is the lowest yet)
@@ -497,6 +523,27 @@ def run_training(continue_run):
                     saver_best_disc.save(sess, best_file, global_step=step)
                     logging.info('Found new best discriminator loss on validation set! - %f -  Saving model_best_d_loss.ckpt' % best_d_loss)
 
+                if val_diag_f1 >= best_diag_f1_score:
+                    best_diag_f1_score = val_diag_f1
+                    best_file = os.path.join(log_dir, 'model_best_diag_f1.ckpt')
+                    saver_best_diag_f1.save(sess, best_file, global_step=step)
+                    logging.info(
+                        'Found new best DIAGNOSIS F1 score on validation set! - %f -  Saving model_best_diag_f1.ckpt' % val_diag_f1)
+
+                if val_ages_f1 >= best_ages_f1_score:
+                    best_ages_f1_score = val_ages_f1
+                    best_file = os.path.join(log_dir, 'model_best_ages_f1.ckpt')
+                    saver_best_ages_f1.save(sess, best_file, global_step=step)
+                    logging.info(
+                        'Found new best AGES F1 score on validation set! - %f -  Saving model_best_ages_f1.ckpt' % val_ages_f1)
+
+                if val_loss <= best_val:
+                    best_val = val_loss
+                    best_file = os.path.join(log_dir, 'model_best_xent.ckpt')
+                    saver_best_xent.save(sess, best_file, global_step=step)
+                    logging.info(
+                        'Found new best crossentropy on validation set! - %f -  Saving model_best_xent.ckpt' % val_loss)
+
                 logging.info("[Validation], generator loss: %g, discriminator_loss: %g" % (g_loss_val_avg, d_loss_val_avg))
 
             # Write the summaries and print an overview fairly often.
@@ -505,6 +552,45 @@ def run_training(continue_run):
                 saver_latest.save(sess, os.path.join(log_dir, 'model.ckpt'), global_step=step)
 
         sess.close()
+
+
+def do_eval_gan(sess, losses, images_s_pl, images_t_pl, training_time_placeholder, images, source_images_ind,
+                target_images_ind, batch_size=exp_config.batch_size, num_batches=exp_config.num_val_batches):
+    '''
+    Function for running the evaluations every X iterations on the training and validation sets.
+    :param sess: The current tf session
+    :param losses: list of loss placeholders
+    :param images_placeholder: Placeholder for the images
+    :param labels_placeholder: Placeholder for the masks
+    :param training_time_placeholder: Placeholder toggling the training/testing mode.
+    :param images: A numpy array or h5py dataset containing the images
+    :param batch_size: The batch_size to use.
+    :return: The average loss (as defined in the experiment), and the average dice over all `images`.
+    '''
+
+    s_sampler_val = iterate_minibatches_endlessly(images,
+                                                  batch_size=batch_size,
+                                                  exp_config=exp_config,
+                                                  selection_indices=source_images_ind)
+    t_sampler_val = iterate_minibatches_endlessly(images,
+                                                  batch_size=batch_size,
+                                                  exp_config=exp_config,
+                                                  selection_indices=target_images_ind)
+
+    # evaluate the validation batch with batch_size images (from each domain) at a time
+    loss_val_array = np.empty((num_batches, len(losses)), dtype=np.float32)
+    for batch_ind in range(exp_config.num_val_batches):
+        x_t, [diag_t, age_t] = next(t_sampler_val)
+        x_s, [diag_s, age_s] = next(s_sampler_val)
+        loss_val = sess.run(
+            losses, feed_dict={images_s_pl: x_s,
+                               images_t_pl: x_t,
+                               training_time_placeholder: False})
+        loss_val_array[batch_ind, :] = np.array(loss_val)
+
+    loss_val_avg = np.mean(loss_val_array, axis=0)
+
+    return loss_val_avg.tolist()
 
 
 # TODO: check if it does the right thing
@@ -517,6 +603,7 @@ def do_eval_classifier(sess,
                        diag_labels_placeholder,
                        ages_placeholder,
                        training_time_placeholder,
+                       directly_feed_clf_pl,
                        images,
                        labels_list,
                        batch_size,
@@ -561,7 +648,8 @@ def do_eval_classifier(sess,
         feed_dict = { images_placeholder: x,
                       diag_labels_placeholder: y,
                       ages_placeholder: a,
-                      training_time_placeholder: False}
+                      training_time_placeholder: False,
+                      directly_feed_clf_pl: True}
 
         c_d_loss, c_a_loss, c_d_preds, c_a_softmaxs = sess.run([eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs], feed_dict=feed_dict)
 
