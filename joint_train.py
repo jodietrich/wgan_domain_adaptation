@@ -222,7 +222,6 @@ def run_training(continue_run):
             ages_tensor_shape = [exp_config.batch_size]
 
         # the classifier has double the batch size of the GAN
-        # TODO: indexing lists does not work like this. List comprehension would work
         image_tensor_shape_clf = image_tensor_shape_gan.copy()
         labels_tensor_shape_clf = labels_tensor_shape.copy()
         ages_tensor_shape_clf = ages_tensor_shape.copy()
@@ -245,9 +244,9 @@ def run_training(continue_run):
 
         # conditionally assign either a concatenation of the generated dataset and the source data
         # or a given dataset as data (images and labels) for the classifier
-        x_clf = tf.select(directly_feed_clf_pl, images_direct_pl, x_clf_fs)
-        diag_clf = tf.select(directly_feed_clf_pl, diag_direct_pl, diag_fs)
-        ages_clf = tf.select(directly_feed_clf_pl, ages_direct_pl, ages_fs)
+        x_clf = tf.where(directly_feed_clf_pl, images_direct_pl, x_clf_fs)
+        diag_clf = tf.where(directly_feed_clf_pl, diag_direct_pl, diag_fs)
+        ages_clf = tf.where(directly_feed_clf_pl, ages_direct_pl, ages_fs)
 
         tf.summary.scalar('learning_rate', learning_rate_placeholder)
 
@@ -276,7 +275,7 @@ def run_training(continue_run):
         tf.summary.scalar('age_loss', age_loss)
         tf.summary.scalar('weights_norm_term', weights_norm)
 
-        # TODO: make the train operation in a separate function and make sure these are the right variables
+        # TODO: make the train operation in a separate function
         train_variables = tf.trainable_variables()
         classifier_variables = [v for v in train_variables if v.name.startswith("classifier")]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -347,7 +346,6 @@ def run_training(continue_run):
             # Restore session
             saver_latest.restore(sess, init_checkpoint_path)
 
-        # TODO: change learning rate over time
         curr_lr = exp_config.learning_rate
 
         no_improvement_counter = 0
@@ -375,6 +373,7 @@ def run_training(continue_run):
                 x_t, [diag_t, age_t] = next(t_sampler_train)
                 x_s, [diag_s, age_s] = next(s_sampler_train)
 
+                # TODO: tf still wants images_direct_pl when not directly feeding. Maybe use tf.cond instead.
                 feed_dict_dc = {xs_pl: x_s,
                              xt_pl: x_t,
                              learning_rate_placeholder: curr_lr,
@@ -596,7 +595,6 @@ def do_eval_gan(sess, losses, images_s_pl, images_t_pl, training_time_placeholde
     return loss_val_avg.tolist()
 
 
-# TODO: check if it does the right thing
 def do_eval_classifier(sess,
                        eval_diag_loss,
                        eval_ages_loss,
