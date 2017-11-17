@@ -25,7 +25,7 @@ VIRTUAL_ENV_PATH=/scratch_net/brossa/jdietric/libs/virtual_envs/env_gpu
 
 # Host and gpu settings
 #$ -l gpu
-#$ -l hostname=bmicgpu02  ## <-------------- Comment in or out to force a specific machine
+##$ -l hostname=bmicgpu02  ## <-------------- Comment in or out to force a specific machine
 
 ## stderr and stdout are merged together to stdout
 #$ -j y

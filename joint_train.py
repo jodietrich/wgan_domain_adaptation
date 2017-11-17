@@ -9,6 +9,7 @@ import numpy as np
 import os.path
 import tensorflow as tf
 import shutil
+from sklearn.metrics import f1_score
 
 import config.system as sys_config
 import model
@@ -16,7 +17,7 @@ from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader_all
 import data_utils
-from batch_generator_list import iterate_minibatches_endlessly
+from batch_generator_list import iterate_minibatches_endlessly, iterate_minibatches
 import model_multitask as model_mt
 
 
@@ -216,6 +217,12 @@ def run_training(continue_run):
         else:
             ages_tensor_shape = [exp_config.batch_size]
 
+        # the classifier has double the batch size of the GAN
+        # TODO: indexing lists does not work like this. List comprehension would work
+        image_tensor_shape_clf = [exp_config.batch_size * 2] + image_tensor_shape_gan[1:-1, ...]
+        labels_tensor_shape_clf = [exp_config.batch_size * 2] + labels_tensor_shape[1:-1]
+        ages_tensor_shape_clf = [exp_config.batch_size * 2] + ages_tensor_shape[1:-1]
+
         diag_s_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
         ages_s_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
 
@@ -227,16 +234,27 @@ def run_training(continue_run):
         tf.summary.scalar('learning_rate', learning_rate_placeholder)
 
         # Build a Graph that computes predictions from the inference model.
-        diag_logits, ages_logits = exp_config.model_handle(x_clf_all,
+        diag_logits_train, ages_logits_train = exp_config.model_handle(x_clf_all,
                                                            nlabels=exp_config.nlabels,
                                                            training=training_time_placeholder,
                                                            n_age_thresholds=len(exp_config.age_bins),
                                                            bn_momentum=exp_config.bn_momentum)
 
+        images_val_pl = tf.placeholder(tf.float32, image_tensor_shape_clf, name='x_val')
+        diag_val_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape_clf, name='labels')
+        ages_val_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape_clf, name='ages')
+
+        diag_logits_val, ages_logits_val = exp_config.model_handle(images_val_pl,
+                                                                     nlabels=exp_config.nlabels,
+                                                                     training=False,
+                                                                     n_age_thresholds=len(exp_config.age_bins),
+                                                                     bn_momentum=exp_config.bn_momentum,
+                                                                     scope_reuse=True)
+
         # Add to the Graph the Ops for loss calculation.
 
-        [classifier_loss, diag_loss, age_loss, weights_norm] = model_mt.loss(diag_logits,
-                                                                  ages_logits,
+        [classifier_loss, diag_loss, age_loss, weights_norm] = model_mt.loss(diag_logits_train,
+                                                                  ages_logits_train,
                                                                   diag_all,
                                                                   ages_all,
                                                                   nlabels=exp_config.nlabels,
@@ -258,7 +276,7 @@ def run_training(continue_run):
         with tf.control_dependencies(update_ops):
             train_clf_op = optimiser.minimize(classifier_loss, var_list=classifier_variables)
 
-        eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits, ages_logits,
+        eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits_train, ages_logits_train,
                                                                                          diag_all,
                                                                                          ages_all,
                                                                                          x_clf_all,
@@ -321,6 +339,7 @@ def run_training(continue_run):
             # Restore session
             saver_latest.restore(sess, init_checkpoint_path)
 
+        # TODO: change learning rate over time
         curr_lr = exp_config.learning_rate
 
         # initialize value of lowest (i. e. best) discriminator loss
@@ -371,8 +390,17 @@ def run_training(continue_run):
                 x_t, [diag_t, age_t] = next(t_sampler_train)
                 x_s, [diag_s, age_s] = next(s_sampler_train)
 
+                feed_dict_summary = {
+                    xs_pl: x_s,
+                    xt_pl: x_t,
+                    diag_s_pl: diag_s,
+                    ages_s_pl: age_s,
+                    learning_rate_placeholder: curr_lr,
+                    training_time_placeholder: True
+                }
+
                 g_loss_train, d_loss_train, summary_str = sess.run(
-                        [gen_loss_nr_pl, disc_loss_nr_pl, summary_op], feed_dict={xs_pl: x_s, xt_pl: x_t, training_time_placeholder: False})
+                        summary, feed_dict=feed_dict_summary)
 
                 summary_writer.add_summary(summary_str, step)
                 summary_writer.flush()
@@ -380,8 +408,56 @@ def run_training(continue_run):
                 logging.info("[Step: %d], generator loss: %g, discriminator_loss: %g" % (step, g_loss_train, d_loss_train))
                 logging.info(" - elapsed time for one step: %f secs" % elapsed_time)
 
+            if (step + 1) % exp_config.train_eval_frequency == 0:
 
-            if step % exp_config.validation_frequency == 0:
+                # Evaluate against the training set
+                logging.info('Training data eval for classifier (target domain):')
+                [train_loss, train_diag_f1, train_ages_f1] = do_eval_classifier(sess,
+                                                                                eval_diag_loss,
+                                                                                eval_ages_loss,
+                                                                                pred_labels,
+                                                                                ages_softmaxs,
+                                                                                images_val_pl,
+                                                                                diag_val_pl,
+                                                                                ages_val_pl,
+                                                                                training_time_placeholder,
+                                                                                images_train,
+                                                                                [labels_train, ages_train],
+                                                                                batch_size=exp_config.batch_size,
+                                                                                do_ordinal_reg=exp_config.age_ordinal_regression,
+                                                                                selection_indices=target_images_train_ind)
+
+                train_summary_msg = sess.run(train_summary, feed_dict={train_error_: train_loss,
+                                                                       train_diag_f1_score_: train_diag_f1,
+                                                                       train_ages_f1_score_: train_ages_f1}
+                                             )
+                summary_writer.add_summary(train_summary_msg, step)
+
+                loss_history.append(train_loss)
+                if len(loss_history) > 5:
+                    loss_history.pop(0)
+                    loss_gradient = (loss_history[-5] - loss_history[-1]) / 2
+
+                logging.info('loss gradient is currently %f' % loss_gradient)
+
+                if exp_config.schedule_lr and loss_gradient < exp_config.schedule_gradient_threshold:
+                    logging.warning('Reducing learning rate!')
+                    curr_lr /= 10.0
+                    logging.info('Learning rate changed to: %f' % curr_lr)
+
+                    # reset loss history to give the optimisation some time to start decreasing again
+                    loss_gradient = np.inf
+                    loss_history = []
+
+                if train_loss <= last_train:  # best_train:
+                    logging.info('Decrease in training error!')
+                else:
+                    logging.info('No improvment in training error for %d steps' % no_improvement_counter)
+
+                last_train = train_loss
+
+
+            if (step + 1) % exp_config.validation_frequency == 0:
 
                 s_sampler_val = iterate_minibatches_endlessly(images_val,
                                                     batch_size=exp_config.batch_size,
@@ -427,6 +503,108 @@ def run_training(continue_run):
             if step % exp_config.save_frequency == 0:
 
                 saver_latest.save(sess, os.path.join(log_dir, 'model.ckpt'), global_step=step)
+
+        sess.close()
+
+
+# TODO: check if it does the right thing
+def do_eval_classifier(sess,
+                       eval_diag_loss,
+                       eval_ages_loss,
+                       pred_labels,
+                       ages_softmaxs,
+                       images_placeholder,
+                       diag_labels_placeholder,
+                       ages_placeholder,
+                       training_time_placeholder,
+                       images,
+                       labels_list,
+                       batch_size,
+                       do_ordinal_reg,
+                       selection_indices=None):
+
+    '''
+    Function for running the evaluations every X iterations on the training and validation sets.
+    :param sess: The current tf session
+    :param eval_loss: The placeholder containing the eval loss
+    :param images_placeholder: Placeholder for the images
+    :param labels_placeholder: Placeholder for the masks
+    :param training_time_placeholder: Placeholder toggling the training/testing mode.
+    :param images: A numpy array or h5py dataset containing the images
+    :param labels_list: A numpy array or h45py dataset containing the corresponding labels
+    :param batch_size: The batch_size to use.
+    :return: The average loss (as defined in the experiment), and the average dice over all `images`.
+    '''
+
+    diag_loss_ii = 0
+    ages_loss_ii = 0
+    num_batches = 0
+    predictions_diag = []
+    predictions_diag_gt = []
+    predictions_ages = []
+    predictions_ages_gt = []
+
+    for batch in iterate_minibatches(images,
+                                     labels_list,
+                                     batch_size=batch_size,
+                                     selection_indices=selection_indices,
+                                     augmentation_function=None,
+                                     exp_config=exp_config):  # No aug in evaluation
+    # As before you can wrap the iterate_minibatches function in the BackgroundGenerator class for speed improvements
+    # but at the risk of not catching exceptions
+
+        x, [y, a] = batch
+
+        if y.shape[0] < batch_size:
+            continue
+
+        feed_dict = { images_placeholder: x,
+                      diag_labels_placeholder: y,
+                      ages_placeholder: a,
+                      training_time_placeholder: False}
+
+        c_d_loss, c_a_loss, c_d_preds, c_a_softmaxs = sess.run([eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs], feed_dict=feed_dict)
+
+        # This converts the labels back into the original format. I.e. [0,1,1,0] will become [0,2,2,0] again if
+        # 1 didn't exist in the dataset.
+        c_d_preds = [exp_config.label_list[pp] for pp in c_d_preds]
+        y_gts = [exp_config.label_list[pp] for pp in y]
+
+        diag_loss_ii += c_d_loss
+        ages_loss_ii += c_a_loss
+        num_batches += 1
+        predictions_diag += c_d_preds
+        predictions_diag_gt += y_gts
+
+        if do_ordinal_reg:
+
+            c_a_preds = np.asarray(c_a_softmaxs)
+            c_a_preds = np.transpose(c_a_preds, (1, 0, 2))
+            c_a_preds = c_a_preds[:, :, 1]
+            c_a_preds = np.uint8(c_a_preds + 0.5)
+
+            predictions_ages += list(utils.ordinal_regression_to_bin(c_a_preds))
+            predictions_ages_gt += list(utils.ordinal_regression_to_bin(a))
+
+        else:
+
+            c_a_preds = np.argmax(c_a_softmaxs, axis=-1)
+
+            predictions_ages += list(c_a_preds)
+            predictions_ages_gt += list(a)
+
+
+    avg_loss = (diag_loss_ii / num_batches) + (ages_loss_ii / num_batches)
+
+
+    f1_diag_score = f1_score(np.asarray(predictions_diag_gt), np.asarray(predictions_diag), average='micro')  # micro is overall, macro doesn't take class imbalance into account
+    # f1_ages_score = f1_score(np.asarray(predictions_ages_gt), np.asarray(predictions_ages), average='micro')  # micro is overall, macro doesn't take class imbalance into account
+
+    f1_ages_score = np.mean(np.abs(np.asarray(predictions_ages, dtype=np.int32) - np.asarray(predictions_ages_gt,  dtype=np.int32)))
+
+    logging.info('  Average loss: %0.04f, diag f1_score: %0.04f, age f1_score %0.04f' % (avg_loss, f1_diag_score, f1_ages_score))
+
+    return avg_loss, f1_diag_score, f1_ages_score
 
 
 
