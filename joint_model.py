@@ -22,9 +22,10 @@ def training_ops(logits_real,
                  x_hat=None,
                  scale=10.0):
 
-    losses = {}
+    inner_dict = {'nr': None, 'reg': None}
+    losses = {network: inner_dict.copy() for network in ['disc', 'gen']}
     # nr means no regularization, meaning the loss without the regularization term, reg is with regularization
-    losses['disc']['reg'], losses['gen']['reg'], losses['disc']['nr'], losses['gen']['nr'] = gan_model.gan_loss(logits_real,
+    [losses['disc']['reg'], losses['gen']['reg'], losses['disc']['nr'], losses['gen']['nr']] = gan_model.gan_loss(logits_real,
                                                                                         logits_fake,
                                                                                         l1_img_dist,
                                                                                         w_reg_img_dist_l1,

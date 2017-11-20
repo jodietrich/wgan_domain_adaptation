@@ -262,7 +262,7 @@ def run_training(continue_run):
                                                                   ordinal_reg_weights=ordinal_reg_weights)
 
         # nr means no regularization, meaning the loss without the regularization term
-        train_ops_dict, losses_dict = joint_model.training_ops(d_pl, d_pl_,
+        train_ops_dict, losses_gan_dict = joint_model.training_ops(d_pl, d_pl_,
                                                              classifier_loss,
                                                              optimizer_handle=optimizer_handle,
                                                              learning_rate_gan=learning_rate_gan_pl,
@@ -282,8 +282,8 @@ def run_training(continue_run):
         tf.summary.scalar('diag_loss', diag_loss)
         tf.summary.scalar('age_loss', age_loss)
         tf.summary.scalar('weights_norm_term', weights_norm)
-        tf.summary.scalar('generator loss joint', losses_dict['gen']['joint'])
-        tf.summary.scalar('discriminator loss joint', losses_dict['disc']['joint'])
+        tf.summary.scalar('generator loss joint', losses_gan_dict['gen']['joint'])
+        tf.summary.scalar('discriminator loss joint', losses_gan_dict['disc']['joint'])
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits_train, ages_logits_train,
                                                                                          diag_clf,
@@ -486,7 +486,7 @@ def run_training(continue_run):
 
                 # evaluate gan losses
                 g_loss_val_avg, d_loss_val_avg = do_eval_gan(sess,
-                                                             [losses_dict['gen']['nr'], losses_dict['disc']['nr']],
+                                                             [losses_gan_dict['gen']['nr'], losses_gan_dict['disc']['nr']],
                                                              xs_pl,
                                                              xt_pl,
                                                              training_time_placeholder,
