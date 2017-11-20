@@ -64,9 +64,9 @@ def train_step(loss_val, var_list, optimizer_handle, learning_rate):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         if optimizer_handle == tf.train.AdamOptimizer:
-            optimizer = optimizer_handle(learning_rate, beta1=0.5, beta2=0.9)
+            optimizer = optimizer_handle(learning_rate=learning_rate, beta1=0.5, beta2=0.9)
         else:
-            optimizer = optimizer_handle(learning_rate)
+            optimizer = optimizer_handle(learning_rate=learning_rate)
 
         train_op = optimizer.minimize(loss_val, var_list=var_list)
 

@@ -8,7 +8,8 @@ def training_ops(logits_real,
                  logits_fake,
                  classifier_loss,
                  optimizer_handle,
-                 learning_rate,
+                 learning_rate_gan,
+                 learning_rate_clf,
                  l1_img_dist,
                  gan_loss_weight = 1,
                  task_loss_weight = 1e5,
@@ -22,7 +23,6 @@ def training_ops(logits_real,
                  scale=10.0):
 
     losses = {}
-    losses['clf']['reg'] = classifier_loss
     # nr means no regularization, meaning the loss without the regularization term, reg is with regularization
     losses['disc']['reg'], losses['gen']['reg'], losses['disc']['nr'], losses['gen']['nr'] = gan_model.gan_loss(logits_real,
                                                                                         logits_fake,
@@ -46,7 +46,6 @@ def training_ops(logits_real,
     # redefine the losses for the joint training (include classifier and interaction weights)
     losses['disc']['joint'] = gan_loss_weight*losses['disc']['reg']
     losses['gen']['joint'] = gan_loss_weight*losses['gen']['reg'] + task_loss_weight*classifier_loss
-    losses['clf']['joint'] = task_loss_weight*classifier_loss
 
     print('== TRAINED VARIABLES SUMMARIES ==')
     print(' - Generator variables:')
@@ -60,8 +59,8 @@ def training_ops(logits_real,
         print(v.name)
 
     train_ops = {}
-    train_ops['gen'] = gan_model.train_step(losses['gen']['joint'], generator_variables, optimizer_handle, learning_rate)
-    train_ops['disc'] = gan_model.train_step(losses['disc']['joint'], discriminator_variables, optimizer_handle, learning_rate)
-    train_ops['clf'] = gan_model.train_step(losses['clf']['joint'], classifier_variables, optimizer_handle, learning_rate)
+    train_ops['gen'] = gan_model.train_step(losses['gen']['joint'], generator_variables, optimizer_handle, learning_rate_gan)
+    train_ops['disc'] = gan_model.train_step(losses['disc']['joint'], discriminator_variables, optimizer_handle, learning_rate_gan)
+    train_ops['clf'] = gan_model.train_step(classifier_loss, classifier_variables, optimizer_handle, learning_rate_clf)
 
     return train_ops, losses

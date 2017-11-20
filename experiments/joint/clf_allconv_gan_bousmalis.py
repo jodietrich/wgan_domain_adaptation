@@ -46,7 +46,7 @@ weight_decay = 0.0  #5e-4  #0.00000
 age_ordinal_regression = True
 batch_size = 8
 n_accum_batches = 1  # currently not implemented
-learning_rate = 1e-4
+learning_rate_clf = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
 schedule_lr = False
 warmup_training = False
@@ -80,6 +80,7 @@ cut_index = 50  # index of the cut for visualization
 diff_threshold = 1  # maximum absolute value for visualization of difference between images. Gets mapped to 255
 
 # Training settings
+learning_rate_gan = 1e-4
 num_val_batches = 5 # of batches used for validation. Validation happens with a set of size batch_size*num_val_batches
 
 # Improved training settings

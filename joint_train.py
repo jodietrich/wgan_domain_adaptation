@@ -171,13 +171,14 @@ def run_training(continue_run):
 
         dist_l1 = tf.reduce_mean(tf.abs(diff_img_pl))
 
-        learning_rate_placeholder = tf.placeholder(tf.float32, shape=[], name='learning_rate')
+        learning_rate_gan_pl = tf.placeholder(tf.float32, shape=[], name='learning_rate')
+        learning_rate_clf_pl = tf.placeholder(tf.float32, shape=[], name='learning_rate')
 
         if exp_config.momentum is not None:
-            optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder,
+            optimizer_handle = lambda learning_rate: exp_config.optimizer_handle(learning_rate=learning_rate,
                                                     momentum=exp_config.momentum)
         else:
-            optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder)
+            optimizer_handle = lambda learning_rate: exp_config.optimizer_handle(learning_rate=learning_rate)
 
         # Build the operation for clipping the discriminator weights
         d_clip_op = gan_model.clip_op()
@@ -238,7 +239,7 @@ def run_training(continue_run):
                                             lambda: [images_direct_pl, diag_direct_pl, ages_direct_pl],
                                             lambda: [x_clf_fs, diag_fs, ages_fs])
 
-        tf.summary.scalar('learning_rate', learning_rate_placeholder)
+        tf.summary.scalar('learning_rate', learning_rate_gan_pl)
 
         # Build a Graph that computes predictions from the inference model.
         diag_logits_train, ages_logits_train = exp_config.model_handle(x_clf,
@@ -263,8 +264,9 @@ def run_training(continue_run):
         # nr means no regularization, meaning the loss without the regularization term
         train_ops_dict, losses_dict = joint_model.training_ops(d_pl, d_pl_,
                                                              classifier_loss,
-                                                             optimizer_handle=exp_config.optimizer_handle,
-                                                             learning_rate=exp_config.learning_rate,
+                                                             optimizer_handle=optimizer_handle,
+                                                             learning_rate_gan=learning_rate_gan_pl,
+                                                             learning_rate_clf=learning_rate_clf_pl,
                                                              l1_img_dist=dist_l1,
                                                              gan_loss_weight=exp_config.gan_loss_weight,
                                                              task_loss_weight=exp_config.task_loss_weight,
@@ -276,12 +278,12 @@ def run_training(continue_run):
                                                              d_hat=d_hat, x_hat=x_hat, scale=exp_config.scale)
 
 
-
         tf.summary.scalar('classifier loss', classifier_loss)
-        tf.summary.scalar('classifier loss rescaled', losses_dict['clf']['joint'])
         tf.summary.scalar('diag_loss', diag_loss)
         tf.summary.scalar('age_loss', age_loss)
         tf.summary.scalar('weights_norm_term', weights_norm)
+        tf.summary.scalar('generator loss joint', losses_dict['gen']['joint'])
+        tf.summary.scalar('discriminator loss joint', losses_dict['disc']['joint'])
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits_train, ages_logits_train,
                                                                                          diag_clf,
@@ -340,6 +342,8 @@ def run_training(continue_run):
 
         summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
 
+        sess.graph.finalize()
+
         # Run the Op to initialize the variables.
         sess.run(init)
 
@@ -347,7 +351,8 @@ def run_training(continue_run):
             # Restore session
             saver_latest.restore(sess, init_checkpoint_path)
 
-        curr_lr = exp_config.learning_rate
+        curr_lr_gan = exp_config.learning_rate_gan
+        curr_lr_clf = exp_config.learning_rate_clf
 
         no_improvement_counter = 0
         best_val = np.inf
@@ -377,7 +382,8 @@ def run_training(continue_run):
                 # TODO: tf still wants images_direct_pl when not directly feeding. Maybe use tf.cond instead.
                 feed_dict_dc = {xs_pl: x_s,
                              xt_pl: x_t,
-                             learning_rate_placeholder: curr_lr,
+                             learning_rate_gan_pl: curr_lr_gan,
+                             learning_rate_clf_pl: curr_lr_clf,
                              diag_s_pl: diag_s,
                              ages_s_pl: age_s,
                              training_time_placeholder: True,
@@ -411,7 +417,8 @@ def run_training(continue_run):
                     xt_pl: x_t,
                     diag_s_pl: diag_s,
                     ages_s_pl: age_s,
-                    learning_rate_placeholder: curr_lr,
+                    learning_rate_gan_pl: curr_lr_gan,
+                    learning_rate_clf_pl: curr_lr_clf,
                     training_time_placeholder: True,
                     directly_feed_clf_pl: False
                 }
@@ -459,9 +466,9 @@ def run_training(continue_run):
                 logging.info('loss gradient is currently %f' % loss_gradient)
 
                 if exp_config.schedule_lr and loss_gradient < exp_config.schedule_gradient_threshold:
-                    logging.warning('Reducing learning rate!')
-                    curr_lr /= 10.0
-                    logging.info('Learning rate changed to: %f' % curr_lr)
+                    logging.warning('Reducing learning rate of the classifier!')
+                    curr_lr_clf /= 10.0
+                    logging.info('Learning rate of the classifier changed to: %f' % curr_lr_clf)
 
                     # reset loss history to give the optimisation some time to start decreasing again
                     loss_gradient = np.inf
