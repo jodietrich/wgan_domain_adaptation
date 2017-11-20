@@ -11,7 +11,7 @@ import tensorflow as tf
 import shutil
 
 import config.system as sys_config
-import model
+import gan_model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader_all
@@ -141,20 +141,20 @@ def run_training(continue_run):
         # nr means no regularization, meaning the loss without the regularization term
         discriminator_train_op, generator_train_op, \
         disc_loss_pl, gen_loss_pl, \
-        disc_loss_nr_pl, gen_loss_nr_pl = model.training_ops(d_pl, d_pl_,
-                                                             optimizer_handle=exp_config.optimizer_handle,
-                                                             learning_rate=exp_config.learning_rate,
-                                                             l1_img_dist=dist_l1,
-                                                             w_reg_img_dist_l1=exp_config.w_reg_img_dist_l1,
-                                                             w_reg_gen_l1=exp_config.w_reg_gen_l1,
-                                                             w_reg_disc_l1=exp_config.w_reg_disc_l1,
-                                                             w_reg_gen_l2=exp_config.w_reg_gen_l2,
-                                                             w_reg_disc_l2=exp_config.w_reg_disc_l2,
-                                                             d_hat=d_hat, x_hat=x_hat, scale=exp_config.scale)
+        disc_loss_nr_pl, gen_loss_nr_pl = gan_model.training_ops(d_pl, d_pl_,
+                                                                 optimizer_handle=exp_config.optimizer_handle,
+                                                                 learning_rate=exp_config.learning_rate,
+                                                                 l1_img_dist=dist_l1,
+                                                                 w_reg_img_dist_l1=exp_config.w_reg_img_dist_l1,
+                                                                 w_reg_gen_l1=exp_config.w_reg_gen_l1,
+                                                                 w_reg_disc_l1=exp_config.w_reg_disc_l1,
+                                                                 w_reg_gen_l2=exp_config.w_reg_gen_l2,
+                                                                 w_reg_disc_l2=exp_config.w_reg_disc_l2,
+                                                                 d_hat=d_hat, x_hat=x_hat, scale=exp_config.scale)
 
 
         # Build the operation for clipping the discriminator weights
-        d_clip_op = model.clip_op()
+        d_clip_op = gan_model.clip_op()
 
         # Put L1 distance of generated image and original image on summary
         dist_l1_summary_op = tf.summary.scalar('L1_distance_to_source_img', dist_l1)

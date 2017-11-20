@@ -88,6 +88,12 @@ def clip_op():
 
     return d_clip_op
 
+def improved_training_regularization(d_hat, x_hat, scale):
+    ddx = tf.gradients(d_hat, x_hat)[0]
+    ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
+    ddx = tf.reduce_mean(tf.square(ddx - 1.0) * scale)
+    return ddx
+
 def training_ops(logits_real,
                  logits_fake,
                  optimizer_handle,
@@ -127,11 +133,7 @@ def training_ops(logits_real,
                                                                                         w_reg_disc_l2)
 
     if d_hat is not None and x_hat is not None:
-
-        ddx = tf.gradients(d_hat, x_hat)[0]
-        ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
-        ddx = tf.reduce_mean(tf.square(ddx - 1.0) * scale)
-
+        ddx = improved_training_regularization(d_hat, x_hat, scale)
         discriminator_loss = discriminator_loss + ddx
 
 

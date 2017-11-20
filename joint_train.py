@@ -12,13 +12,14 @@ import shutil
 from sklearn.metrics import f1_score
 
 import config.system as sys_config
-import model
+import gan_model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader_all
 import data_utils
 from batch_generator_list import iterate_minibatches_endlessly, iterate_minibatches
-import model_multitask as model_mt
+import clf_model_multitask as model_mt
+import joint_model
 
 
 
@@ -178,23 +179,8 @@ def run_training(continue_run):
         else:
             optimiser = exp_config.optimizer_handle(learning_rate=learning_rate_placeholder)
 
-        # nr means no regularization, meaning the loss without the regularization term
-        discriminator_train_op, generator_train_op, \
-        disc_loss_pl, gen_loss_pl, \
-        disc_loss_nr_pl, gen_loss_nr_pl = model.training_ops(d_pl, d_pl_,
-                                                             optimizer_handle=exp_config.optimizer_handle,
-                                                             learning_rate=exp_config.learning_rate,
-                                                             l1_img_dist=dist_l1,
-                                                             w_reg_img_dist_l1=exp_config.w_reg_img_dist_l1,
-                                                             w_reg_gen_l1=exp_config.w_reg_gen_l1,
-                                                             w_reg_disc_l1=exp_config.w_reg_disc_l1,
-                                                             w_reg_gen_l2=exp_config.w_reg_gen_l2,
-                                                             w_reg_disc_l2=exp_config.w_reg_disc_l2,
-                                                             d_hat=d_hat, x_hat=x_hat, scale=exp_config.scale)
-
-
         # Build the operation for clipping the discriminator weights
-        d_clip_op = model.clip_op()
+        d_clip_op = gan_model.clip_op()
 
         # Put L1 distance of generated image and original image on summary
         dist_l1_summary_op = tf.summary.scalar('L1_distance_to_source_img', dist_l1)
@@ -244,9 +230,13 @@ def run_training(continue_run):
 
         # conditionally assign either a concatenation of the generated dataset and the source data
         # or a given dataset as data (images and labels) for the classifier
-        x_clf = tf.where(directly_feed_clf_pl, images_direct_pl, x_clf_fs)
-        diag_clf = tf.where(directly_feed_clf_pl, diag_direct_pl, diag_fs)
-        ages_clf = tf.where(directly_feed_clf_pl, ages_direct_pl, ages_fs)
+        # x_clf = tf.where(directly_feed_clf_pl, images_direct_pl, x_clf_fs)
+        # diag_clf = tf.where(directly_feed_clf_pl, diag_direct_pl, diag_fs)
+        # ages_clf = tf.where(directly_feed_clf_pl, ages_direct_pl, ages_fs)
+        # cond to avoid having to specify not needed placeholders in the feed dict
+        x_clf, diag_clf, ages_clf = tf.cond(directly_feed_clf_pl,
+                                            lambda: [images_direct_pl, diag_direct_pl, ages_direct_pl],
+                                            lambda: [x_clf_fs, diag_fs, ages_fs])
 
         tf.summary.scalar('learning_rate', learning_rate_placeholder)
 
@@ -270,17 +260,28 @@ def run_training(continue_run):
                                                                   use_ordinal_reg=exp_config.age_ordinal_regression,
                                                                   ordinal_reg_weights=ordinal_reg_weights)
 
+        # nr means no regularization, meaning the loss without the regularization term
+        train_ops_dict, losses_dict = joint_model.training_ops(d_pl, d_pl_,
+                                                             classifier_loss,
+                                                             optimizer_handle=exp_config.optimizer_handle,
+                                                             learning_rate=exp_config.learning_rate,
+                                                             l1_img_dist=dist_l1,
+                                                             gan_loss_weight=exp_config.gan_loss_weight,
+                                                             task_loss_weight=exp_config.task_loss_weight,
+                                                             w_reg_img_dist_l1=exp_config.w_reg_img_dist_l1,
+                                                             w_reg_gen_l1=exp_config.w_reg_gen_l1,
+                                                             w_reg_disc_l1=exp_config.w_reg_disc_l1,
+                                                             w_reg_gen_l2=exp_config.w_reg_gen_l2,
+                                                             w_reg_disc_l2=exp_config.w_reg_disc_l2,
+                                                             d_hat=d_hat, x_hat=x_hat, scale=exp_config.scale)
+
+
+
         tf.summary.scalar('classifier loss', classifier_loss)
+        tf.summary.scalar('classifier loss rescaled', losses_dict['clf']['joint'])
         tf.summary.scalar('diag_loss', diag_loss)
         tf.summary.scalar('age_loss', age_loss)
         tf.summary.scalar('weights_norm_term', weights_norm)
-
-        # TODO: make the train operation in a separate function
-        train_variables = tf.trainable_variables()
-        classifier_variables = [v for v in train_variables if v.name.startswith("classifier")]
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            train_clf_op = optimiser.minimize(classifier_loss, var_list=classifier_variables)
 
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits_train, ages_logits_train,
                                                                                          diag_clf,
@@ -381,14 +382,14 @@ def run_training(continue_run):
                              ages_s_pl: age_s,
                              training_time_placeholder: True,
                                 directly_feed_clf_pl: False}
-                train_ops = []
+                train_ops_list_dc = []
                 if iteration < t_iters:
                     # train classifier
-                    train_ops.append(train_clf_op)
+                    train_ops_list_dc.append(train_ops_dict['clf'])
                 if iteration < d_iters:
                     # train discriminator
-                    train_ops.append(discriminator_train_op)
-                sess.run(train_ops, feed_dict = feed_dict_dc)
+                    train_ops_list_dc.append(train_ops_dict['disc'])
+                sess.run(train_ops_list_dc, feed_dict = feed_dict_dc)
 
                 if not exp_config.improved_training:
                     sess.run(d_clip_op)
@@ -398,7 +399,7 @@ def run_training(continue_run):
             # train generator, discard the labels
             x_t = next(t_sampler_train)[0]  # why not sample a new x??
             x_s = next(s_sampler_train)[0]
-            sess.run(generator_train_op,
+            sess.run(train_ops_dict['gen'],
                      feed_dict={xs_pl: x_s, xt_pl: x_t, training_time_placeholder: True})
 
             if step % exp_config.update_tensorboard_frequency == 0:
@@ -477,8 +478,8 @@ def run_training(continue_run):
             if (step + 1) % exp_config.validation_frequency == 0:
 
                 # evaluate gan losses
-                d_loss_val_avg, g_loss_val_avg = do_eval_gan(sess,
-                                                             [gen_loss_nr_pl, disc_loss_nr_pl],
+                g_loss_val_avg, d_loss_val_avg = do_eval_gan(sess,
+                                                             [losses_dict['gen']['nr'], losses_dict['disc']['nr']],
                                                              xs_pl,
                                                              xt_pl,
                                                              training_time_placeholder,

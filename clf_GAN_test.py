@@ -14,13 +14,13 @@ from sklearn.metrics import f1_score, recall_score, precision_score
 import operator
 
 import config.system as sys_config
-import model
+import gan_model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
 import adni_data_loader_all
 import data_utils
-from model_multitask import predict
+from clf_model_multitask import predict
 import experiments.gan.standard_parameters as std_params
 from batch_generator_list import iterate_minibatches
 

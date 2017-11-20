@@ -12,7 +12,7 @@ from sklearn.metrics import f1_score
 
 import adni_data_loader_all
 import config.system as sys_config
-import model_multitask as model_mt
+import clf_model_multitask as model_mt
 import utils
 from batch_generator_list import iterate_minibatches
 import data_utils

@@ -28,17 +28,24 @@ source_field_strength = 3.0 # magnetic field strength in T of pictures in the so
 target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
 training_domain = 'target' # from {'source', 'target', 'all'}. From which domain are the training and validation images.
 
-# ---------------Classifier--------------
+
 
 # Cost function
+# Interaction of losses (alpha, beta in pixelDA)
+# the task loss should be in the same order of magnitude as the Wasserstein GAN loss, so the task loss needs to be scaled up
+gan_loss_weight = 1
+task_loss_weight = 1e5
+# Classifier
 age_weight = 0.0
 diag_weight = 1.0
 weight_decay = 0.0  #5e-4  #0.00000
 
+# ---------------Classifier--------------
+
 # Training settings
 age_ordinal_regression = True
 batch_size = 8
-n_accum_batches = 1
+n_accum_batches = 1  # currently not implemented
 learning_rate = 1e-4
 optimizer_handle = tf.train.AdamOptimizer
 schedule_lr = False

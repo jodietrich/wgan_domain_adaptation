@@ -11,7 +11,7 @@ import random
 
 import config.system as sys_config
 
-import model
+import gan_model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
