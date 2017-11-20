@@ -202,8 +202,8 @@ def run_training(continue_run):
         # cond to avoid having to specify not needed placeholders in the feed dict
         images_clf, diag_clf, ages_clf = tf.cond(
             directly_feed_clf_pl,
-            placeholders_clf(2*exp_config.batch_size, 'direct_clf'),
-            concatenate_clf_input([xf_pl, xs_pl], [diag_s_pl, diag_s_pl], [ages_s_pl, ages_s_pl], scope_name = 'fs_concat')
+            lambda: placeholders_clf(2*exp_config.batch_size, 'direct_clf'),
+            lambda: concatenate_clf_input([xf_pl, xs_pl], [diag_s_pl, diag_s_pl], [ages_s_pl, ages_s_pl], scope_name = 'fs_concat')
         )
 
         tf.summary.scalar('learning_rate', learning_rate_gan_pl)
@@ -346,7 +346,6 @@ def run_training(continue_run):
                 x_t, [diag_t, age_t] = next(t_sampler_train)
                 x_s, [diag_s, age_s] = next(s_sampler_train)
 
-                # TODO: tf still wants images_direct_pl when not directly feeding. Maybe use tf.cond instead.
                 feed_dict_dc = {xs_pl: x_s,
                              xt_pl: x_t,
                              learning_rate_gan_pl: curr_lr_gan,
@@ -370,10 +369,17 @@ def run_training(continue_run):
             elapsed_time = time.time() - start_time
 
             # train generator, discard the labels
-            x_t = next(t_sampler_train)[0]  # why not sample a new x??
-            x_s = next(s_sampler_train)[0]
+            x_t, [diag_t, age_t] = next(t_sampler_train)
+            x_s, [diag_s, age_s] = next(s_sampler_train)
             sess.run(train_ops_dict['gen'],
-                     feed_dict={xs_pl: x_s, xt_pl: x_t, training_time_placeholder: True})
+                     feed_dict={xs_pl: x_s,
+                             xt_pl: x_t,
+                             learning_rate_gan_pl: curr_lr_gan,
+                             learning_rate_clf_pl: curr_lr_clf,
+                             diag_s_pl: diag_s,
+                             ages_s_pl: age_s,
+                             training_time_placeholder: True,
+                             directly_feed_clf_pl: False})
 
             if step % exp_config.update_tensorboard_frequency == 0:
                 x_t, [diag_t, age_t] = next(t_sampler_train)
