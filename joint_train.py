@@ -119,18 +119,15 @@ def run_training(continue_run):
 
     with tf.Graph().as_default():
 
-        # Generate placeholders for the images and labels.
-        image_tensor_shape_gan = [exp_config.batch_size] + list(exp_config.image_size) + [exp_config.n_channels]
-
         training_time_placeholder = tf.placeholder(tf.bool, shape=[], name='training_time')
 
         # GAN
 
         # target image batch
-        xt_pl = tf.placeholder(tf.float32, image_tensor_shape_gan, name='x')
+        xt_pl = tf.placeholder(tf.float32, image_tensor_shape(exp_config.batch_size), name='x_target')
 
         # source image batch
-        xs_pl = tf.placeholder(tf.float32, image_tensor_shape_gan, name='z')
+        xs_pl, diag_s_pl, ages_s_pl = placeholders_clf(exp_config.batch_size, 'source')
 
         # generated fake image batch
         xf_pl = generator(xs_pl, training_time_placeholder)
@@ -201,48 +198,18 @@ def run_training(continue_run):
         # Classifier ----------------------------------------------------------------------------------------
         directly_feed_clf_pl = tf.placeholder(tf.bool, shape=[], name='direct_classifier_feeding')
 
-        labels_tensor_shape = [exp_config.batch_size]
-
-        if exp_config.age_ordinal_regression:
-            ages_tensor_shape = [exp_config.batch_size, len(exp_config.age_bins)]
-        else:
-            ages_tensor_shape = [exp_config.batch_size]
-
-        # the classifier has double the batch size of the GAN
-        image_tensor_shape_clf = image_tensor_shape_gan.copy()
-        labels_tensor_shape_clf = labels_tensor_shape.copy()
-        ages_tensor_shape_clf = ages_tensor_shape.copy()
-
-        # batchsize is bigger for the classifier
-        for shape in [image_tensor_shape_clf, labels_tensor_shape_clf, ages_tensor_shape_clf]:
-            shape[0] = shape[0]*2
-
-        diag_s_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
-        ages_s_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
-
-        # combine source and generated images into one minibatch for the classifier
-        x_clf_fs = tf.concat([xf_pl, xs_pl], axis=0)
-        diag_fs = tf.concat([diag_s_pl, diag_s_pl], axis=0)
-        ages_fs = tf.concat([ages_s_pl, ages_s_pl], axis=0)
-
-        images_direct_pl = tf.placeholder(tf.float32, image_tensor_shape_clf, name='x_val')
-        diag_direct_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape_clf, name='labels')
-        ages_direct_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape_clf, name='ages')
-
         # conditionally assign either a concatenation of the generated dataset and the source data
-        # or a given dataset as data (images and labels) for the classifier
-        # x_clf = tf.where(directly_feed_clf_pl, images_direct_pl, x_clf_fs)
-        # diag_clf = tf.where(directly_feed_clf_pl, diag_direct_pl, diag_fs)
-        # ages_clf = tf.where(directly_feed_clf_pl, ages_direct_pl, ages_fs)
         # cond to avoid having to specify not needed placeholders in the feed dict
-        x_clf, diag_clf, ages_clf = tf.cond(directly_feed_clf_pl,
-                                            lambda: [images_direct_pl, diag_direct_pl, ages_direct_pl],
-                                            lambda: [x_clf_fs, diag_fs, ages_fs])
+        images_clf, diag_clf, ages_clf = tf.cond(
+            directly_feed_clf_pl,
+            placeholders_clf(2*exp_config.batch_size, 'direct_clf'),
+            concatenate_clf_input([xf_pl, xs_pl], [diag_s_pl, diag_s_pl], [ages_s_pl, ages_s_pl], scope_name = 'fs_concat')
+        )
 
         tf.summary.scalar('learning_rate', learning_rate_gan_pl)
 
         # Build a Graph that computes predictions from the inference model.
-        diag_logits_train, ages_logits_train = exp_config.model_handle(x_clf,
+        diag_logits_train, ages_logits_train = exp_config.model_handle(images_clf,
                                                                        nlabels=exp_config.nlabels,
                                                                        training=training_time_placeholder,
                                                                        n_age_thresholds=len(exp_config.age_bins),
@@ -288,7 +255,7 @@ def run_training(continue_run):
         eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits_train, ages_logits_train,
                                                                                          diag_clf,
                                                                                          ages_clf,
-                                                                                         x_clf,
+                                                                                         images_clf,
                                                                                          diag_weight=exp_config.diag_weight,
                                                                                          age_weight=exp_config.age_weight,
                                                                                          nlabels=exp_config.nlabels,
@@ -441,9 +408,9 @@ def run_training(continue_run):
                                                                                 eval_ages_loss,
                                                                                 pred_labels,
                                                                                 ages_softmaxs,
-                                                                                images_direct_pl,
-                                                                                diag_direct_pl,
-                                                                                ages_direct_pl,
+                                                                                images_clf,
+                                                                                diag_clf,
+                                                                                ages_clf,
                                                                                 training_time_placeholder,
                                                                                 directly_feed_clf_pl,
                                                                                 images_train,
@@ -501,9 +468,9 @@ def run_training(continue_run):
                                                                        eval_ages_loss,
                                                                        pred_labels,
                                                                        ages_softmaxs,
-                                                                       images_direct_pl,
-                                                                       diag_direct_pl,
-                                                                       ages_direct_pl,
+                                                                       images_clf,
+                                                                       diag_clf,
+                                                                       ages_clf,
                                                                        training_time_placeholder,
                                                                        images_val,
                                                                        [labels_val, ages_val],
@@ -562,6 +529,38 @@ def run_training(continue_run):
                 saver_latest.save(sess, os.path.join(log_dir, 'model.ckpt'), global_step=step)
 
         sess.close()
+
+
+def image_tensor_shape(batch_size):
+    return [batch_size] + list(exp_config.image_size) + [exp_config.n_channels]
+
+
+def image_placeholder(batch_size, name):
+    return tf.placeholder(tf.float32, image_tensor_shape(batch_size), name=name)
+
+
+def placeholders_clf(batch_size, scope_name):
+    with tf.variable_scope(scope_name):
+        labels_tensor_shape = [batch_size]
+
+        if exp_config.age_ordinal_regression:
+            ages_tensor_shape = [batch_size, len(exp_config.age_bins)]
+        else:
+            ages_tensor_shape = [batch_size]
+
+        images_pl = image_placeholder(batch_size, 'images')
+        diag_pl = tf.placeholder(tf.uint8, shape=labels_tensor_shape, name='labels')
+        ages_pl = tf.placeholder(tf.uint8, shape=ages_tensor_shape, name='ages')
+        return images_pl, diag_pl, ages_pl
+
+
+def concatenate_clf_input(images_list, diag_list, ages_list, scope_name='fs_concat'):
+    with tf.variable_scope(scope_name):
+        images = tf.concat(images_list, axis=0, name='images')
+        diag = tf.concat(diag_list, axis=0, name='diagnose')
+        ages = tf.concat(ages_list, axis=0, name='ages')
+        return images, diag, ages
+
 
 
 def do_eval_gan(sess, losses, images_s_pl, images_t_pl, training_time_placeholder, images, source_images_ind,
