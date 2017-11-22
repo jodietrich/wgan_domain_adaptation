@@ -527,18 +527,12 @@ if __name__ == '__main__':
         'residual_identity_gen_bs2_std_disc_all_small_data_i1',
         'residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1'
     ]
-    clf_experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
-    clf_log_root = os.path.join(sys_config.log_root, 'adni_clf')
     gan_log_root = os.path.join(sys_config.log_root, 'gan/all_small_images')
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/all_data_size_64_80_64_res_1.5_1.5_1.5_lbl_0_2_intrangeone_offset_0_0_-10')
     image_saving_indices = set(range(0, 120, 20))
 
     # put paths for experiments together
-    clf_log_path = os.path.join(clf_log_root, clf_experiment_name)
     gan_log_path_list = [os.path.join(gan_log_root, gan_name) for gan_name in gan_experiment_list]
-
-    # import config file for field strength classifier
-    logging.info('Classifier used: ' + clf_experiment_name)
 
     # what is scored for source, target and generated images
     score_functions = {'f1': lambda y_true, y_pred: f1_score(y_true, y_pred, pos_label=2, average='binary'),
@@ -547,7 +541,6 @@ if __name__ == '__main__':
     }
 
     clf_scores = generate_and_evaluate_ad_classification(gan_experiment_path_list=gan_log_path_list,
-                                                         clf_experiment_path=clf_log_path,
                                                          score_functions=score_functions,
                                                          image_saving_indices=image_saving_indices,
                                                          image_saving_path=image_saving_path, max_batch_size=np.inf)

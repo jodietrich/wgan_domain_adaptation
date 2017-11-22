@@ -223,7 +223,6 @@ def bousmalis_generator(x, z_noise, training, batch_normalization, residual_bloc
     with tf.variable_scope(scope_name) as scope:
         if scope_reuse:
             scope.reuse_variables()
-        input_noise_shape = z_noise.get_shape().as_list()
         x_conv_in = x
         if z_noise is not None:
             # make sure the last dimension is 1 but the others agree with the image input

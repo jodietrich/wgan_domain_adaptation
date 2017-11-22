@@ -425,7 +425,7 @@ def run_training(continue_run):
                                                                                 directly_feed_clf_pl,
                                                                                 images_train,
                                                                                 [labels_train, ages_train],
-                                                                                batch_size=exp_config.batch_size,
+                                                                                batch_size=2*exp_config.batch_size,
                                                                                 do_ordinal_reg=exp_config.age_ordinal_regression,
                                                                                 selection_indices=target_images_train_ind)
 
@@ -462,29 +462,29 @@ def run_training(continue_run):
             if (step + 1) % exp_config.validation_frequency == 0:
 
                 # evaluate gan losses
-                g_loss_val_avg, d_loss_val_avg = do_eval_gan(sess,
-                                                             [losses_gan_dict['gen']['nr'], losses_gan_dict['disc']['nr']],
-                                                             xs_pl,
-                                                             xt_pl,
-                                                             training_time_placeholder,
-                                                             images_val,
-                                                             source_images_val_ind,
-                                                             target_images_val_ind
-                                                             )
+                g_loss_val_avg, d_loss_val_avg = do_eval_gan(sess=sess,
+                                                             losses=[losses_gan_dict['gen']['nr'], losses_gan_dict['disc']['nr']],
+                                                             images_s_pl=xs_pl,
+                                                             images_t_pl=xt_pl,
+                                                             training_time_placeholder=training_time_placeholder,
+                                                             images=images_val,
+                                                             source_images_ind=source_images_val_ind,
+                                                             target_images_ind=target_images_val_ind)
 
                 # evaluate classifier losses
-                [val_loss, val_diag_f1, val_ages_f1] = do_eval_classifier(sess,
-                                                                       eval_diag_loss,
-                                                                       eval_ages_loss,
-                                                                       pred_labels,
-                                                                       ages_softmaxs,
-                                                                       images_clf,
-                                                                       diag_clf,
-                                                                       ages_clf,
-                                                                       training_time_placeholder,
-                                                                       images_val,
-                                                                       [labels_val, ages_val],
-                                                                       batch_size=exp_config.batch_size,
+                [val_loss, val_diag_f1, val_ages_f1] = do_eval_classifier(sess=sess,
+                                                                       eval_diag_loss=eval_diag_loss,
+                                                                       eval_ages_loss=eval_ages_loss,
+                                                                       pred_labels=pred_labels,
+                                                                       ages_softmaxs=ages_softmaxs,
+                                                                       images_placeholder=images_clf,
+                                                                       diag_labels_placeholder=diag_clf,
+                                                                       ages_placeholder=ages_clf,
+                                                                       training_time_placeholder=training_time_placeholder,
+                                                                          directly_feed_clf_pl=directly_feed_clf_pl,
+                                                                       images=images_val,
+                                                                       labels_list=[labels_val, ages_val],
+                                                                       batch_size=2*exp_config.batch_size,
                                                                        do_ordinal_reg=exp_config.age_ordinal_regression,
                                                                        selection_indices=target_images_val_ind)
 
@@ -497,9 +497,7 @@ def run_training(continue_run):
                     val_gen_loss_pl: g_loss_val_avg
                 }
 
-                validation_summary_msg = sess.run(val_summary, feed_dict={val_disc_loss_pl: d_loss_val_avg,
-                                                                                 val_gen_loss_pl: g_loss_val_avg}
-                                             )
+                validation_summary_msg = sess.run(val_summary, feed_dict=feed_dict_val)
                 summary_writer.add_summary(validation_summary_msg, step)
                 summary_writer.flush()
 
@@ -599,15 +597,19 @@ def do_eval_gan(sess, losses, images_s_pl, images_t_pl, training_time_placeholde
     # evaluate the validation batch with batch_size images (from each domain) at a time
     loss_val_array = np.empty((num_batches, len(losses)), dtype=np.float32)
     for batch_ind in range(exp_config.num_val_batches):
-        x_t, [diag_t, age_t] = next(t_sampler_val)
-        x_s, [diag_s, age_s] = next(s_sampler_val)
+        x_t = next(t_sampler_val)
+        x_s = next(s_sampler_val)
         loss_val = sess.run(
             losses, feed_dict={images_s_pl: x_s,
                                images_t_pl: x_t,
                                training_time_placeholder: False})
         loss_val_array[batch_ind, :] = np.array(loss_val)
 
+    # TODO make sure this is the right axis
     loss_val_avg = np.mean(loss_val_array, axis=0)
+    logging.info(losses)
+    logging.info(num_batches)
+    logging.info('average val loss: ' +str(loss_val_avg.tolist()))
 
     return loss_val_avg.tolist()
 
