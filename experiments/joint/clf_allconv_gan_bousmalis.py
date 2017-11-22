@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'joint_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_all_small_no_augment_bs6_i1'
+experiment_name = 'joint_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_clfWeight1e5_all_small_bs6_i1'
 
 # paths
 log_folder = 'joint'

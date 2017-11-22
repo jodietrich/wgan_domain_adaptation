@@ -9,6 +9,7 @@ import numpy as np
 
 
 # ---------------stand alone functions for discriminator and generator------------------------------
+# TODO: noise input
 def only_conv_generator(z, training, residual=True, batch_normalization=False, hidden_layers=2, filters=16, input_noise_dim=0,
                         scope_name='generator', scope_reuse=False):
     # batch size 2: hidden_layers=2, filters=16
@@ -506,7 +507,7 @@ def  FCN_multitask_ordinal_bn(images, training, nlabels, n_age_thresholds=5, bn_
         return diag_logits, ages_logits
 
 
-
+# TODO: noise input
 def g_encoder_decoder_skip_notanh(z, training, scope_name='generator', scope_reuse=False):
     with tf.variable_scope(scope_name) as scope:
         if scope_reuse:
