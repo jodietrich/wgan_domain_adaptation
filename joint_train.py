@@ -18,7 +18,7 @@ import utils
 import adni_data_loader_all
 import data_utils
 from batch_generator_list import iterate_minibatches_endlessly, iterate_minibatches
-import clf_model_multitask as model_mt
+import clf_model_multitask as clf_model_mt
 import joint_model
 
 
@@ -183,19 +183,8 @@ def run_training(continue_run):
         # Put L1 distance of generated image and original image on summary
         dist_l1_summary_op = tf.summary.scalar('L1_distance_to_source_img', dist_l1)
 
-        # Build the summary Tensor based on the TF collection of Summaries.
-        summary_op = tf.summary.merge_all()
-
-        # validation summaries
-        val_disc_loss_pl = tf.placeholder(tf.float32, shape=[], name='disc_val_loss')
-        disc_val_summary_op = tf.summary.scalar('validation_discriminator_loss', val_disc_loss_pl)
-
-        val_gen_loss_pl = tf.placeholder(tf.float32, shape=[], name='gen_val_loss')
-        gen_val_summary_op = tf.summary.scalar('validation_generator_loss', val_gen_loss_pl)
-
-        val_summary_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
-
         # Classifier ----------------------------------------------------------------------------------------
+        # for training usually false so xt and xf get concatenated as classifier input, otherwise
         directly_feed_clf_pl = tf.placeholder(tf.bool, shape=[], name='direct_classifier_feeding')
 
         # conditionally assign either a concatenation of the generated dataset and the source data
@@ -209,24 +198,24 @@ def run_training(continue_run):
         tf.summary.scalar('learning_rate', learning_rate_gan_pl)
 
         # Build a Graph that computes predictions from the inference model.
-        diag_logits_train, ages_logits_train = exp_config.model_handle(images_clf,
-                                                                       nlabels=exp_config.nlabels,
-                                                                       training=training_time_placeholder,
-                                                                       n_age_thresholds=len(exp_config.age_bins),
-                                                                       bn_momentum=exp_config.bn_momentum)
+        diag_logits_train, ages_logits_train = exp_config.clf_model_handle(images_clf,
+                                                                           nlabels=exp_config.nlabels,
+                                                                           training=training_time_placeholder,
+                                                                           n_age_thresholds=len(exp_config.age_bins),
+                                                                           bn_momentum=exp_config.bn_momentum)
 
         # Add to the Graph the Ops for loss calculation.
 
-        [classifier_loss, diag_loss, age_loss, weights_norm] = model_mt.loss(diag_logits_train,
-                                                                  ages_logits_train,
-                                                                  diag_clf,
-                                                                  ages_clf,
-                                                                  nlabels=exp_config.nlabels,
-                                                                  weight_decay=exp_config.weight_decay,
-                                                                  diag_weight=exp_config.diag_weight,
-                                                                  age_weight=exp_config.age_weight,
-                                                                  use_ordinal_reg=exp_config.age_ordinal_regression,
-                                                                  ordinal_reg_weights=ordinal_reg_weights)
+        [classifier_loss, diag_loss, age_loss, weights_norm] = clf_model_mt.loss(diag_logits_train,
+                                                                                 ages_logits_train,
+                                                                                 diag_clf,
+                                                                                 ages_clf,
+                                                                                 nlabels=exp_config.nlabels,
+                                                                                 weight_decay=exp_config.weight_decay,
+                                                                                 diag_weight=exp_config.diag_weight,
+                                                                                 age_weight=exp_config.age_weight,
+                                                                                 use_ordinal_reg=exp_config.age_ordinal_regression,
+                                                                                 ordinal_reg_weights=ordinal_reg_weights)
 
         # nr means no regularization, meaning the loss without the regularization term
         train_ops_dict, losses_gan_dict = joint_model.training_ops(d_pl, d_pl_,
@@ -252,14 +241,14 @@ def run_training(continue_run):
         tf.summary.scalar('generator loss joint', losses_gan_dict['gen']['joint'])
         tf.summary.scalar('discriminator loss joint', losses_gan_dict['disc']['joint'])
 
-        eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = model_mt.evaluation(diag_logits_train, ages_logits_train,
-                                                                                         diag_clf,
-                                                                                         ages_clf,
-                                                                                         images_clf,
-                                                                                         diag_weight=exp_config.diag_weight,
-                                                                                         age_weight=exp_config.age_weight,
-                                                                                         nlabels=exp_config.nlabels,
-                                                                                         use_ordinal_reg=exp_config.age_ordinal_regression)
+        eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs = clf_model_mt.evaluation(diag_logits_train, ages_logits_train,
+                                                                                             diag_clf,
+                                                                                             ages_clf,
+                                                                                             images_clf,
+                                                                                             diag_weight=exp_config.diag_weight,
+                                                                                             age_weight=exp_config.age_weight,
+                                                                                             nlabels=exp_config.nlabels,
+                                                                                             use_ordinal_reg=exp_config.age_ordinal_regression)
 
         # Build the summary Tensor based on the TF collection of Summaries.
         summary = tf.summary.merge_all()
@@ -274,6 +263,15 @@ def run_training(continue_run):
         saver_best_diag_f1 = tf.train.Saver(max_to_keep=2)
         saver_best_ages_f1 = tf.train.Saver(max_to_keep=2)
         saver_best_xent = tf.train.Saver(max_to_keep=2)
+
+        # validation summaries gan
+        val_disc_loss_pl = tf.placeholder(tf.float32, shape=[], name='disc_val_loss')
+        disc_val_summary_op = tf.summary.scalar('validation_discriminator_loss', val_disc_loss_pl)
+
+        val_gen_loss_pl = tf.placeholder(tf.float32, shape=[], name='gen_val_loss')
+        gen_val_summary_op = tf.summary.scalar('validation_generator_loss', val_gen_loss_pl)
+
+        val_summary_gan = tf.summary.merge([disc_val_summary_op, gen_val_summary_op])
 
         # Classifier summary
         val_error_clf_ = tf.placeholder(tf.float32, shape=[], name='val_error_diag')
@@ -340,7 +338,6 @@ def run_training(continue_run):
             t_iters = 1
             if step % 500 == 0 or step < 25:
                 d_iters = 100
-            assert d_iters >= t_iters
             for iteration in range(max(d_iters, t_iters)):
 
                 x_t, [diag_t, age_t] = next(t_sampler_train)
@@ -368,7 +365,7 @@ def run_training(continue_run):
 
             elapsed_time = time.time() - start_time
 
-            # train generator, discard the labels
+            # train generator
             x_t, [diag_t, age_t] = next(t_sampler_train)
             x_s, [diag_s, age_s] = next(s_sampler_train)
             sess.run(train_ops_dict['gen'],
@@ -396,13 +393,13 @@ def run_training(continue_run):
                     directly_feed_clf_pl: False
                 }
 
-                g_loss_train, d_loss_train, summary_str = sess.run(
-                        summary, feed_dict=feed_dict_summary)
+                c_loss_one_batch, gan_losses_one_batch_dict, summary_str = sess.run(
+                        [classifier_loss, losses_gan_dict, summary], feed_dict=feed_dict_summary)
 
                 summary_writer.add_summary(summary_str, step)
                 summary_writer.flush()
 
-                logging.info("[Step: %d], generator loss: %g, discriminator_loss: %g" % (step, g_loss_train, d_loss_train))
+                logging.info("[Step: %d], classifier_loss: %g, GAN losses: %s" % (step, c_loss_one_batch, str(gan_losses_one_batch_dict)))
                 logging.info(" - elapsed time for one step: %f secs" % elapsed_time)
 
             if (step + 1) % exp_config.train_eval_frequency == 0:

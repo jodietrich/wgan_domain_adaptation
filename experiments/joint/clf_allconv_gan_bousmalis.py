@@ -10,7 +10,7 @@ experiment_name = 'joint_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep
 log_folder = 'joint'
 
 # Model settings
-model_handle = model_zoo.FCN_multitask_ordinal_bn
+clf_model_handle = model_zoo.FCN_multitask_ordinal_bn
 multi_task_model = True
 
 # Data settings
