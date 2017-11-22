@@ -51,6 +51,10 @@ w_reg_gen_l2 = 0.0
 w_reg_disc_l2 = 0.0
 w_reg_img_dist_l1 = 0.0  # weight of l1 distance to source image in gen loss
 
+# noise settings
+use_generator_input_noise = False
+generator_input_noise_shape = [batch_size, 10]
+
 # Rarely changed settings
 max_iterations = 100000
 save_frequency = 200

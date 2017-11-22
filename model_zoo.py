@@ -207,7 +207,7 @@ def pool_fc_discriminator_bs1(x, training, scope_name='discriminator', scope_reu
 
 # Bousmalis Netzwerke
 # can only be used with images in [-1, 1]
-def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilters, input_noise_dim=10, last_activation=tf.nn.tanh, scope_name='generator', scope_reuse=False):
+def bousmalis_generator(x, z_noise, training, batch_normalization, residual_blocks, nfilters, last_activation=tf.nn.tanh, scope_name='generator', scope_reuse=False):
     kernel_size = (3, 3, 3)
     strides = (1, 1, 1)
     # define layer for the residual blocks
@@ -222,15 +222,14 @@ def bousmalis_generator(x, training, batch_normalization, residual_blocks, nfilt
     with tf.variable_scope(scope_name) as scope:
         if scope_reuse:
             scope.reuse_variables()
+        input_noise_shape = z_noise.get_shape().as_list()
         x_conv_in = x
-        if input_noise_dim >= 1:
-            # create noise, push it through a fc layer and concatenate it as a new channel
-            noise_in = tf.random_uniform(shape=[x.get_shape().as_list()[0], input_noise_dim], minval=-1, maxval=1)
+        if z_noise is not None:
             # make sure the last dimension is 1 but the others agree with the image input
             noise_channel_shape = x.shape[:-1]
             # the batchsize stays constant
             fc_hidden_units = np.prod(noise_channel_shape[1:])
-            fc_noise_layer = layers.dense_layer(noise_in, 'fc_noise_layer', hidden_units=fc_hidden_units, activation=tf.identity)
+            fc_noise_layer = layers.dense_layer(z_noise, 'fc_noise_layer', hidden_units=fc_hidden_units, activation=tf.identity)
             noise_channel = tf.reshape(fc_noise_layer, noise_channel_shape)
             noise_channel = tf.expand_dims(noise_channel, axis=-1)
             x_conv_in = tf.concat([x, noise_channel], axis=-1)

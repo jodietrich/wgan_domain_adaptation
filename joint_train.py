@@ -123,6 +123,12 @@ def run_training(continue_run):
 
         # GAN
 
+        # input noise for generator
+        if exp_config.use_generator_input_noise:
+            noise_in_gen_pl = tf.random_uniform(shape=exp_config.generator_input_noise_shape, minval=-1, maxval=1)
+        else:
+            noise_in_gen_pl = None
+
         # target image batch
         xt_pl = tf.placeholder(tf.float32, image_tensor_shape(exp_config.batch_size), name='x_target')
 
@@ -130,7 +136,7 @@ def run_training(continue_run):
         xs_pl, diag_s_pl, ages_s_pl = placeholders_clf(exp_config.batch_size, 'source')
 
         # generated fake image batch
-        xf_pl = generator(xs_pl, training_time_placeholder)
+        xf_pl = generator(xs_pl, noise_in_gen_pl, training_time_placeholder)
 
         # difference between generated and source images
         diff_img_pl = xf_pl - xs_pl

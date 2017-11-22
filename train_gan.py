@@ -93,6 +93,11 @@ def run_training(continue_run):
 
         training_placeholder = tf.placeholder(tf.bool, name='training_phase')
 
+        if exp_config.use_generator_input_noise:
+            noise_in_gen_pl = tf.random_uniform(shape=exp_config.generator_input_noise_shape, minval=-1, maxval=1)
+        else:
+            noise_in_gen_pl = None
+
         # target image batch
         x_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='x')
 
@@ -100,7 +105,7 @@ def run_training(continue_run):
         z_pl = tf.placeholder(tf.float32, [exp_config.batch_size, im_s[0], im_s[1], im_s[2], exp_config.n_channels], name='z')
 
         # generated fake image batch
-        x_pl_ = generator(z_pl, training_placeholder)
+        x_pl_ = generator(z_pl, noise_in_gen_pl, training_placeholder)
 
         # difference between generated and source images
         diff_img_pl = x_pl_ - z_pl
