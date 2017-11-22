@@ -195,7 +195,8 @@ def run_training(continue_run):
             lambda: concatenate_clf_input([xf_pl, xs_pl], [diag_s_pl, diag_s_pl], [ages_s_pl, ages_s_pl], scope_name = 'fs_concat')
         )
 
-        tf.summary.scalar('learning_rate', learning_rate_gan_pl)
+        tf.summary.scalar('learning_rate_gan', learning_rate_gan_pl)
+        tf.summary.scalar('learning_rate_clf', learning_rate_clf_pl)
 
         # Build a Graph that computes predictions from the inference model.
         diag_logits_train, ages_logits_train = exp_config.clf_model_handle(images_clf,
@@ -569,7 +570,7 @@ def concatenate_clf_input(images_list, diag_list, ages_list, scope_name='fs_conc
 def do_eval_gan(sess, losses, images_s_pl, images_t_pl, training_time_placeholder, images, source_images_ind,
                 target_images_ind, batch_size=exp_config.batch_size, num_batches=exp_config.num_val_batches):
     '''
-    Function for running the evaluations every X iterations on the training and validation sets.
+    Function for running the evaluations of the gan every X iterations on the training and validation sets.
     :param sess: The current tf session
     :param losses: list of loss placeholders
     :param images_placeholder: Placeholder for the images
