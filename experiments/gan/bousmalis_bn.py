@@ -1,12 +1,12 @@
 from experiments.gan.standard_parameters import *
 
-experiment_name = 'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e3l1_i1'
+experiment_name = 'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1'
 
 # Model settings
 batch_normalization = True
 
 # regularization settings
-w_reg_img_dist_l1 = 1.0e3
+w_reg_img_dist_l1 = 1.0e4
 
 # noise settings
 use_generator_input_noise = False
