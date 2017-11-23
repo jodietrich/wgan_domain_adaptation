@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'joint_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_clfWeight1e5_all_small_final_bs6_i1'
+experiment_name = 'joint_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_clfWeight1e5_all_small_final_bs6_i1'
 
 # paths
 log_folder = 'joint/final'
@@ -101,7 +101,7 @@ update_tensorboard_frequency = 10
 batch_normalization = True
 
 # noise settings
-use_generator_input_noise = True
+use_generator_input_noise = False
 generator_input_noise_shape = [batch_size, 10]
 
 # model to use
