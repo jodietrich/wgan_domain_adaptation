@@ -21,6 +21,7 @@ gen_filters = 16
 image_size = (64, 80, 64)
 target_resolution =  (1.5, 1.5, 1.5)
 offset = (0, 0, -10)
+rescale_to_one = True
 label_list = (0, 2)  # 0 - normal, 1 - mci, 2 - alzheimer's
 nlabels = len(label_list)
 source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain

@@ -63,7 +63,7 @@ def run_training(continue_run):
         target_resolution=exp_config.target_resolution,
         label_list = exp_config.label_list,
         offset=exp_config.offset,
-        rescale_to_one=True,
+        rescale_to_one=exp_config.rescale_to_one,
         force_overwrite=False
     )
 

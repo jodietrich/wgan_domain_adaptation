@@ -70,7 +70,7 @@ def run_training(continue_run):
         target_resolution=exp_config.target_resolution,
         label_list = exp_config.label_list,
         offset=exp_config.offset,
-        rescale_to_one=True,
+        rescale_to_one=exp_config.rescale_to_one,
         force_overwrite=False
     )
 
@@ -213,7 +213,7 @@ def run_training(continue_run):
 
         # Add to the Graph the Ops for loss calculation.
 
-        [classifier_loss, diag_loss, age_loss, weights_norm] = clf_model_mt.loss(diag_logits_train,
+        [classifier_loss, diag_loss, age_loss, weights_norm_clf] = clf_model_mt.loss(diag_logits_train,
                                                                                  ages_logits_train,
                                                                                  diag_clf,
                                                                                  ages_clf,
@@ -244,7 +244,7 @@ def run_training(continue_run):
         tf.summary.scalar('classifier loss', classifier_loss)
         tf.summary.scalar('diag_loss', diag_loss)
         tf.summary.scalar('age_loss', age_loss)
-        tf.summary.scalar('weights_norm_term', weights_norm)
+        tf.summary.scalar('weights_norm_term_classifier', weights_norm_clf)
         tf.summary.scalar('generator loss joint', losses_gan_dict['gen']['joint'])
         tf.summary.scalar('discriminator loss joint', losses_gan_dict['disc']['joint'])
 
