@@ -7,7 +7,6 @@ import logging
 import numpy as np
 import os
 import tensorflow as tf
-from sklearn.metrics import f1_score, recall_score, precision_score
 
 import config.system as sys_config
 import utils
@@ -41,7 +40,7 @@ def build_gen_graph(img_tensor_shape, gan_config):
         xs_pl = tf.placeholder(tf.float32, img_tensor_shape, name='xs_pl')
 
         if gan_config.use_generator_input_noise:
-            noise_pl = tf.placeholder(tf.float32, gan_config.generator_input_noise_shape, name='z_noise')
+            noise_pl = tf.placeholder(tf.float32, (1, gan_config.generator_input_noise_shape[1]), name='z_noise')
         else:
             noise_pl = None
 
@@ -74,6 +73,10 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
         gan_config, logdir_gan = utils.load_log_exp_config(gan_experiment_path)
 
         gan_experiment_name = gan_config.experiment_name
+
+        # make sure the noise has the right dimension
+        assert gan_config.use_generator_input_noise
+        assert gan_config.generator_input_noise_shape[1:] == std_params.generator_input_noise_shape[1:]
 
         # Load data
         data = adni_data_loader_all.load_and_maybe_process_data(
@@ -171,7 +174,7 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
             source_img_name = 'source_img.nii.gz'
             utils.create_and_save_nii(np.squeeze(curr_img), os.path.join(curr_img_path, source_img_name))
             logging.info(source_img_name + ' saved')
-            for noise_index, noise in noise_list:
+            for noise_index, noise in enumerate(noise_list):
                 fake_img = sess_gan.run(x_fake_op, feed_dict={generator_img_pl: np.reshape(curr_img, img_tensor_shape),
                                                               z_noise_pl: noise})
 
@@ -180,7 +183,7 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
                 logging.info(generated_img_name + ' saved')
 
                 # save the difference g(xs)-xs
-                difference_image_gs = np.squeeze(fake_img - curr_img)
+                difference_image_gs = np.squeeze(fake_img) - curr_img
                 difference_img_name = 'difference_img_noise_%d.nii.gz' % (noise_index)
                 utils.create_and_save_nii(difference_image_gs, os.path.join(curr_img_path, difference_img_name))
                 logging.info(difference_img_name + ' saved')
@@ -214,7 +217,7 @@ if __name__ == '__main__':
     # put paths for experiments together
     gan_log_path_list = [os.path.join(gan_log_root, gan_name) for gan_name in gan_experiment_list]
 
-    noise_list = generate_noise_list(noise_shape=std_params.generator_input_noise_shape, seed_list=seed_list)
+    noise_list = generate_noise_list(noise_shape=(1, std_params.generator_input_noise_shape[1]), seed_list=seed_list)
 
     generate_with_noise(gan_experiment_path_list=gan_log_path_list,
                                      noise_list=noise_list,

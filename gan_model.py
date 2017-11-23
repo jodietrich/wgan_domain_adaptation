@@ -52,8 +52,8 @@ def gan_loss(logits_real, logits_fake, l1_img_dist, w_reg_img_dist_l1, w_reg_gen
     for v in gen_weights:
         print(v.name)
 
-    total_disc_loss = disc_loss + reg_all
-    total_gen_loss = gen_loss + reg_all
+    total_disc_loss = disc_loss + reg_disc
+    total_gen_loss = gen_loss + reg_gen
 
     return total_disc_loss, total_gen_loss, disc_loss, gen_loss
 

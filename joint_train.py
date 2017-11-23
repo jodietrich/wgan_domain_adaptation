@@ -705,9 +705,10 @@ def do_eval_classifier(sess,
     avg_loss = (diag_loss_ii / num_batches) + (ages_loss_ii / num_batches)
 
 
-    f1_diag_score = f1_score(np.asarray(predictions_diag_gt), np.asarray(predictions_diag), average='micro')  # micro is overall, macro doesn't take class imbalance into account
+    f1_diag_score = f1_score(np.asarray(predictions_diag_gt), np.asarray(predictions_diag), pos_label=1, average='binary')  # micro is overall, macro doesn't take class imbalance into account
     # f1_ages_score = f1_score(np.asarray(predictions_ages_gt), np.asarray(predictions_ages), average='micro')  # micro is overall, macro doesn't take class imbalance into account
 
+    # TODO: bei Chrigi nachfragen, was das soll
     f1_ages_score = np.mean(np.abs(np.asarray(predictions_ages, dtype=np.int32) - np.asarray(predictions_ages_gt,  dtype=np.int32)))
 
     logging.info('  Average loss: %0.04f, diag f1_score: %0.04f, age f1_score %0.04f' % (avg_loss, f1_diag_score, f1_ages_score))
