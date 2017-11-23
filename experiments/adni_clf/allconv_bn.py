@@ -7,7 +7,7 @@ import batch_augmentors
 experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_bn_i1'
 
 # paths
-log_folder = 'adni_clf'
+log_folder = 'adni_clf/final'
 
 # Model settings
 model_handle = model_zoo.FCN_multitask_ordinal_bn
@@ -21,7 +21,7 @@ label_list = (0, 2)  # 0 - normal, 1 - mci, 2 - alzheimer's
 age_bins = (65, 70, 75, 80, 85)
 nlabels = len(label_list)
 data_root = sys_config.data_root
-preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed')
+preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed/final')
 rescale_to_one = True
 use_sigmoid = False
 source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
