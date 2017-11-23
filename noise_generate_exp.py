@@ -12,6 +12,7 @@ from sklearn.metrics import f1_score, recall_score, precision_score
 import config.system as sys_config
 import utils
 import adni_data_loader_all
+import experiments.gan.standard_parameters as std_params
 
 
 
@@ -31,7 +32,7 @@ def map_labels_to_list(labels, label_list):
     return tf.gather(label_lookup, labels)
 
 
-def build_gen_graph(img_tensor_shape, gan_config, noise_shape=None, use_noise=False):
+def build_gen_graph(img_tensor_shape, gan_config):
     # noise_shape
     generator = gan_config.generator
     graph_generator = tf.Graph()
@@ -39,8 +40,8 @@ def build_gen_graph(img_tensor_shape, gan_config, noise_shape=None, use_noise=Fa
         # source image (batch size = 1)
         xs_pl = tf.placeholder(tf.float32, img_tensor_shape, name='xs_pl')
 
-        if use_noise:
-            noise_pl = tf.placeholder(tf.float32, noise_shape, name='z_noise')
+        if gan_config.use_generator_input_noise:
+            noise_pl = tf.placeholder(tf.float32, gan_config.generator_input_noise_shape, name='z_noise')
         else:
             noise_pl = None
 
@@ -143,7 +144,6 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
         # open the latest GAN savepoint
         init_checkpoint_path_gan = get_latest_checkpoint_and_log(logdir_gan, 'model.ckpt')
 
-        # TODO: put noise shape in and check that all noise has the required shape (gan_config)
         # build a separate graph for the generator
         graph_generator, generator_img_pl, z_noise_pl, x_fake_op, init_gan_op, saver_gan = build_gen_graph(img_tensor_shape, gan_config)
 
@@ -188,8 +188,16 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
         logging.info('generated all images for %s' % (gan_experiment_name))
 
 
-def generate_noise_list():
-    return [np.zeros(shape=(1, 10))]
+def generate_noise_list(noise_shape, seed_list=range(10), noise_function=lambda shape: np.random.uniform(low=-1.0, high=1.0, size=shape)):
+    # creates a list of random ndarrays with the given shape. The list has length len(seed_list) and uses one seed for each list element
+    noise_list = []
+    for seed in seed_list:
+        np.random.seed(seed)
+        noise = noise_function(noise_shape)
+        noise_list.append(noise)
+        logging.info('seed: ' + str(seed))
+        logging.info('noise: ' + str(noise))
+    return noise_list
 
 
 if __name__ == '__main__':
@@ -197,22 +205,16 @@ if __name__ == '__main__':
     gan_experiment_list = [
         'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1',
         'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1',
-        'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1',
-        'bousmalis_bn_dropout_keep0.9_no_noise_all_small_data_i1',
-        'bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_i1',
-        'bousmalis_gen_n16b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e5l1_i1',
-        'residual_identity_gen_bs2_std_disc_all_small_data_5e5l1_i1',
-        'residual_identity_gen_bs2_std_disc_all_small_data_i1',
-        'residual_identity_gen_bs20_std_disc_10_noise_all_small_data_1e4l1_bn_i1'
     ]
     gan_log_root = os.path.join(sys_config.log_root, 'gan/all_small_images')
-    image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/all_data_size_64_80_64_res_1.5_1.5_1.5_lbl_0_2_intrangeone_offset_0_0_-10')
+    image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/const_noise')
     image_saving_indices = set(range(0, 120, 20))
+    seed_list = range(10)
 
     # put paths for experiments together
     gan_log_path_list = [os.path.join(gan_log_root, gan_name) for gan_name in gan_experiment_list]
 
-    noise_list = generate_noise_list()
+    noise_list = generate_noise_list(noise_shape=std_params.generator_input_noise_shape, seed_list=seed_list)
 
     generate_with_noise(gan_experiment_path_list=gan_log_path_list,
                                      noise_list=noise_list,
