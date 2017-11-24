@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_all_target15_data_final_bn_i1'
+experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_target15_data_final_i1'
 
 # paths
 log_folder = 'adni_clf/final'

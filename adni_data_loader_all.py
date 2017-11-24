@@ -27,6 +27,7 @@ viscode_dict = {'bl': 0, 'm03': 1, 'm06': 2, 'm12': 3, 'm18': 4, 'm24': 5, 'm36'
 # Maximum number of data points that can be in memory at any time
 MAX_WRITE_BUFFER = 5
 
+
 def fix_nan_and_unknown(input, target_data_format=lambda x: x, nan_val=-1, unknown_val=-2):
     if math.isnan(float(input)):
         input = nan_val
@@ -80,6 +81,7 @@ def prepare_data(input_folder, output_file, size, target_resolution, labels_list
 
     summary = pd.read_csv(csv_summary_file)
     summary = summary.loc[summary['image_exists']==True]
+    summary = summary.loc[~(summary['diagnosis_3cat'] == 'unknown')]  # Don't use images with unknown diagnosis
 
     # Get list of unique rids
     rids = summary.rid.unique()
