@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'joint_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1'
+experiment_name = 'joint_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1'
 
 # paths
 log_folder = 'joint/final'
@@ -24,8 +24,8 @@ data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root, 'data/adni/preprocessed/final')
 rescale_to_one = True
 use_sigmoid = False
-source_field_strength = 3.0  # magnetic field strength in T of pictures in the source-domain
-target_field_strength = 1.5  # magnetic field strength in T of pictures in the target-domain
+source_field_strength = 1.5  # magnetic field strength in T of pictures in the source-domain
+target_field_strength = 3.0  # magnetic field strength in T of pictures in the target-domain
 
 # Cost function
 # Interaction of losses (alpha, beta in pixelDA)
