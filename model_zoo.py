@@ -44,6 +44,40 @@ def only_conv_generator(z, training, residual=True, batch_normalization=False, h
         else:
             return last_layer
 
+def residual_generator(x, z_noise, training, batch_normalization, residual_blocks, nfilters, scope_name='generator', scope_reuse=False):
+    kernel_size = (3, 3, 3)
+    strides = (1, 1, 1)
+    # define layer for the residual blocks
+    if batch_normalization:
+        conv_layer = lambda bottom, name, activation: layers.conv3D_layer_bn(bottom, name, training=training,
+                                                                       kernel_size=kernel_size, num_filters=nfilters,
+                                                                       strides=strides, activation=activation)
+    else:
+        conv_layer = lambda bottom, name, activation: layers.conv3D_layer(bottom, name, kernel_size=kernel_size,
+                                                                    num_filters=nfilters, strides=strides,
+                                                                    activation=activation)
+    with tf.variable_scope(scope_name) as scope:
+        if scope_reuse:
+            scope.reuse_variables()
+        x_conv_in = x
+        if z_noise is not None:
+            # make sure the last dimension is 1 but the others agree with the image input
+            noise_channel_shape = x.shape[:-1]
+            # the batchsize stays constant
+            fc_hidden_units = np.prod(noise_channel_shape[1:])
+            fc_noise_layer = layers.dense_layer(z_noise, 'fc_noise_layer', hidden_units=fc_hidden_units, activation=tf.identity)
+            noise_channel = tf.reshape(fc_noise_layer, noise_channel_shape)
+            noise_channel = tf.expand_dims(noise_channel, axis=-1)
+            x_conv_in = tf.concat([x, noise_channel], axis=-1)
+        previous_layer = x_conv_in
+
+        # place residual blocks
+        for block_num in range(1, 1 + residual_blocks):
+            previous_layer = layers.residual_block_original(previous_layer, 'res_block_' + str(block_num), conv_layer,
+                                                            activation=tf.nn.relu, nlayers=2)
+
+        return previous_layer
+
 
 def pool_fc_discriminator_bs2(x, training, scope_name='discriminator', scope_reuse=False):
     with tf.variable_scope(scope_name) as scope:
