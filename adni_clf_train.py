@@ -16,6 +16,7 @@ import clf_model_multitask as model_mt
 import utils
 from batch_generator_list import iterate_minibatches
 import data_utils
+import gan_model
 
 
 
@@ -235,7 +236,7 @@ def run_training(continue_run):
 
         # build generator graph if generator is used
         if exp_config.use_generator:
-            generator = load_generator(exp_config.generator_path)
+            generator = gan_model.Generator(exp_config.generator_path)
 
         # Create a session for running Ops on the Graph.
         sess = tf.Session()

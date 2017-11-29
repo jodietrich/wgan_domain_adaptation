@@ -188,6 +188,11 @@ def string_dict_in_order(dict, key_function=None, key_string='', value_string=''
     print_string = separator.join(lines)
     return print_string
 
+def module_from_path(path):
+    module_name = os.path.splitext(os.path.split(path)[1])[0]
+    return SourceFileLoader(module_name, path).load_module()
+
+
 
 
 

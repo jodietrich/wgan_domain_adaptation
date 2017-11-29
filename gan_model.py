@@ -6,6 +6,10 @@
 import tensorflow as tf
 from tfwrapper import losses
 from math import sqrt
+from importlib.machinery import SourceFileLoader
+import os.path
+
+import utils
 
 def gan_loss(logits_real, logits_fake, l1_img_dist, w_reg_img_dist_l1, w_reg_gen_l1, w_reg_disc_l1, w_reg_gen_l2, w_reg_disc_l2):
 
@@ -144,23 +148,31 @@ def training_ops(logits_real,
 
 
 class Generator:
-    def __init__(self, load_weights, path, checkpoint_name=None):
+    def __init__(self, exp_config_path, scope_name='generator', reuse_variables=False):
         """
-
-        :param load_weights: boolean. True: load the generator from a log directory
-                                      False: create a new generator with randomly initialized weights
-        :param path: log directory path if load_weights else path to experiment file
-        :param checkpoint_name: only used for load_weights=True to specify which checkpoint to use. If None the latest
-        checkpoint is used.
+        builds the graph of the generator specified in the exp_config_path
         """
-        if load_weights == False:
-            generator_tensors = self.lo
-        elif load_weights == False:
-            generator_tensors =
+        self.build_new_graph(exp_config_path, scope_name=scope_name, reuse_variables=reuse_variables)
 
-        # put the generator tensors in self variables
-        self.set_tensors(*generator_tensors)
+    def build_new_graph(self, experiment_file_path, scope_name='generator', reuse_variables=False):
+        self.scope_name=scope_name
+        self.reuse_variables = reuse_variables
+        self.exp_config = utils.module_from_path(experiment_file_path)
+        self.graph = tf.Graph()
+        self.image_tensor_shape = [self.exp_config.batch_size] + list(self.exp_config.image_size) + [self.exp_config.n_channels]
+        with self.graph:
+            self.training_pl = tf.placeholder(tf.bool, name='training_phase')
+            if self.exp_config.use_generator_input_noise:
+                self.noise_in_gen_pl = tf.random_uniform(shape=self.exp_config.generator_input_noise_shape, minval=-1, maxval=1)
+            else:
+                self.noise_in_gen_pl = None
+            # source image batch
+            self.input_images = tf.placeholder(tf.float32, self.image_tensor_shape,
+                                  name='z')
 
-def load_generator(log_path):
+            # generated fake image batch
+            self.generated_images = self.exp_config.generator(self.input_images, self.noise_in_gen_pl, self.training_pl,
+                                                              scope_reuse=self.reuse_variables, scope_name=self.scope_name)
+
 
 
