@@ -143,6 +143,24 @@ def training_ops(logits_real,
     return discriminator_train_op, generator_train_op, discriminator_loss, gen_loss, discriminator_loss_no_reg, gen_loss_no_reg
 
 
+class Generator:
+    def __init__(self, load_weights, path, checkpoint_name=None):
+        """
 
+        :param load_weights: boolean. True: load the generator from a log directory
+                                      False: create a new generator with randomly initialized weights
+        :param path: log directory path if load_weights else path to experiment file
+        :param checkpoint_name: only used for load_weights=True to specify which checkpoint to use. If None the latest
+        checkpoint is used.
+        """
+        if load_weights == False:
+            generator_tensors = self.lo
+        elif load_weights == False:
+            generator_tensors =
+
+        # put the generator tensors in self variables
+        self.set_tensors(*generator_tensors)
+
+def load_generator(log_path):
 
 

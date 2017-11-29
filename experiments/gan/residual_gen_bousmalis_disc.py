@@ -1,6 +1,6 @@
 from experiments.gan.standard_parameters import *
 
-experiment_name = 'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s15_final_i1'
+experiment_name = 'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1'
 
 # Model settings
 batch_normalization = True
@@ -14,7 +14,7 @@ w_reg_img_dist_l1 = 1.0e4
 
 # noise settings
 # only works without input noise because of the direct input to output connection
-use_generator_input_noise = False
+use_generator_input_noise = True
 
 
 # model to use

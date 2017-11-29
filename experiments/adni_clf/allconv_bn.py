@@ -8,6 +8,8 @@ experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_both_domains
 
 # paths
 log_folder = 'adni_clf/final'
+generator_path = '/scratch/jdietric/PycharmProjects/mri_domain_adapt/log_dir/gan/final/' \
+                 + 'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s3_final_i1'
 
 # Model settings
 model_handle = model_zoo.FCN_multitask_ordinal_bn
@@ -49,6 +51,10 @@ augmentation_function = batch_augmentors.flip_augment
 do_rotations = False
 do_scaleaug = False
 do_fliplr = True
+# generator as augmentation
+use_generator = True # load the generator
+translation_fraction = 1 # what fraction of the images in a batch go through the generator
+
 
 # Rarely changed settings
 use_data_fraction = False  # Should normally be False

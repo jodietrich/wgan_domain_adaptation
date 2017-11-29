@@ -233,6 +233,10 @@ def run_training(continue_run):
         saver_best_ages_f1 = tf.train.Saver(max_to_keep=2)
         saver_best_xent = tf.train.Saver(max_to_keep=2)
 
+        # build generator graph if generator is used
+        if exp_config.use_generator:
+            generator = load_generator(exp_config.generator_path)
+
         # Create a session for running Ops on the Graph.
         sess = tf.Session()
 
