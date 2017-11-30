@@ -159,20 +159,26 @@ class Generator:
         self.reuse_variables = reuse_variables
         self.exp_config = utils.module_from_path(experiment_file_path)
         self.graph = tf.Graph()
+        # TODO: adjust batch_size to translate_fraction or use shape=None if that works
         self.image_tensor_shape = [self.exp_config.batch_size] + list(self.exp_config.image_size) + [self.exp_config.n_channels]
-        with self.graph:
+        with self.graph.as_default():
             self.training_pl = tf.placeholder(tf.bool, name='training_phase')
             if self.exp_config.use_generator_input_noise:
                 self.noise_in_gen_pl = tf.random_uniform(shape=self.exp_config.generator_input_noise_shape, minval=-1, maxval=1)
             else:
                 self.noise_in_gen_pl = None
             # source image batch
-            self.input_images = tf.placeholder(tf.float32, self.image_tensor_shape,
-                                  name='z')
+            self.input_images_pl = tf.placeholder(tf.float32, self.image_tensor_shape,
+                                                  name='z')
 
             # generated fake image batch
-            self.generated_images = self.exp_config.generator(self.input_images, self.noise_in_gen_pl, self.training_pl,
+            self.generated_images = self.exp_config.generator(self.input_images_pl, self.noise_in_gen_pl, self.training_pl,
                                                               scope_reuse=self.reuse_variables, scope_name=self.scope_name)
+            self.session = tf.Session()
+
+    def translate(self, input_images):
+        feed_dict = {self.input_images_pl: input_images}
+        return self.session.run(self.generated_images, feed_dict=feed_dict)
 
 
 

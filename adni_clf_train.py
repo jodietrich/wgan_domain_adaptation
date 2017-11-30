@@ -237,6 +237,9 @@ def run_training(continue_run):
         # build generator graph if generator is used
         if exp_config.use_generator:
             generator = gan_model.Generator(exp_config.generator_path)
+            generator_augmentation_function = lambda X, y_list: exp_config.augmentation_function(generator, X, y_list)
+        else:
+            generator_augmentation_function = None
 
         # Create a session for running Ops on the Graph.
         sess = tf.Session()
@@ -286,6 +289,7 @@ def run_training(continue_run):
         best_diag_f1_score = 0
         best_ages_f1_score = 0
 
+
         # acum_manual = 0  #np.zeros((2,3,3,3,1,32))
 
         for epoch in range(exp_config.max_epochs):
@@ -298,7 +302,7 @@ def run_training(continue_run):
                                              [labels_train, ages_train],
                                              batch_size=exp_config.batch_size,
                                              selection_indices = train_image_selection,
-                                             augmentation_function=exp_config.augmentation_function,
+                                             augmentation_function=generator_augmentation_function,
                                              exp_config=exp_config):
 
 
@@ -458,7 +462,7 @@ def run_training(continue_run):
 
         sess.close()
 
-
+# TODO: think about which data should be used for validation
 def do_eval(sess,
             eval_diag_loss,
             eval_ages_loss,

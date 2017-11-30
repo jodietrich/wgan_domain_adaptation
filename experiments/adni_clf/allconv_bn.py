@@ -47,13 +47,13 @@ momentum = None
 bn_momentum = 0.99
 
 # Augmentation settings
-augmentation_function = batch_augmentors.flip_augment
+augmentation_function = lambda generator, X, y_list: batch_augmentors.generator_augment(generator, X, y_list, translation_fraction)
 do_rotations = False
 do_scaleaug = False
 do_fliplr = True
 # generator as augmentation
 use_generator = True # load the generator
-translation_fraction = 1 # what fraction of the images in a batch go through the generator
+translation_fraction = 0.5 # what fraction of the images in a batch go through the generator
 
 
 # Rarely changed settings

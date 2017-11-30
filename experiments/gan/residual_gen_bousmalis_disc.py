@@ -1,6 +1,6 @@
 from experiments.gan.standard_parameters import *
 
-experiment_name = 'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1'
+experiment_name = 'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1'
 
 # Model settings
 batch_normalization = True
@@ -9,8 +9,8 @@ batch_normalization = True
 w_reg_img_dist_l1 = 1.0e4
 
 # comment out for the opposite
-# source_field_strength = 1.5  # magnetic field strength in T of pictures in the source-domain
-# target_field_strength = 3.0  # magnetic field strength in T of pictures in the target-domain
+source_field_strength = 1.5  # magnetic field strength in T of pictures in the source-domain
+target_field_strength = 3.0  # magnetic field strength in T of pictures in the target-domain
 
 # noise settings
 # only works without input noise because of the direct input to output connection
