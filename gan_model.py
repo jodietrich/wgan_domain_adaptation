@@ -148,28 +148,28 @@ def training_ops(logits_real,
 
 
 class Generator:
-    def __init__(self, exp_config_path, scope_name='generator', reuse_variables=False):
+    def __init__(self, exp_config_path, batch_size=1, scope_name='generator', reuse_variables=False):
         """
         builds the graph of the generator specified in the exp_config_path
         """
-        self.build_new_graph(exp_config_path, scope_name=scope_name, reuse_variables=reuse_variables)
+        self.build_new_graph(exp_config_path, batch_size=batch_size, scope_name=scope_name, reuse_variables=reuse_variables)
 
-    def build_new_graph(self, experiment_file_path, scope_name='generator', reuse_variables=False):
+    def build_new_graph(self, experiment_file_path, batch_size=1, scope_name='generator', reuse_variables=False):
+        self.batch_size = batch_size
         self.scope_name=scope_name
         self.reuse_variables = reuse_variables
         self.exp_config = utils.module_from_path(experiment_file_path)
         self.graph = tf.Graph()
-        # TODO: adjust batch_size to translate_fraction or use shape=None if that works
-        self.image_tensor_shape = [self.exp_config.batch_size] + list(self.exp_config.image_size) + [self.exp_config.n_channels]
+        self.image_tensor_shape = [self.batch_size] + list(self.exp_config.image_size) + [self.exp_config.n_channels]
         with self.graph.as_default():
             self.training_pl = tf.placeholder(tf.bool, name='training_phase')
             if self.exp_config.use_generator_input_noise:
+                self.noise_shape = [self.batch_size] + self.exp_config.generator_input_noise_shape.copy().pop(0)
                 self.noise_in_gen_pl = tf.random_uniform(shape=self.exp_config.generator_input_noise_shape, minval=-1, maxval=1)
             else:
                 self.noise_in_gen_pl = None
             # source image batch
-            self.input_images_pl = tf.placeholder(tf.float32, self.image_tensor_shape,
-                                                  name='z')
+            self.input_images_pl = tf.placeholder(tf.float32, self.image_tensor_shape, name='z')
 
             # generated fake image batch
             self.generated_images = self.exp_config.generator(self.input_images_pl, self.noise_in_gen_pl, self.training_pl,
