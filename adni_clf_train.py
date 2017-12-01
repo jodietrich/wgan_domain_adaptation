@@ -104,6 +104,9 @@ def run_training(continue_run):
     elif exp_config.training_domain == 'all':
         train_image_selection = None
         val_image_selection = None
+    else:
+        raise ValueError(str(exp_config.training_domain) +
+                         ' is not a valid training domain. It must be in {"source", "target", "all"}')
 
     if exp_config.age_ordinal_regression:
         ages_val = utils.age_to_ordinal_reg_format(ages_val, bins=exp_config.age_bins)
@@ -119,7 +122,9 @@ def run_training(continue_run):
         images_train = images_train[0:new_last_index,...]
         labels_train = labels_train[0:new_last_index,...]
 
+
     logging.info('Data summary:')
+    logging.info(data_utils.data_summary(data))
     logging.info('TRAINING')
     logging.info(' - Images:')
     logging.info(images_train.shape)
@@ -318,9 +323,9 @@ def run_training(continue_run):
                 x, [y, a] = batch
 
                 # TEMPORARY HACK (to avoid incomplete batches
-                if y.shape[0] < exp_config.batch_size:
-                    step += 1
-                    continue
+                # if y.shape[0] < exp_config.batch_size:
+                #     step += 1
+                #     continue
 
 
                 # Run accumulation
@@ -377,7 +382,8 @@ def run_training(continue_run):
                                                                              [labels_train, ages_train],
                                                                              batch_size=exp_config.batch_size,
                                                                              do_ordinal_reg=exp_config.age_ordinal_regression,
-                                                                             selection_indices=train_image_selection)
+                                                                             selection_indices=train_image_selection,
+                                                                             augmentation_function=generator_augmentation_function)
 
 
                         train_summary_msg = sess.run(train_summary, feed_dict={train_error_: train_loss,
@@ -431,7 +437,8 @@ def run_training(continue_run):
                                                                        [labels_val, ages_val],
                                                                        batch_size=exp_config.batch_size,
                                                                        do_ordinal_reg=exp_config.age_ordinal_regression,
-                                                                       selection_indices=val_image_selection)
+                                                                       selection_indices=val_image_selection,
+                                                                       augmentation_function=generator_augmentation_function)
 
 
                         val_summary_msg = sess.run(val_summary, feed_dict={val_error_: val_loss,
@@ -462,7 +469,6 @@ def run_training(continue_run):
 
         sess.close()
 
-# TODO: think about which data should be used for validation
 def do_eval(sess,
             eval_diag_loss,
             eval_ages_loss,
@@ -476,7 +482,10 @@ def do_eval(sess,
             labels_list,
             batch_size,
             do_ordinal_reg,
-            selection_indices=None):
+            selection_indices=None,
+            augmentation_function=None,
+            experiment_config=exp_config,
+            additional_feed_dict={}):
 
     '''
     Function for running the evaluations every X iterations on the training and validation sets. 
@@ -487,7 +496,8 @@ def do_eval(sess,
     :param training_time_placeholder: Placeholder toggling the training/testing mode. 
     :param images: A numpy array or h5py dataset containing the images
     :param labels_list: A numpy array or h45py dataset containing the corresponding labels 
-    :param batch_size: The batch_size to use. 
+    :param batch_size: The batch_size to use.
+    :param additional_feed_dict: the feed_dict will be updated with this dictionary if this dictionary is not empty
     :return: The average loss (as defined in the experiment), and the average dice over all `images`. 
     '''
 
@@ -503,8 +513,8 @@ def do_eval(sess,
                                      labels_list,
                                      batch_size=batch_size,
                                      selection_indices=selection_indices,
-                                     augmentation_function=None,
-                                     exp_config=exp_config):  # No aug in evaluation
+                                     augmentation_function=augmentation_function,
+                                     exp_config=experiment_config):  # No aug in evaluation
     # As before you can wrap the iterate_minibatches function in the BackgroundGenerator class for speed improvements
     # but at the risk of not catching exceptions
 
@@ -518,12 +528,15 @@ def do_eval(sess,
                       ages_placeholder: a,
                       training_time_placeholder: False}
 
+        if len(additional_feed_dict) != 0:
+            feed_dict.update(additional_feed_dict)
+
         c_d_loss, c_a_loss, c_d_preds, c_a_softmaxs = sess.run([eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs], feed_dict=feed_dict)
 
         # This converts the labels back into the original format. I.e. [0,1,1,0] will become [0,2,2,0] again if
         # 1 didn't exist in the dataset.
-        c_d_preds = [exp_config.label_list[pp] for pp in c_d_preds]
-        y_gts = [exp_config.label_list[pp] for pp in y]
+        c_d_preds = [experiment_config.label_list[pp] for pp in c_d_preds]
+        y_gts = [experiment_config.label_list[pp] for pp in y]
 
         diag_loss_ii += c_d_loss
         ages_loss_ii += c_a_loss
@@ -551,6 +564,12 @@ def do_eval(sess,
 
     avg_loss = (diag_loss_ii / num_batches) + (ages_loss_ii / num_batches)
 
+    # check whether the labels are in {0, 2} as expected
+    logging.info('diagnose predictions and ground truth:')
+    logging.info(predictions_diag)
+    assert all([label in {0, 2} for label in predictions_diag])
+    logging.info(predictions_diag_gt)
+    assert all([label in {0, 2} for label in predictions_diag_gt])
 
     f1_diag_score = f1_score(np.asarray(predictions_diag_gt), np.asarray(predictions_diag), pos_label=2, average='binary')  # micro is overall, macro doesn't take class imbalance into account
     # f1_ages_score = f1_score(np.asarray(predictions_ages_gt), np.asarray(predictions_ages), average='micro')  # micro is overall, macro doesn't take class imbalance into account

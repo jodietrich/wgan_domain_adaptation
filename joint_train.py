@@ -605,7 +605,6 @@ def do_eval_gan(sess, losses, images_s_pl, images_t_pl, training_time_placeholde
                                training_time_placeholder: False})
         loss_val_array[batch_ind, :] = np.array(loss_val)
 
-    # TODO make sure this is the right axis
     loss_val_avg = np.mean(loss_val_array, axis=0)
     logging.info(losses)
     logging.info(num_batches)
@@ -714,7 +713,6 @@ def do_eval_classifier(sess,
     f1_diag_score = f1_score(np.asarray(predictions_diag_gt), np.asarray(predictions_diag), pos_label=2, average='binary')  # micro is overall, macro doesn't take class imbalance into account
     # f1_ages_score = f1_score(np.asarray(predictions_ages_gt), np.asarray(predictions_ages), average='micro')  # micro is overall, macro doesn't take class imbalance into account
 
-    # TODO: bei Chrigi nachfragen, was das soll
     f1_ages_score = np.mean(np.abs(np.asarray(predictions_ages, dtype=np.int32) - np.asarray(predictions_ages_gt,  dtype=np.int32)))
 
     logging.info('  Average loss: %0.04f, diag f1_score: %0.04f, age f1_score %0.04f' % (avg_loss, f1_diag_score, f1_ages_score))

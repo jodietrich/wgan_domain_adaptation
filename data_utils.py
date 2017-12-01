@@ -8,6 +8,7 @@ import numpy as np
 import os.path
 import tensorflow as tf
 import random
+from collections import Counter
 
 import config.system as sys_config
 
@@ -15,6 +16,7 @@ import gan_model
 from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
+
 
 def get_images_and_fieldstrength_indices(data, source_field_strength, target_field_strength):
     """
@@ -50,25 +52,42 @@ def get_images_and_fieldstrength_indices(data, source_field_strength, target_fie
         elif field_str == target_field_strength:
             target_images_val_ind.append(val_ind)
 
-    return images_train, source_images_train_ind, target_images_train_ind,\
+    return images_train, source_images_train_ind, target_images_train_ind, \
            images_val, source_images_val_ind, target_images_val_ind
+
+
+def data_summary(data):
+    labels = {'train': data['diagnosis_train'], 'val': data['diagnosis_val']}
+    images_train, source_images_train_ind, target_images_train_ind, \
+    images_val, source_images_val_ind, target_images_val_ind = get_images_and_fieldstrength_indices(data,
+                                                                                                    exp_config.source_field_strength,
+                                                                                                    exp_config.target_field_strength)
+    domain_dict = {'train': {'source': source_images_train_ind, 'target': target_images_train_ind},
+                   'val': {'source': source_images_val_ind, 'target': target_images_val_ind}}
+    cathegory_dict ={}
+    for outer_key in domain_dict:
+        for inner_key, image_indices in domain_dict[outer_key].items():
+            domain_dict[outer_key][inner_key] = Counter(labels[outer_key])
+
+    return domain_dict
+
 
 
 class DataSampler(object):
     def __init__(self, train_images, images_train_indices, validation_images, images_val_indices):
-        self.shape = list(exp_config.image_size) + [exp_config.n_channels] # [x, y, z, #channels]
+        self.shape = list(exp_config.image_size) + [exp_config.n_channels]  # [x, y, z, #channels]
         self.train_data = train_images
-        self.train_subset_ind = images_train_indices # indices of the subset of the training data that gets sampled
+        self.train_subset_ind = images_train_indices  # indices of the subset of the training data that gets sampled
         self.validation_data = validation_images
-        self.val_subset_ind = images_val_indices # indices of the subset of the training data that gets sampled
+        self.val_subset_ind = images_val_indices  # indices of the subset of the training data that gets sampled
 
-# get batch of random images out of the images with index in train_subset_ind
+    # get batch of random images out of the images with index in train_subset_ind
     def __call__(self, batch_size):
         batch_indices = sorted(random.sample(self.train_subset_ind, batch_size))
         batch = self.train_data[batch_indices]
         return self.data2img(batch)
 
-# get batch of random images out of the images with index in val_subset_ind
+    # get batch of random images out of the images with index in val_subset_ind
     def get_validation_batch(self, batch_size):
         batch_indices = sorted(random.sample(self.val_subset_ind, batch_size))
         batch = self.train_data[batch_indices]

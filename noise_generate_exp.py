@@ -174,9 +174,12 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
             source_img_name = 'source_img.nii.gz'
             utils.create_and_save_nii(np.squeeze(curr_img), os.path.join(curr_img_path, source_img_name))
             logging.info(source_img_name + ' saved')
+            img_list = []
             for noise_index, noise in enumerate(noise_list):
                 fake_img = sess_gan.run(x_fake_op, feed_dict={generator_img_pl: np.reshape(curr_img, img_tensor_shape),
                                                               z_noise_pl: noise})
+
+                img_list.append(fake_img)
 
                 generated_img_name = 'generated_img_noise_%d.nii.gz' % (noise_index)
                 utils.create_and_save_nii(np.squeeze(fake_img), os.path.join(curr_img_path, generated_img_name))
@@ -187,6 +190,12 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
                 difference_img_name = 'difference_img_noise_%d.nii.gz' % (noise_index)
                 utils.create_and_save_nii(difference_image_gs, os.path.join(curr_img_path, difference_img_name))
                 logging.info(difference_img_name + ' saved')
+
+            all_imgs = np.asarray(img_list)
+            std_img = np.std(all_imgs, axis=-1)
+            std_img_name = 'std_img.nii.gz'
+            utils.create_and_save_nii(std_img, os.path.join(curr_img_path, std_img_name))
+            logging.info(std_img_name + ' saved')
 
         logging.info('generated all images for %s' % (gan_experiment_name))
 
