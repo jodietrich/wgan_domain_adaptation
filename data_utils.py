@@ -67,9 +67,14 @@ def data_summary(data):
     cathegory_dict ={}
     for outer_key in domain_dict:
         for inner_key, image_indices in domain_dict[outer_key].items():
-            domain_dict[outer_key][inner_key] = Counter(labels[outer_key])
+            print('outer key: ' + str(outer_key))
+            print('inner key: ' + str(inner_key))
+            # count how many of each label are in each cathegory in the domain_dict
+            domain_indices = (domain_dict[outer_key])[inner_key]
+            current_count = Counter([label for index, label in enumerate(labels[outer_key]) if index in domain_indices])
+            cathegory_dict[outer_key][inner_key] = current_count
 
-    return domain_dict
+    return cathegory_dict
 
 
 

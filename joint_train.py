@@ -103,7 +103,7 @@ def run_training(continue_run):
     augmentation_function = exp_config.augmentation_function if exp_config.use_augmentation else None
 
     s_sampler_train = iterate_minibatches_endlessly(images_train,
-                                                    batch_size=exp_config.batch_size,
+                                                    batch_size=2*exp_config.batch_size,
                                                     exp_config=exp_config,
                                                     labels_list=[labels_train, ages_train],
                                                     selection_indices=source_images_train_ind,
@@ -132,16 +132,17 @@ def run_training(continue_run):
         # target image batch
         xt_pl = tf.placeholder(tf.float32, image_tensor_shape(exp_config.batch_size), name='x_target')
 
-        # source image batch used to generate xf images
-        xs_pl, diag_s_pl, ages_s_pl = placeholders_clf(exp_config.batch_size, 'source')
-        # source image batch used only as source images for the classifier
-        xs_2_pl, diag_s_2_pl, ages_s_2_pl = placeholders_clf(exp_config.batch_size, 'source2')
+        # source image batch
+        xs_pl, diag_s_pl, ages_s_pl = placeholders_clf(2*exp_config.batch_size, 'source')
+        # split source batch into 1 to be translated to xf and 2 for the classifier
+        # for the discriminator train op half 2 of the batch is not used
+        xs1_pl, xs2_pl = tf.split(xs_pl, 2, axis=0)
 
         # generated fake image batch
-        xf_pl = generator(xs_pl, noise_in_gen_pl, training_time_placeholder)
+        xf_pl = generator(xs1_pl, noise_in_gen_pl, training_time_placeholder)
 
         # difference between generated and source images
-        diff_img_pl = xf_pl - xs_pl
+        diff_img_pl = xf_pl - xs1_pl
 
         # visualize the images by showing one slice of them in the z direction
         tf.summary.image('sample_outputs', tf_utils.put_kernels_on_grid3d(xf_pl, exp_config.cut_axis,
@@ -152,7 +153,7 @@ def run_training(continue_run):
                                                                           exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
 
-        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid3d(xs_pl, exp_config.cut_axis,
+        tf.summary.image('sample_xs', tf_utils.put_kernels_on_grid3d(xs1_pl, exp_config.cut_axis,
                                                                           exp_config.cut_index, rescale_mode='manual',
                                                                           input_range=exp_config.image_range))
 
@@ -200,7 +201,7 @@ def run_training(continue_run):
         images_clf, diag_clf, ages_clf = tf.cond(
             directly_feed_clf_pl,
             lambda: placeholders_clf(2*exp_config.batch_size, 'direct_clf'),
-            lambda: concatenate_clf_input([xf_pl, xs_2_pl], [diag_s_pl, diag_s_2_pl], [ages_s_pl, ages_s_2_pl], scope_name = 'fs_concat')
+            lambda: concatenate_clf_input([xf_pl, xs2_pl], diag_s_pl, ages_s_pl, scope_name = 'fs_concat')
         )
 
         tf.summary.scalar('learning_rate_gan', learning_rate_gan_pl)
@@ -351,27 +352,23 @@ def run_training(continue_run):
 
                 x_t, [diag_t, age_t] = next(t_sampler_train)
                 x_s, [diag_s, age_s] = next(s_sampler_train)
-                x_s2, [diag_s2, age_s2] = next(s_sampler_train)
 
                 feed_dict_dc = {xs_pl: x_s,
-                                xs_2_pl: x_s2,
-                             xt_pl: x_t,
-                             learning_rate_gan_pl: curr_lr_gan,
-                             learning_rate_clf_pl: curr_lr_clf,
-                             diag_s_pl: diag_s,
-                                diag_s_2_pl: diag_s2,
-                             ages_s_pl: age_s,
-                                ages_s_2_pl: age_s2,
-                             training_time_placeholder: True,
+                                xt_pl: x_t,
+                                learning_rate_gan_pl: curr_lr_gan,
+                                learning_rate_clf_pl: curr_lr_clf,
+                                diag_s_pl: diag_s,
+                                ages_s_pl: age_s,
+                                training_time_placeholder: True,
                                 directly_feed_clf_pl: False}
                 train_ops_list_dc = []
                 if iteration < t_iters:
                     # train classifier
                     train_ops_list_dc.append(train_ops_dict['clf'])
+
                 if iteration < d_iters:
                     # train discriminator
                     train_ops_list_dc.append(train_ops_dict['disc'])
-                sess.run(train_ops_list_dc, feed_dict = feed_dict_dc)
 
                 if not exp_config.improved_training:
                     sess.run(d_clip_op)
@@ -383,28 +380,28 @@ def run_training(continue_run):
             x_s, [diag_s, age_s] = next(s_sampler_train)
             sess.run(train_ops_dict['gen'],
                      feed_dict={xs_pl: x_s,
-                             xt_pl: x_t,
-                             learning_rate_gan_pl: curr_lr_gan,
-                             learning_rate_clf_pl: curr_lr_clf,
-                             diag_s_pl: diag_s,
-                             ages_s_pl: age_s,
-                             training_time_placeholder: True,
-                             directly_feed_clf_pl: False})
+                                xt_pl: x_t,
+                                learning_rate_gan_pl: curr_lr_gan,
+                                learning_rate_clf_pl: curr_lr_clf,
+                                diag_s_pl: diag_s,
+                                ages_s_pl: age_s,
+                                training_time_placeholder: True,
+                                directly_feed_clf_pl: False
+                                })
 
             if step % exp_config.update_tensorboard_frequency == 0:
                 x_t, [diag_t, age_t] = next(t_sampler_train)
                 x_s, [diag_s, age_s] = next(s_sampler_train)
 
-                feed_dict_summary = {
-                    xs_pl: x_s,
-                    xt_pl: x_t,
-                    diag_s_pl: diag_s,
-                    ages_s_pl: age_s,
-                    learning_rate_gan_pl: curr_lr_gan,
-                    learning_rate_clf_pl: curr_lr_clf,
-                    training_time_placeholder: True,
-                    directly_feed_clf_pl: False
-                }
+                feed_dict_summary={xs_pl: x_s,
+                                    xt_pl: x_t,
+                                    learning_rate_gan_pl: curr_lr_gan,
+                                    learning_rate_clf_pl: curr_lr_clf,
+                                    diag_s_pl: diag_s,
+                                    ages_s_pl: age_s,
+                                    training_time_placeholder: True,
+                                    directly_feed_clf_pl: False
+                                    }
 
                 c_loss_one_batch, gan_losses_one_batch_dict, summary_str = sess.run(
                         [classifier_loss, losses_gan_dict, summary], feed_dict=feed_dict_summary)
@@ -424,11 +421,8 @@ def run_training(continue_run):
                                                                                 pred_labels,
                                                                                 ages_softmaxs,
                                                                                 xs_pl,
-                                                                                xs_2_pl,
                                                                                 diag_s_pl,
-                                                                                diag_s_2_pl,
                                                                                 ages_s_pl,
-                                                                                ages_s_2_pl,
                                                                                 training_time_placeholder,
                                                                                 directly_feed_clf_pl,
                                                                                 images_train,
@@ -486,11 +480,8 @@ def run_training(continue_run):
                                                                           pred_labels,
                                                                           ages_softmaxs,
                                                                           xs_pl,
-                                                                          xs_2_pl,
                                                                           diag_s_pl,
-                                                                          diag_s_2_pl,
                                                                           ages_s_pl,
-                                                                          ages_s_2_pl,
                                                                           training_time_pl=training_time_placeholder,
                                                                           directly_feed_clf_pl=directly_feed_clf_pl,
                                                                           images=images_val,
@@ -619,13 +610,13 @@ def do_eval_gan(sess, losses, images_s_pl, images_t_pl, training_time_placeholde
     loss_val_avg = np.mean(loss_val_array, axis=0)
     logging.info(losses)
     logging.info(num_batches)
-    logging.info('average val loss: ' +str(loss_val_avg.tolist()))
+    logging.info('average val loss: ' + str(loss_val_avg.tolist()))
 
     return loss_val_avg.tolist()
 
 
-def do_eval_classifier(sess, eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs, images_s_pl, images_s2_pl, diag_labels_pl, diag_labels2_pl,
-                       ages_pl, ages2_pl, training_time_pl, directly_feed_clf_pl, images, labels_list, clf_batch_size, do_ordinal_reg,
+def do_eval_classifier(sess, eval_diag_loss, eval_ages_loss, pred_labels, ages_softmaxs, images_s_pl, diag_labels_pl,
+                       ages_pl, training_time_pl, directly_feed_clf_pl, images, labels_list, clf_batch_size, do_ordinal_reg,
                        selection_indices=None):
 
     '''
@@ -660,21 +651,12 @@ def do_eval_classifier(sess, eval_diag_loss, eval_ages_loss, pred_labels, ages_s
 
         x, [y, a] = batch
 
-        # split batch up into two halves
-        x1, x2 = np.split(x, 2, axis=0)
-        y1, y2 = np.split(y, 2, axis=0)
-        a1, a2 = np.split(a, 2, axis=0)
-
-
         if y.shape[0] < clf_batch_size:
             continue
 
-        feed_dict = {images_s_pl: x1,
-                     images_s2_pl: x2,
-                     diag_labels_pl: y1,
-                     diag_labels2_pl: y2,
-                     ages_pl: a1,
-                     ages2_pl: a2,
+        feed_dict = {images_s_pl: x,
+                     diag_labels_pl: y,
+                     ages_pl: a,
                      training_time_pl: False,
                      directly_feed_clf_pl: False}
 
