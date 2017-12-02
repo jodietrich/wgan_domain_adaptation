@@ -127,7 +127,7 @@ def iterate_minibatches(images,
         X = np.reshape(X, image_tensor_shape)
 
         if augmentation_function:
-            X, y_list = augmentation_function(X, y_list, do_fliplr=exp_config.do_fliplr)
+            X, y_list = augmentation_function(X, y_list)
 
 
         yield X, y_list

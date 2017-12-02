@@ -30,7 +30,7 @@ def flip_augment(X, y_list=None, do_fliplr=True):
     else:
         return X_, y_list
 
-def generator_augment(generator, X, y_list=None, generate_fraction=1):
+def generator_augment(generator, X, y_list=None, generate_fraction=0.5):
 
     if generate_fraction < 0 or generate_fraction > 1:
         raise ValueError('generate_fraction %f is outside the range [0, 1]' % generate_fraction)
@@ -38,8 +38,10 @@ def generator_augment(generator, X, y_list=None, generate_fraction=1):
     N = X.shape[0]
     N_generate = round(N*generate_fraction)
 
-    X_translated = generator.translate(X[:N_generate, ...])
-    X_ = np.concatenate(X_translated, X[N_generate:, ...])
+    X_translated = generator.translate(X[0:N_generate, ...])
+    X_ = np.concatenate((X_translated, X[N_generate:, ...]), axis=0)
+
+    assert X.shape == X_.shape
 
     if y_list is None:
         return X_

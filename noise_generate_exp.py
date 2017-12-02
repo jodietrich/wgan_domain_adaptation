@@ -14,14 +14,6 @@ import adni_data_loader_all
 import experiments.gan.standard_parameters as std_params
 
 
-
-def get_latest_checkpoint_and_log(logdir, filename):
-    init_checkpoint_path = utils.get_latest_model_checkpoint_path(logdir, filename)
-    logging.info('Checkpoint path: %s' % init_checkpoint_path)
-    last_step = int(init_checkpoint_path.split('/')[-1].split('-')[-1])
-    logging.info('Latest step was: %d' % last_step)
-    return init_checkpoint_path
-
 def map_labels_to_list(labels, label_list):
     # label_list is a python list with the labels
     # map labels in range(len(label_list)) to the labels in label_list
@@ -145,7 +137,7 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
 
         logging.info('loading GAN')
         # open the latest GAN savepoint
-        init_checkpoint_path_gan = get_latest_checkpoint_and_log(logdir_gan, 'model.ckpt')
+        init_checkpoint_path_gan, last_gan_step = utils.get_latest_checkpoint_and_step(logdir_gan, 'model.ckpt')
 
         # build a separate graph for the generator
         graph_generator, generator_img_pl, z_noise_pl, x_fake_op, init_gan_op, saver_gan = build_gen_graph(img_tensor_shape, gan_config)
@@ -218,6 +210,7 @@ if __name__ == '__main__':
         'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1',
         'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1',
     ]
+    # TODO: Change for new experiments
     gan_log_root = os.path.join(sys_config.log_root, 'gan/all_small_images')
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/const_noise')
     image_saving_indices = set(range(0, 120, 20))

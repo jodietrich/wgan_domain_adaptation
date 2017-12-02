@@ -8,6 +8,7 @@ from tfwrapper import losses
 from math import sqrt
 from importlib.machinery import SourceFileLoader
 import os.path
+import config.system as sys_config
 
 import utils
 
@@ -148,37 +149,51 @@ def training_ops(logits_real,
 
 
 class Generator:
-    def __init__(self, exp_config_path, batch_size=1, scope_name='generator', reuse_variables=False):
+    def __init__(self, exp_config_path, scope_name='generator', reuse_variables=False):
         """
         builds the graph of the generator specified in the exp_config_path
         """
-        self.build_new_graph(exp_config_path, batch_size=batch_size, scope_name=scope_name, reuse_variables=reuse_variables)
+        self.build_new_graph(exp_config_path, scope_name=scope_name, reuse_variables=reuse_variables)
 
-    def build_new_graph(self, experiment_file_path, batch_size=1, scope_name='generator', reuse_variables=False):
-        self.batch_size = batch_size
+    def build_new_graph(self, experiment_file_path, scope_name='generator', reuse_variables=False):
         self.scope_name=scope_name
         self.reuse_variables = reuse_variables
-        self.exp_config = utils.module_from_path(experiment_file_path)
+        self.exp_config, _ = utils.load_log_exp_config(experiment_file_path)
+        self.log_dir = os.path.join(sys_config.log_root, self.exp_config.log_folder, self.exp_config.experiment_name)
         self.graph = tf.Graph()
-        self.image_tensor_shape = [self.batch_size] + list(self.exp_config.image_size) + [self.exp_config.n_channels]
+        self.image_tensor_shape = [None] + list(self.exp_config.image_size) + [self.exp_config.n_channels]
         with self.graph.as_default():
             self.training_pl = tf.placeholder(tf.bool, name='training_phase')
-            if self.exp_config.use_generator_input_noise:
-                self.noise_shape = [self.batch_size] + self.exp_config.generator_input_noise_shape.copy().pop(0)
-                self.noise_in_gen_pl = tf.random_uniform(shape=self.exp_config.generator_input_noise_shape, minval=-1, maxval=1)
-            else:
-                self.noise_in_gen_pl = None
             # source image batch
             self.input_images_pl = tf.placeholder(tf.float32, self.image_tensor_shape, name='z')
+            if self.exp_config.use_generator_input_noise:
+                self.noise_shape = [self.input_images_pl.shape[0]] + self.exp_config.generator_input_noise_shape.copy().pop(0)
+                self.noise_in_gen_pl = tf.random_uniform(shape=self.noise_shape, minval=-1, maxval=1)
+            else:
+                self.noise_in_gen_pl = None
 
             # generated fake image batch
             self.generated_images = self.exp_config.generator(self.input_images_pl, self.noise_in_gen_pl, self.training_pl,
                                                               scope_reuse=self.reuse_variables, scope_name=self.scope_name)
-            self.session = tf.Session()
+            self.session = tf.Session(config=utils.get_session_memory_config())
+            self.init_op = tf.global_variables_initializer()
+            self.saver = tf.train.Saver()
 
     def translate(self, input_images):
-        feed_dict = {self.input_images_pl: input_images}
+        feed_dict = {self.input_images_pl: input_images, self.training_pl: False}
         return self.session.run(self.generated_images, feed_dict=feed_dict)
+
+    def restore_variables(self, log_dir=None, file_name='model.ckpt'):
+        if log_dir is None:
+            log_dir = self.log_dir
+        # restore variables from checkpoint
+        init_checkpoint_path, last_step = utils.get_latest_checkpoint_and_step(log_dir, file_name)
+        # Create a session for running Ops on the Graph.
+        self.saver.restore(self.session, init_checkpoint_path)
+
+    def initialize_variables(self):
+        self.session.run(self.init_op)
+
 
 
 

@@ -4,11 +4,11 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_both_domains_s3_data_final_i1'
+experiment_name = 'adni_clf_bs20_domains_s_bousmalis_gen_1e4l1_no_noise_s3_data_final_i1'
 
 # paths
 log_folder = 'adni_clf/final'
-generator_path = '/scratch/jdietric/PycharmProjects/mri_domain_adapt/log_dir/gan/final/' \
+generator_path = '/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt/log_dir/gan/final/' \
                  + 'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s3_final_i1'
 
 # Model settings

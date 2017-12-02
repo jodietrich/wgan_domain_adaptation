@@ -9,6 +9,7 @@ import glob
 from importlib.machinery import SourceFileLoader
 import config.system as sys_config
 import logging
+import tensorflow as tf
 
 def fstr_to_label(fieldstrengths, field_strength_list, label_list):
     # input fieldstrenghts hdf5 list
@@ -191,6 +192,20 @@ def string_dict_in_order(dict, key_function=None, key_string='', value_string=''
 def module_from_path(path):
     module_name = os.path.splitext(os.path.split(path)[1])[0]
     return SourceFileLoader(module_name, path).load_module()
+
+def get_latest_checkpoint_and_step(logdir, filename):
+    init_checkpoint_path = get_latest_model_checkpoint_path(logdir, filename)
+    logging.info('Checkpoint path: %s' % init_checkpoint_path)
+    last_step = int(init_checkpoint_path.split('/')[-1].split('-')[-1])
+    logging.info('Latest step was: %d' % last_step)
+    return init_checkpoint_path, last_step
+
+def get_session_memory_config():
+    # prevents ResourceExhaustError when a lot of memory is used
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True  # Do not assign whole gpu memory, just use it on the go
+    config.allow_soft_placement = True  # If a operation is not defined in the default device, let it execute in another.
+    return config
 
 
 
