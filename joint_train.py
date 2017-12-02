@@ -435,7 +435,7 @@ def run_training(continue_run):
                                                                                 [labels_train, ages_train],
                                                                                 clf_batch_size=2 * exp_config.batch_size,
                                                                                 do_ordinal_reg=exp_config.age_ordinal_regression,
-                                                                                selection_indices=target_images_train_ind)
+                                                                                selection_indices=source_images_train_ind)
 
                 train_summary_msg = sess.run(train_summary, feed_dict={train_error_clf_: train_loss,
                                                                        train_diag_f1_score_: train_diag_f1,
@@ -497,7 +497,7 @@ def run_training(continue_run):
                                                                           labels_list=[labels_val, ages_val],
                                                                           clf_batch_size=2 * exp_config.batch_size,
                                                                           do_ordinal_reg=exp_config.age_ordinal_regression,
-                                                                          selection_indices=target_images_val_ind)
+                                                                          selection_indices=source_images_val_ind)
 
 
                 feed_dict_val = {
