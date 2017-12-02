@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1'
+experiment_name = 'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1'
 
 # paths
 log_folder = 'joint/final'
@@ -31,7 +31,7 @@ target_field_strength = 1.5  # magnetic field strength in T of pictures in the t
 # Interaction of losses (alpha, beta in pixelDA)
 # the task loss should be in the same order of magnitude as the Wasserstein GAN loss, so the task loss needs to be scaled up
 gan_loss_weight = 1
-task_loss_weight = 1e5
+task_loss_weight = 1e7
 # Classifier
 age_weight = 0.0
 diag_weight = 1.0
