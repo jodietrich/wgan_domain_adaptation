@@ -15,8 +15,6 @@ TEST DATA
 2017-11-09 10:07:35,071 target label distribution {0: 292, 2: 143}
 
 TRAINING AND VALIDATION DATA
-Source and target are just for total -> bug
-2017-12-01 19:55:52,174 {'train': {'target': Counter({0: 1668, 2: 1184}), 'source': Counter({0: 1668, 2: 1184})}, 'val': {'target': Counter({0: 414, 2: 337}), 'source': Counter({0: 414, 2: 337})}}
 2017-12-01 19:55:52,175 TRAINING
 2017-12-01 19:55:52,175  - Images:
 2017-12-01 19:55:52,175 (2852, 64, 80, 64)
@@ -31,3 +29,4 @@ Source and target are just for total -> bug
 2017-12-01 19:55:52,175  - Labels:
 2017-12-01 19:55:52,176 (751,)
 2017-12-01 19:55:52,176 uint8
+{'val': {'source': Counter({2: 208, 0: 172}), 'target': Counter({0: 242, 2: 129})}, 'train': {'source': Counter({0: 837, 2: 751}), 'target': Counter({0: 831, 2: 433})}}

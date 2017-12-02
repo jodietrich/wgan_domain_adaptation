@@ -18,6 +18,7 @@ import utils
 import adni_data_loader
 
 
+# TODO: return image dict and index dict, including test data indices. This requires changing many modules.
 def get_images_and_fieldstrength_indices(data, source_field_strength, target_field_strength):
     """
     extract images and indices of source/target images for the training and validation set
@@ -62,10 +63,12 @@ def data_summary(data):
     images_val, source_images_val_ind, target_images_val_ind = get_images_and_fieldstrength_indices(data,
                                                                                                     exp_config.source_field_strength,
                                                                                                     exp_config.target_field_strength)
+
     domain_dict = {'train': {'source': source_images_train_ind, 'target': target_images_train_ind},
                    'val': {'source': source_images_val_ind, 'target': target_images_val_ind}}
     cathegory_dict ={}
     for outer_key in domain_dict:
+        cathegory_dict[outer_key] = {}
         for inner_key, image_indices in domain_dict[outer_key].items():
             print('outer key: ' + str(outer_key))
             print('inner key: ' + str(inner_key))

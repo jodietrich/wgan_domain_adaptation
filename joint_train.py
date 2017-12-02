@@ -132,8 +132,11 @@ def run_training(continue_run):
         # target image batch
         xt_pl = tf.placeholder(tf.float32, image_tensor_shape(exp_config.batch_size), name='x_target')
 
+        # the classifier uses 2 times the batch size of the GAN
+        clf_batch_size = 2 * exp_config.batch_size
+
         # source image batch
-        xs_pl, diag_s_pl, ages_s_pl = placeholders_clf(2*exp_config.batch_size, 'source')
+        xs_pl, diag_s_pl, ages_s_pl = placeholders_clf(clf_batch_size, 'source')
         # split source batch into 1 to be translated to xf and 2 for the classifier
         # for the discriminator train op half 2 of the batch is not used
         xs1_pl, xs2_pl = tf.split(xs_pl, 2, axis=0)
@@ -200,7 +203,7 @@ def run_training(continue_run):
         # cond to avoid having to specify not needed placeholders in the feed dict
         images_clf, diag_clf, ages_clf = tf.cond(
             directly_feed_clf_pl,
-            lambda: placeholders_clf(2*exp_config.batch_size, 'direct_clf'),
+            lambda: placeholders_clf(clf_batch_size, 'direct_clf'),
             lambda: concatenate_clf_input([xf_pl, xs2_pl], diag_s_pl, ages_s_pl, scope_name = 'fs_concat')
         )
 
@@ -370,6 +373,8 @@ def run_training(continue_run):
                     # train discriminator
                     train_ops_list_dc.append(train_ops_dict['disc'])
 
+                sess.run(train_ops_list_dc, feed_dict=feed_dict_dc)
+
                 if not exp_config.improved_training:
                     sess.run(d_clip_op)
 
@@ -427,7 +432,7 @@ def run_training(continue_run):
                                                                                 directly_feed_clf_pl,
                                                                                 images_train,
                                                                                 [labels_train, ages_train],
-                                                                                clf_batch_size=2 * exp_config.batch_size,
+                                                                                clf_batch_size=clf_batch_size,
                                                                                 do_ordinal_reg=exp_config.age_ordinal_regression,
                                                                                 selection_indices=source_images_train_ind)
 
@@ -486,7 +491,7 @@ def run_training(continue_run):
                                                                           directly_feed_clf_pl=directly_feed_clf_pl,
                                                                           images=images_val,
                                                                           labels_list=[labels_val, ages_val],
-                                                                          clf_batch_size=2 * exp_config.batch_size,
+                                                                          clf_batch_size=clf_batch_size,
                                                                           do_ordinal_reg=exp_config.age_ordinal_regression,
                                                                           selection_indices=source_images_val_ind)
 
@@ -588,7 +593,7 @@ def do_eval_gan(sess, losses, images_s_pl, images_t_pl, training_time_placeholde
     '''
 
     s_sampler_val = iterate_minibatches_endlessly(images,
-                                                  batch_size=batch_size,
+                                                  batch_size=2*batch_size,
                                                   exp_config=exp_config,
                                                   selection_indices=source_images_ind)
     t_sampler_val = iterate_minibatches_endlessly(images,
@@ -651,8 +656,7 @@ def do_eval_classifier(sess, eval_diag_loss, eval_ages_loss, pred_labels, ages_s
 
         x, [y, a] = batch
 
-        if y.shape[0] < clf_batch_size:
-            continue
+        assert y.shape[0] == clf_batch_size
 
         feed_dict = {images_s_pl: x,
                      diag_labels_pl: y,
