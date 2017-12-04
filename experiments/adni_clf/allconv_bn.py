@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'adni_clf_bs20_domains_s_bousmalis_gen_1e4l1_no_noise_s3_data_final_i1'
+experiment_name = 'adni_clf_bs20_domains_t15_gen_1e4l1_no_noise_s3_data_final_i1'
 
 # paths
 log_folder = 'adni_clf/final'
@@ -28,7 +28,7 @@ rescale_to_one = True
 use_sigmoid = False
 source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
 target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
-training_domain = 'source' # from {'source', 'target', 'all'}. From which domain are the training and validation images.
+training_domain = 'target' # from {'source', 'target', 'all'}. From which domain are the training and validation images.
 
 # Cost function
 age_weight = 0.0
@@ -50,9 +50,9 @@ bn_momentum = 0.99
 augmentation_function = lambda generator, X, y_list: batch_augmentors.generator_augment(generator, X, y_list, translation_fraction)
 do_rotations = False
 do_scaleaug = False
-do_fliplr = True
+do_fliplr = False
 # generator as augmentation
-use_generator = True # load the generator
+use_generator = False # load the generator
 translation_fraction = 0.5 # what fraction of the images in a batch go through the generator
 
 

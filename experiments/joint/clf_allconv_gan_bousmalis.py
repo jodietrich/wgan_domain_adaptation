@@ -55,7 +55,7 @@ use_augmentation = False
 augmentation_function = batch_augmentors.flip_augment
 do_rotations = False
 do_scaleaug = False
-do_fliplr = True
+do_fliplr = False
 
 # Rarely changed settings
 use_data_fraction = False  # Should normally be False
