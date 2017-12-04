@@ -30,7 +30,7 @@ from batch_generator_list import iterate_minibatches
 import clf_GAN_test
 
 
-def classifier_test(clf_experiment_path, score_functions, batch_size=1):
+def classifier_test(clf_experiment_path, score_functions, batch_size=1, joint=False):
     """
 
     :param clf_experiment_path: AD classifier used
@@ -66,7 +66,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
 
     # open field strength classifier save file from the selected experiment
     logging.info("loading Alzheimer's disease classifier")
-    graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = clf_GAN_test.build_clf_graph(img_tensor_shape, clf_config)
+    graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = clf_GAN_test.build_clf_graph(img_tensor_shape, clf_config, joint)
     logging.info("getting savepoint with the best f1 score")
     checkpoint_file_name = 'model_best_diag_f1.ckpt'
     logging.info("getting savepoint with the best cross entropy")
@@ -165,11 +165,12 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
 
 
 
-def test_multiple_classifiers(classifier_exp_list):
+def test_multiple_classifiers(classifier_exp_list, joint):
     for clf_experiment_name in classifier_exp_list:
-        # settings
-        clf_log_root = os.path.join(sys_config.log_root, 'adni_clf/final')
-        # clf_log_root = os.path.join(sys_config.log_root, 'joint/final')
+        if joint:
+            clf_log_root = os.path.join(sys_config.log_root, 'joint/final')
+        else:
+            clf_log_root = os.path.join(sys_config.log_root, 'adni_clf/final')
 
         # put paths for experiments together
         clf_log_path = os.path.join(clf_log_root, clf_experiment_name)
@@ -187,7 +188,8 @@ def test_multiple_classifiers(classifier_exp_list):
 
         clf_scores = classifier_test(clf_experiment_path=clf_log_path,
                                      score_functions=score_functions,
-                                     batch_size=20)
+                                     batch_size=20,
+                                     joint=joint)
 
         logging.info('results for ' + str(clf_experiment_name))
         logging.info(clf_scores)
@@ -200,13 +202,18 @@ def test_multiple_classifiers(classifier_exp_list):
 
 
 if __name__ == '__main__':
-    classifier_experiment_list = [
+    classifier_experiment_list1 = [
         'adni_clf_bs20_domains_s_bousmalis_gen_1e4l1_no_noise_s3_data_final_i1',
         'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_both_domains_s3_data_final_i1',
         'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_source3_data_final_i1',
         'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_target15_data_final_i1'
     ]
-    test_multiple_classifiers(classifier_experiment_list)
+    joint_list1 = [
+        'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e3_all_small_final_s3_bs6_i1',
+        'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
+        'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1'
+    ]
+    test_multiple_classifiers(joint_list1, joint=True)
 
 
 

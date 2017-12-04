@@ -164,7 +164,7 @@ def run_training(continue_run):
         tf.summary.scalar('learning_rate', learning_rate_placeholder)
 
         # Build a Graph that computes predictions from the inference model.
-        diag_logits, ages_logits = exp_config.model_handle(images_placeholder,
+        diag_logits, ages_logits = exp_config.clf_model_handle(images_placeholder,
                                                            nlabels=exp_config.nlabels,
                                                            training=training_time_placeholder,
                                                            n_age_thresholds=len(exp_config.age_bins),

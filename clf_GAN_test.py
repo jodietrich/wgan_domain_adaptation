@@ -74,7 +74,7 @@ def map_labels_to_list(labels, label_list):
     label_lookup = tf.constant(np.array(label_list))
     return tf.gather(label_lookup, labels)
 
-def build_clf_graph(img_tensor_shape, clf_config):
+def build_clf_graph(img_tensor_shape, clf_config, joint=False):
     graph_classifier = tf.Graph()
     with graph_classifier.as_default():
         # image (batch size = 1)

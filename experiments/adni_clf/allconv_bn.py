@@ -12,7 +12,7 @@ generator_path = '/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt/
                  + 'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s3_final_i1'
 
 # Model settings
-model_handle = model_zoo.FCN_multitask_ordinal_bn
+clf_model_handle = model_zoo.FCN_multitask_ordinal_bn
 multi_task_model = True
 
 # Data settings

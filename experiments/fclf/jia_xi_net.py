@@ -10,7 +10,7 @@ experiment_name = 'fclf_jiaxi_net_small_data'
 log_folder = 'fclf'
 
 # Model settings
-model_handle = model_zoo.jia_xi_net_multitask_ordinal_bn
+clf_model_handle = model_zoo.jia_xi_net_multitask_ordinal_bn
 multi_task_model = True
 
 # Data settings

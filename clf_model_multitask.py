@@ -74,7 +74,7 @@ def predict(images, exp_config):
     :return: A prediction mask, and the corresponding softmax output
     '''
 
-    diag_logits, ages_logits = exp_config.model_handle(images,
+    diag_logits, ages_logits = exp_config.clf_model_handle(images,
                                training=tf.constant(False, dtype=tf.bool),
                                nlabels=exp_config.nlabels,
                                n_age_thresholds=len(exp_config.age_bins))
