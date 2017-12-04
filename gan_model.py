@@ -167,7 +167,8 @@ class Generator:
             # source image batch
             self.input_images_pl = tf.placeholder(tf.float32, self.image_tensor_shape, name='z')
             if self.exp_config.use_generator_input_noise:
-                self.noise_shape = [self.input_images_pl.shape[0]] + self.exp_config.generator_input_noise_shape.copy().pop(0)
+                self.noise_shape = [self.input_images_pl.shape[0]] + \
+                                   [self.exp_config.generator_input_noise_shape.copy().pop(0)]
                 self.noise_in_gen_pl = tf.random_uniform(shape=self.noise_shape, minval=-1, maxval=1)
             else:
                 self.noise_in_gen_pl = None
