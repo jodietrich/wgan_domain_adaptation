@@ -241,7 +241,8 @@ def run_training(continue_run):
 
         # build generator graph if generator is used
         if exp_config.use_generator:
-            generator = gan_model.Generator(exp_config.generator_path)
+            generator_batch_size = round(exp_config.translation_fraction*exp_config.batch_size)
+            generator = gan_model.Generator(exp_config.generator_path, batch_size=generator_batch_size)
             generator.restore_variables()
             generator_augmentation_function = lambda X, y_list: exp_config.augmentation_function(generator, X, y_list)
         else:

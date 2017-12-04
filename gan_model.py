@@ -4,11 +4,13 @@
 # used for GAN
 
 import tensorflow as tf
+import logging
 from tfwrapper import losses
 from math import sqrt
 from importlib.machinery import SourceFileLoader
 import os.path
 import config.system as sys_config
+import numpy as np
 
 import utils
 
@@ -149,27 +151,29 @@ def training_ops(logits_real,
 
 
 class Generator:
-    def __init__(self, exp_config_path, scope_name='generator', reuse_variables=False):
+    def __init__(self, exp_config_path, batch_size=1, scope_name='generator', reuse_variables=False):
         """
         builds the graph of the generator specified in the exp_config_path
+        :param batch_size:
         """
-        self.build_new_graph(exp_config_path, scope_name=scope_name, reuse_variables=reuse_variables)
+        self.build_new_graph(exp_config_path, batch_size=batch_size, scope_name=scope_name, reuse_variables=reuse_variables)
 
-    def build_new_graph(self, experiment_file_path, scope_name='generator', reuse_variables=False):
+    def build_new_graph(self, experiment_file_path, batch_size=1, scope_name='generator', reuse_variables=False):
         self.scope_name=scope_name
         self.reuse_variables = reuse_variables
         self.exp_config, _ = utils.load_log_exp_config(experiment_file_path)
         self.log_dir = os.path.join(sys_config.log_root, self.exp_config.log_folder, self.exp_config.experiment_name)
         self.graph = tf.Graph()
-        self.image_tensor_shape = [None] + list(self.exp_config.image_size) + [self.exp_config.n_channels]
+        self.image_tensor_shape = [batch_size] + list(self.exp_config.image_size) + [self.exp_config.n_channels]
         with self.graph.as_default():
             self.training_pl = tf.placeholder(tf.bool, name='training_phase')
             # source image batch
             self.input_images_pl = tf.placeholder(tf.float32, self.image_tensor_shape, name='z')
             if self.exp_config.use_generator_input_noise:
-                self.noise_shape = [self.input_images_pl.shape[0]] + \
-                                   [self.exp_config.generator_input_noise_shape.copy().pop(0)]
-                self.noise_in_gen_pl = tf.random_uniform(shape=self.noise_shape, minval=-1, maxval=1)
+                self.noise_shape = self.exp_config.generator_input_noise_shape.copy()
+                self.noise_shape[0] = batch_size
+                logging.info('noise shape: ' + str(self.noise_shape))
+                self.noise_in_gen_pl = tf.placeholder(tf.float32, self.noise_shape, name='z_noise_in')
             else:
                 self.noise_in_gen_pl = None
 
@@ -180,8 +184,19 @@ class Generator:
             self.init_op = tf.global_variables_initializer()
             self.saver = tf.train.Saver()
 
-    def translate(self, input_images):
+    def translate(self, input_images, noise_in=None):
+        if not np.array_equal(input_images.shape, self.image_tensor_shape):
+            raise ValueError('expected images with shape %s but got images with shape %s instead'
+                             % (str(self.image_tensor_shape), str(input_images.shape)))
         feed_dict = {self.input_images_pl: input_images, self.training_pl: False}
+        if self.exp_config.use_generator_input_noise:
+            if noise_in is None:
+                noise_in = np.random.uniform(low=-1.0, high=1.0, size=tuple(self.noise_shape))
+            if not np.array_equal(noise_in.shape, self.noise_shape):
+                raise ValueError('expected noise with shape %s but got noise with shape %s instead'
+                                 % (str(self.noise_shape), str(noise_in.shape)))
+            feed_dict_noise = {self.noise_in_gen_pl: noise_in}
+            feed_dict.update(feed_dict_noise)
         return self.session.run(self.generated_images, feed_dict=feed_dict)
 
     def restore_variables(self, log_dir=None, file_name='model.ckpt'):
