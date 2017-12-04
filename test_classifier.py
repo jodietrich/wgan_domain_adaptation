@@ -30,7 +30,7 @@ from batch_generator_list import iterate_minibatches
 import clf_GAN_test
 
 
-def classifier_test(clf_experiment_path, score_functions, batch_size=1, joint=False):
+def classifier_test(clf_experiment_path, score_functions, batch_size=1):
     """
 
     :param clf_experiment_path: AD classifier used
@@ -66,7 +66,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, joint=Fa
 
     # open field strength classifier save file from the selected experiment
     logging.info("loading Alzheimer's disease classifier")
-    graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = clf_GAN_test.build_clf_graph(img_tensor_shape, clf_config, joint)
+    graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = clf_GAN_test.build_clf_graph(img_tensor_shape, clf_config)
     logging.info("getting savepoint with the best f1 score")
     checkpoint_file_name = 'model_best_diag_f1.ckpt'
     logging.info("getting savepoint with the best cross entropy")
@@ -188,8 +188,7 @@ def test_multiple_classifiers(classifier_exp_list, joint):
 
         clf_scores = classifier_test(clf_experiment_path=clf_log_path,
                                      score_functions=score_functions,
-                                     batch_size=20,
-                                     joint=joint)
+                                     batch_size=20)
 
         logging.info('results for ' + str(clf_experiment_name))
         logging.info(clf_scores)
