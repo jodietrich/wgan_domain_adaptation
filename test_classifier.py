@@ -204,7 +204,7 @@ if __name__ == '__main__':
         'adni_clf_bs20_domains_s_bousmalis_gen_1e4l1_no_noise_s3_data_final_i1',
         'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_both_domains_s3_data_final_i1',
         'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_source3_data_final_i1',
-        'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_source3_data_final_i2'
+        'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_target15_data_final_i1'
     ]
     test_multiple_classifiers(classifier_experiment_list)
 

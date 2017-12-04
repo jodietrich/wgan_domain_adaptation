@@ -1,0 +1,4 @@
+adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_both_domains_s3_data_final_i1 :{'all data': {'f1': 0.86874154262516901, 'recall': 0.93586005830903785, 'precision': 0.81060606060606055, 'confusion matrix': array([[466,  75],
+       [ 22, 321]])}, 1.5: {'f1': 0.85654008438818563, 'recall': 0.95754716981132071, 'precision': 0.77480916030534353, 'confusion matrix': array([[230,  59],
+       [  9, 203]])}, 3.0: {'f1': 0.89056603773584897, 'recall': 0.9007633587786259, 'precision': 0.88059701492537312, 'confusion matrix': array([[236,  16],
+       [ 13, 118]])}}
