@@ -84,6 +84,20 @@ def run_training(continue_run):
     images_train, source_images_train_ind, target_images_train_ind, \
     images_val, source_images_val_ind, target_images_val_ind = data_utils.get_images_and_fieldstrength_indices(data, exp_config.source_field_strength, exp_config.target_field_strength)
 
+    # to be sure the indices are correct
+    # check if the indices are a partition
+    assert sorted(source_images_train_ind.extend(target_images_train_ind)) == range(images_train[0])
+    assert sorted(source_images_val_ind.extend(target_images_val_ind)) == range(images_val[0])
+    # check if each list contains only indices it is supposed to contain
+    assert all(data['field_strength_train'][index] == exp_config.source_field_strength for index in source_images_train_ind)
+    assert all(
+        data['field_strength_train'][index] == exp_config.target_field_strength for index in target_images_train_ind)
+    assert all(
+        data['field_strength_val'][index] == exp_config.source_field_strength for index in source_images_val_ind)
+    assert all(
+        data['field_strength_val'][index] == exp_config.target_field_strength for index in target_images_val_ind)
+
+
     if exp_config.age_ordinal_regression:
         ages_train = utils.age_to_ordinal_reg_format(ages_train, bins=exp_config.age_bins)
         ordinal_reg_weights = utils.get_ordinal_reg_weights(ages_train)

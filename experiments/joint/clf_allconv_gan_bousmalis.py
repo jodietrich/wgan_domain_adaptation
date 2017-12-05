@@ -52,10 +52,8 @@ bn_momentum = 0.99
 
 # Augmentation settings
 use_augmentation = False
-augmentation_function = batch_augmentors.flip_augment
-do_rotations = False
-do_scaleaug = False
-do_fliplr = False
+augmentation_function = None
+
 
 # Rarely changed settings
 use_data_fraction = False  # Should normally be False

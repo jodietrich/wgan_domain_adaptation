@@ -69,9 +69,9 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
     graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = clf_GAN_test.build_clf_graph(img_tensor_shape, clf_config)
     logging.info("getting savepoint with the best f1 score")
     checkpoint_file_name = 'model_best_diag_f1.ckpt'
-    logging.info("getting savepoint with the best cross entropy")
+    # logging.info("getting savepoint with the best cross entropy")
     # checkpoint_file_name = 'model_best_xent'
-    init_checkpoint_path_clf = clf_GAN_test.get_latest_checkpoint_and_log(logdir_clf, checkpoint_file_name)
+    init_checkpoint_path_clf, latest_step = utils.get_latest_checkpoint_and_step(logdir_clf, checkpoint_file_name)
     # logging.info("getting savepoint with the best f1 score")
     # init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_diag_f1.ckpt')
     sess_clf = tf.Session(config=config, graph=graph_clf)
@@ -161,7 +161,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
     scores[clf_config.target_field_strength] = clf_GAN_test.evaluate_scores(target_true_labels, target_pred, score_functions)
     scores['all data'] = clf_GAN_test.evaluate_scores(labels_test, all_predictions, score_functions)
 
-    return scores
+    return scores, latest_step
 
 
 
@@ -184,9 +184,9 @@ def test_multiple_classifiers(classifier_exp_list, joint):
                            'precision': lambda y_true, y_pred: sklearn.metrics.precision_score(y_true, y_pred, pos_label=2, average='binary'),
                            'confusion matrix': lambda y_true, y_pred: sklearn.metrics.confusion_matrix(y_true, y_pred, labels=[0, 2])
         }
-        # confusion matrix (matlab notation) = [tn fp; fn tp]
+        # confusion matrix = [[tn, fp], [fn, tp]]
 
-        clf_scores = classifier_test(clf_experiment_path=clf_log_path,
+        clf_scores, latest_step = classifier_test(clf_experiment_path=clf_log_path,
                                      score_functions=score_functions,
                                      batch_size=20)
 
@@ -197,7 +197,9 @@ def test_multiple_classifiers(classifier_exp_list, joint):
         result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test', clf_experiment_name)
         # overwrites the old file if there is already a file with this name
         with open(result_file_path, "w") as result_file:
-            result_file.write(clf_experiment_name + ' :' + str(clf_scores))
+            result_file.write(clf_experiment_name + '\n')
+            result_file.write('step: %d\n' % latest_step)
+            result_file.write(str(clf_scores))
 
 
 if __name__ == '__main__':
@@ -212,7 +214,10 @@ if __name__ == '__main__':
         'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
         'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1'
     ]
-    test_multiple_classifiers(joint_list1, joint=True)
+    classifier_experiment_list2 = [
+        'adni_clf_bs20_domains_t15_data_final_i1'
+    ]
+    test_multiple_classifiers(classifier_experiment_list2, joint=False)
 
 
 
