@@ -86,8 +86,16 @@ def run_training(continue_run):
 
     # to be sure the indices are correct
     # check if the indices are a partition
-    assert sorted(source_images_train_ind.extend(target_images_train_ind)) == range(images_train[0])
-    assert sorted(source_images_val_ind.extend(target_images_val_ind)) == range(images_val[0])
+    all_train_ind = source_images_train_ind + target_images_train_ind
+    all_train_ind.sort()
+    logging.info(len(all_train_ind))
+    logging.info(images_train.shape[0])
+    assert np.array_equal(all_train_ind, range(images_train.shape[0]))
+    all_val_ind = source_images_val_ind + target_images_val_ind
+    all_val_ind.sort()
+    logging.info(len(all_val_ind))
+    logging.info(images_val.shape[0])
+    assert np.array_equal(all_val_ind, range(images_val.shape[0]))
     # check if each list contains only indices it is supposed to contain
     assert all(data['field_strength_train'][index] == exp_config.source_field_strength for index in source_images_train_ind)
     assert all(
