@@ -1,4 +1,7 @@
-joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1 :{'all data': {'f1': 0.7715736040609138, 'precision': 0.91935483870967738, 'recall': 0.66472303206997085, 'confusion matrix': array([[521,  20],
-       [115, 228]])}, 1.5: {'f1': 0.7592067988668556, 'precision': 0.95035460992907805, 'recall': 0.63207547169811318, 'confusion matrix': array([[282,   7],
-       [ 78, 134]])}, 3.0: {'f1': 0.78991596638655459, 'precision': 0.87850467289719625, 'recall': 0.71755725190839692, 'confusion matrix': array([[239,  13],
+joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1 :{
+'all data': {'f1': 0.7715736040609138, 'precision': 0.91935483870967738, 'recall': 0.66472303206997085, 'confusion matrix': array([[521,  20],
+       [115, 228]])},
+       1.5: {'f1': 0.7592067988668556, 'precision': 0.95035460992907805, 'recall': 0.63207547169811318, 'confusion matrix': array([[282,   7],
+       [ 78, 134]])},
+       3.0: {'f1': 0.78991596638655459, 'precision': 0.87850467289719625, 'recall': 0.71755725190839692, 'confusion matrix': array([[239,  13],
        [ 37,  94]])}}

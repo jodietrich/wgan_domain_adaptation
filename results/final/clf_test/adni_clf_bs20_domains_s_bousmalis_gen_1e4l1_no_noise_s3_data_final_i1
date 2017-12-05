@@ -1,4 +1,7 @@
-adni_clf_bs20_domains_s_bousmalis_gen_1e4l1_no_noise_s3_data_final_i1 :{'all data': {'f1': 0.85014409221902021, 'recall': 0.86005830903790093, 'precision': 0.84045584045584043, 'confusion matrix': array([[485,  56],
-       [ 48, 295]])}, 1.5: {'f1': 0.8413793103448276, 'recall': 0.8632075471698113, 'precision': 0.820627802690583, 'confusion matrix': array([[249,  40],
-       [ 29, 183]])}, 3.0: {'f1': 0.8648648648648648, 'recall': 0.85496183206106868, 'precision': 0.875, 'confusion matrix': array([[236,  16],
+adni_clf_bs20_domains_s_bousmalis_gen_1e4l1_no_noise_s3_data_final_i1 :{
+'all data': {'f1': 0.85014409221902021, 'recall': 0.86005830903790093, 'precision': 0.84045584045584043, 'confusion matrix': array([[485,  56],
+       [ 48, 295]])},
+       1.5: {'f1': 0.8413793103448276, 'recall': 0.8632075471698113, 'precision': 0.820627802690583, 'confusion matrix': array([[249,  40],
+       [ 29, 183]])},
+       3.0: {'f1': 0.8648648648648648, 'recall': 0.85496183206106868, 'precision': 0.875, 'confusion matrix': array([[236,  16],
        [ 19, 112]])}}
