@@ -14,14 +14,6 @@ import adni_data_loader_all
 import experiments.gan.standard_parameters as std_params
 
 
-def map_labels_to_list(labels, label_list):
-    # label_list is a python list with the labels
-    # map labels in range(len(label_list)) to the labels in label_list
-    # E.g. [0,0,1,1] becomes [0,0,2,2] (if 1 doesnt exist in the data)
-    # label gets mapped to label_list[label]
-    label_lookup = tf.constant(np.array(label_list))
-    return tf.gather(label_lookup, labels)
-
 
 def build_gen_graph(img_tensor_shape, gan_config):
     # noise_shape
@@ -101,10 +93,6 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
 
         source_indices = []
         target_indices = []
-        source_true_labels = []
-        source_pred = []
-        target_true_labels = []
-        target_pred = []
         for i, field_strength in enumerate(data['field_strength_test']):
             if field_strength == gan_config.source_field_strength:
                 source_indices.append(i)
@@ -183,8 +171,8 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
                 utils.create_and_save_nii(difference_image_gs, os.path.join(curr_img_path, difference_img_name))
                 logging.info(difference_img_name + ' saved')
 
-            all_imgs = np.asarray(img_list)
-            std_img = np.std(all_imgs, axis=-1)
+            all_imgs = np.concatenate(img_list, axis=0)
+            std_img = np.std(all_imgs, axis=0)
             std_img_name = 'std_img.nii.gz'
             utils.create_and_save_nii(std_img, os.path.join(curr_img_path, std_img_name))
             logging.info(std_img_name + ' saved')
@@ -207,12 +195,11 @@ def generate_noise_list(noise_shape, seed_list=range(10), noise_function=lambda 
 if __name__ == '__main__':
     # settings
     gan_experiment_list = [
-        'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_0l1_i1',
-        'bousmalis_bn_dropout_keep0.9_10_noise_all_small_data_1e5l1_i1',
+        'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1',
+        'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1'
     ]
-    # TODO: Change for new experiments
-    gan_log_root = os.path.join(sys_config.log_root, 'gan/all_small_images')
-    image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/const_noise')
+    gan_log_root = os.path.join(sys_config.log_root, 'gan/final')
+    image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/const_noise')
     image_saving_indices = set(range(0, 120, 20))
     seed_list = range(10)
 
