@@ -22,6 +22,9 @@ TRAINING AND VALIDATION DATA
 2017-12-01 19:55:52,175  - Labels:
 2017-12-01 19:55:52,175 (2852,)
 2017-12-01 19:55:52,175 uint8
+source 3 T: 1588
+target 1.5 T: 1264
+
 2017-12-01 19:55:52,175 VALIDATiON
 2017-12-01 19:55:52,175  - Images:
 2017-12-01 19:55:52,175 (751, 64, 80, 64)
@@ -29,4 +32,8 @@ TRAINING AND VALIDATION DATA
 2017-12-01 19:55:52,175  - Labels:
 2017-12-01 19:55:52,176 (751,)
 2017-12-01 19:55:52,176 uint8
-{'val': {'source': Counter({2: 208, 0: 172}), 'target': Counter({0: 242, 2: 129})}, 'train': {'source': Counter({0: 837, 2: 751}), 'target': Counter({0: 831, 2: 433})}}
+source 3 T: 380
+target 1.5 T: 371
+
+{'val': {'source': Counter({2: 208, 0: 172}), 'target': Counter({0: 242, 2: 129})},
+'train': {'source': Counter({0: 837, 2: 751}), 'target': Counter({0: 831, 2: 433})}}
