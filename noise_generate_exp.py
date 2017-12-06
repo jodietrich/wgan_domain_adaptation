@@ -158,6 +158,9 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
             for noise_index, noise in enumerate(noise_list):
                 fake_img = sess_gan.run(x_fake_op, feed_dict={generator_img_pl: np.reshape(curr_img, img_tensor_shape),
                                                               z_noise_pl: noise})
+                fake_img = np.squeeze(fake_img)
+                # make sure the dimensions are right
+                assert len(fake_img.shape) == 3
 
                 img_list.append(fake_img)
 
@@ -171,7 +174,8 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
                 utils.create_and_save_nii(difference_image_gs, os.path.join(curr_img_path, difference_img_name))
                 logging.info(difference_img_name + ' saved')
 
-            all_imgs = np.concatenate(img_list, axis=0)
+            # works because axis 0
+            all_imgs = np.stack(img_list, axis=0)
             std_img = np.std(all_imgs, axis=0)
             std_img_name = 'std_img.nii.gz'
             utils.create_and_save_nii(std_img, os.path.join(curr_img_path, std_img_name))
@@ -194,27 +198,33 @@ def generate_noise_list(noise_shape, seed_list=range(10), noise_function=lambda 
 
 if __name__ == '__main__':
     # settings
-    gan_experiment_list = [
+    # TODO: test whether it works with jointly trained generator
+    # experiment lists to choose from
+    gan_experiment_list1 = [
+        'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1',
         'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1',
         'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1'
     ]
-    gan_log_root = os.path.join(sys_config.log_root, 'gan/final')
+    joint_experiment_list1 = [
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
+    ]
+
+    experiment_list = gan_experiment_list1
+    joint = False  # joint or separate training
+    if joint:
+        gan_log_root = os.path.join(sys_config.log_root, 'joint/final')
+    else:
+        gan_log_root = os.path.join(sys_config.log_root, 'gan/final')
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/const_noise')
     image_saving_indices = set(range(0, 120, 20))
     seed_list = range(10)
 
     # put paths for experiments together
-    gan_log_path_list = [os.path.join(gan_log_root, gan_name) for gan_name in gan_experiment_list]
+    log_path_list = [os.path.join(gan_log_root, gan_name) for gan_name in experiment_list]
 
     noise_list = generate_noise_list(noise_shape=(1, std_params.generator_input_noise_shape[1]), seed_list=seed_list)
 
-    generate_with_noise(gan_experiment_path_list=gan_log_path_list,
-                                     noise_list=noise_list,
-                                     image_saving_indices=image_saving_indices,
-                                     image_saving_path=image_saving_path)
-
-
-
-
-
-
+    generate_with_noise(gan_experiment_path_list=log_path_list,
+                        noise_list=noise_list,
+                        image_saving_indices=image_saving_indices,
+                        image_saving_path=image_saving_path)
