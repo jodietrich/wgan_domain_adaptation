@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1'
+experiment_name = 'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1'
 
 # paths
 log_folder = 'joint/final'
@@ -24,19 +24,19 @@ data_root = sys_config.data_root
 preproc_folder = os.path.join(sys_config.project_root, 'data/adni/preprocessed/final')
 rescale_to_one = True
 use_sigmoid = False
-# standard setting
-# source_field_strength = 3.0  # magnetic field strength in T of pictures in the source-domain
-# target_field_strength = 1.5  # magnetic field strength in T of pictures in the target-domain
+# standard setting <---------------------------------------------------------------------------------
+source_field_strength = 3.0  # magnetic field strength in T of pictures in the source-domain
+target_field_strength = 1.5  # magnetic field strength in T of pictures in the target-domain
 
-# reverse setting
-source_field_strength = 1.5  # magnetic field strength in T of pictures in the source-domain
-target_field_strength = 3.0  # magnetic field strength in T of pictures in the target-domain
+# reverse setting  # <---------------------------------------------------------------------------------
+# source_field_strength = 1.5  # magnetic field strength in T of pictures in the source-domain
+# target_field_strength = 3.0  # magnetic field strength in T of pictures in the target-domain
 
 # Cost function
 # Interaction of losses (alpha, beta in pixelDA)
 # the task loss should be in the same order of magnitude as the Wasserstein GAN loss, so the task loss needs to be scaled up
 gan_loss_weight = 1
-task_loss_weight = 1e7
+task_loss_weight = 1e5  # <---------------------------------------------------------------------------------
 # Classifier
 age_weight = 0.0
 diag_weight = 1.0
@@ -104,12 +104,12 @@ update_tensorboard_frequency = 10
 batch_normalization = True
 
 # noise settings
-use_generator_input_noise = False
+use_generator_input_noise = True  # <---------------------------------------------------------------------------------
 generator_input_noise_shape = [batch_size, 10]
 
-# model to use
+# model to use  # <---------------------------------------------------------------------------------
 def generator(xs, z_noise, training, scope_reuse=False, scope_name='generator'):
-    return model_zoo.bousmalis_generator(xs, z_noise=z_noise, training=training, batch_normalization=batch_normalization,
+    return model_zoo.residual_generator(xs, z_noise=z_noise, training=training, batch_normalization=batch_normalization,
                                          residual_blocks=4, nfilters=8, scope_reuse=scope_reuse, scope_name=scope_name)
 
 def discriminator(x, training, scope_reuse=False, scope_name='discriminator'):
