@@ -195,7 +195,7 @@ def test_multiple_classifiers(classifier_exp_list, joint):
 
         # write results to a file
         experiment_file_name = clf_experiment_name + '_step%d' % latest_step
-        result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test', clf_experiment_name)
+        result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test', experiment_file_name)
         # overwrites the old file if there is already a file with this name
         with open(result_file_path, "w") as result_file:
             result_file.write(clf_experiment_name + '\n')
@@ -218,7 +218,14 @@ if __name__ == '__main__':
     classifier_experiment_list2 = [
         'adni_clf_bs20_domains_t15_data_final_i1'
     ]
-    test_multiple_classifiers(classifier_experiment_list2, joint=False)
+    classifier_experiment_list3 = [
+        'adni_clf_bs20_domains_all_data_final_i1',
+        'adni_clf_bs20_domains_s3_data_final_i1',
+        'adni_clf_bs20_domains_s3_gen_bousmalis_1e4l1_10_noise_s3_data_final_i1'
+    ]
+    all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3
+
+    test_multiple_classifiers(classifier_experiment_list3, joint=False)
 
 
 

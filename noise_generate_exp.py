@@ -198,7 +198,6 @@ def generate_noise_list(noise_shape, seed_list=range(10), noise_function=lambda 
 
 if __name__ == '__main__':
     # settings
-    # TODO: test whether it works with jointly trained generator
     # experiment lists to choose from
     gan_experiment_list1 = [
         'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1',
@@ -209,8 +208,8 @@ if __name__ == '__main__':
         'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
     ]
 
-    experiment_list = gan_experiment_list1
-    joint = False  # joint or separate training
+    experiment_list = joint_experiment_list1
+    joint = True  # joint or separate training
     if joint:
         gan_log_root = os.path.join(sys_config.log_root, 'joint/final')
     else:

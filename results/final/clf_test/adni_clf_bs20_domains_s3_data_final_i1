@@ -1,0 +1,6 @@
+adni_clf_bs20_domains_s3_data_final_i1
+step: 9799
+{1.5: {'recall': 0.91981132075471694, 'confusion matrix': array([[229,  60],
+       [ 17, 195]]), 'precision': 0.76470588235294112, 'f1': 0.83511777301927193}, 3.0: {'recall': 0.9007633587786259, 'confusion matrix': array([[218,  34],
+       [ 13, 118]]), 'precision': 0.77631578947368418, 'f1': 0.83392226148409898}, 'all data': {'recall': 0.91253644314868809, 'confusion matrix': array([[447,  94],
+       [ 30, 313]]), 'precision': 0.76904176904176902, 'f1': 0.83466666666666656}}
