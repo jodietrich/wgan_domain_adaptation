@@ -172,9 +172,9 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
     scores['all data'] = test_utils.evaluate_scores(labels_test, all_predictions, score_functions)
 
     # dictionary sorted by key
-    sorted_scores = OrderedDict(sorted(scores.items(), key=lambda t: t[0]))
+    sorted_scores = OrderedDict(sorted(scores.items(), key=lambda t: str(t[0])))
 
-    return scores, latest_step
+    return sorted_scores, latest_step
 
 
 
@@ -210,6 +210,8 @@ def test_multiple_classifiers(classifier_exp_list, joint):
         logging.info('results for ' + str(clf_experiment_name))
         logging.info(clf_scores)
 
+        clf_score_string = nested_dict_multi_line_string(clf_scores)
+
         # write results to a file
         experiment_file_name = clf_experiment_name + '_step%d' % latest_step
         result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test', experiment_file_name)
@@ -217,7 +219,22 @@ def test_multiple_classifiers(classifier_exp_list, joint):
         with open(result_file_path, "w") as result_file:
             result_file.write(clf_experiment_name + '\n')
             result_file.write('step: %d\n' % latest_step)
-            result_file.write(str(clf_scores))
+            result_file.write(clf_score_string)
+
+
+def nested_dict_multi_line_string(dict):
+    # makes a string from a dict of dicts with each value of the inner dicts in a separate line
+    # and each inner dict separated by an empty line
+    outer_lines = []
+    for outer_key, inner_dict in dict.items():
+        outer_string = str(outer_key) + ':\n'
+        for inner_key, value in inner_dict.items():
+            inner_string = str(inner_key) + ': %s\n' % str(value)
+            outer_string += inner_string
+        outer_string += '\n'
+        outer_lines.append(outer_string)
+
+    return '\n'.join(outer_lines)
 
 
 if __name__ == '__main__':
