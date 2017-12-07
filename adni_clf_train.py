@@ -97,7 +97,8 @@ def run_training(continue_run):
     logging.info(images_val.shape[0])
     assert np.array_equal(all_val_ind, range(images_val.shape[0]))
     # check if each list contains only indices it is supposed to contain
-    assert all(data['field_strength_train'][index] == exp_config.source_field_strength for index in source_images_train_ind)
+    assert all(
+        data['field_strength_train'][index] == exp_config.source_field_strength for index in source_images_train_ind)
     assert all(
         data['field_strength_train'][index] == exp_config.target_field_strength for index in target_images_train_ind)
     assert all(

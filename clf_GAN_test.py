@@ -1,36 +1,22 @@
-
+from test_utils import get_latest_checkpoint_and_log, evaluate_scores, build_clf_graph
 
 __author__ = 'jdietric'
 
 import itertools
 import logging
-import time
 import numpy as np
 import os
 import tensorflow as tf
-import shutil
-from importlib.machinery import SourceFileLoader
 from sklearn.metrics import f1_score, recall_score, precision_score
-import operator
 
 import config.system as sys_config
-import gan_model
-from tfwrapper import utils as tf_utils
 import utils
 import adni_data_loader
 import adni_data_loader_all
 import data_utils
-from clf_model_multitask import predict
 import experiments.gan.standard_parameters as std_params
 from batch_generator_list import iterate_minibatches
 
-
-def get_latest_checkpoint_and_log(logdir, filename):
-    init_checkpoint_path = utils.get_latest_model_checkpoint_path(logdir, filename)
-    logging.info('Checkpoint path: %s' % init_checkpoint_path)
-    last_step = int(init_checkpoint_path.split('/')[-1].split('-')[-1])
-    logging.info('Latest step was: %d' % last_step)
-    return init_checkpoint_path
 
 def log_stats_fclf(prediction_count, source_label, target_label):
     total_count = 0
@@ -57,45 +43,6 @@ def log_stats_fclf(prediction_count, source_label, target_label):
     if target_real_count > 0:
         logging.info('fraction of generated pictures classified as target domain images: ' + str(tt/target_real_count))
     return score
-
-def evaluate_scores(true_labels, prediction, measures_dict):
-    scores_one_exp = {}
-    for measure_name, measure in measures_dict.items():
-        logging.info('evaluating ' + measure_name)
-        logging.info(measure)
-        scores_one_exp[measure_name] = measure(y_true = np.asarray(true_labels), y_pred = np.asarray(prediction))
-    return scores_one_exp
-
-def map_labels_to_list(labels, label_list):
-    # label_list is a python list with the labels
-    # map labels in range(len(label_list)) to the labels in label_list
-    # E.g. [0,0,1,1] becomes [0,0,2,2] (if 1 doesnt exist in the data)
-    # label gets mapped to label_list[label]
-    label_lookup = tf.constant(np.array(label_list))
-    return tf.gather(label_lookup, labels)
-
-def build_clf_graph(img_tensor_shape, clf_config, joint=False):
-    graph_classifier = tf.Graph()
-    with graph_classifier.as_default():
-        # image (batch size = 1)
-        x_clf_pl = tf.placeholder(tf.float32, img_tensor_shape, name='z')
-
-        # classification of the real source image and the fake target image
-        predicted_labels, softmax, age_softmaxs = predict(x_clf_pl, clf_config)
-        # scope = tf.get_variable_scope()
-        # scope.reuse_variables()
-
-        # map labels in range(len(label_list)) to the labels in label_list
-        # E.g. [0,0,1,1] becomes [0,0,2,2] (if 1 doesnt exist in the data)
-        predicted_labels_mapped = map_labels_to_list(predicted_labels, clf_config.label_list)
-
-        # Add the variable initializer Op.
-        init = tf.global_variables_initializer()
-
-        # Create a savers for writing training checkpoints.
-        saver = tf.train.Saver()  # disc loss is scaled negative EM distance
-        predictions = {'label': predicted_labels_mapped, 'diag_softmax': softmax, 'age_softmaxs': age_softmaxs}
-        return graph_classifier, x_clf_pl, predictions, init, saver
 
 
 def build_gen_graph(img_tensor_shape, gan_config):

@@ -1,8 +1,7 @@
 # test a given classifier on either 1.5T, 3T or both
 # print f1 score, accuracy, precision and the confusion matrix
 # make it possible to test either the best validation f1 score or loss checkpoints
-
-
+import test_utils
 
 __author__ = 'jdietric'
 
@@ -28,6 +27,7 @@ from clf_model_multitask import predict
 import experiments.gan.standard_parameters as std_params
 from batch_generator_list import iterate_minibatches
 import clf_GAN_test
+from collections import OrderedDict
 
 
 def classifier_test(clf_experiment_path, score_functions, batch_size=1):
@@ -56,7 +56,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
     labels_test = data['diagnosis_test']
     ages_test = data['age_test']
 
-    logging.info('batch size %d is used for everything' % batch_size)
+    logging.info('batch size %d is used for classifier' % batch_size)
     img_tensor_shape = [None] + list(clf_config.image_size) + [1]
 
     # prevents ResourceExhaustError when a lot of memory is used
@@ -66,7 +66,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
 
     # open field strength classifier save file from the selected experiment
     logging.info("loading Alzheimer's disease classifier")
-    graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = clf_GAN_test.build_clf_graph(img_tensor_shape, clf_config)
+    graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = test_utils.build_clf_graph(img_tensor_shape, clf_config)
     logging.info("getting savepoint with the best f1 score")
     checkpoint_file_name = 'model_best_diag_f1.ckpt'
     # logging.info("getting savepoint with the best cross entropy")
@@ -81,6 +81,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
     # classifiy all real test images
     logging.info('classify all test images')
     all_predictions = []
+    ground_truth_labels = []
     for batch in iterate_minibatches(images_test,
                                      [labels_test, ages_test],
                                      batch_size=batch_size,
@@ -92,12 +93,16 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
         image_batch, [real_label, real_age] = batch
 
         current_batch_size = image_batch.shape[0]
-        clf_prediction_real = sess_clf.run(predictions_clf_op, feed_dict={image_pl: image_batch})
+        clf_prediction_batch = sess_clf.run(predictions_clf_op, feed_dict={image_pl: image_batch})
 
-        all_predictions = all_predictions + list(clf_prediction_real['label'])
+        all_predictions = all_predictions + list(clf_prediction_batch['label'])
+        ground_truth_labels = ground_truth_labels + list(real_label)
         logging.info('new image batch')
         logging.info('ground truth labels: ' + str(real_label))
-        logging.info('predicted labels: ' + str(clf_prediction_real['label']))
+        logging.info('predicted labels: ' + str(clf_prediction_batch['label']))
+
+    # check that the data has really been iterated in order and in full
+    assert np.array_equal(ground_truth_labels, labels_test)
 
     source_indices = []
     target_indices = []
@@ -114,6 +119,11 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
             target_indices.append(i)
             target_true_labels.append(labels_test[i])
             target_pred.append(all_predictions[i])
+
+    # check that the source and target images together are all images
+    all_indices = source_indices + target_indices
+    all_indices.sort()
+    assert np.array_equal(all_indices, range(images_test.shape[0]))
 
     # no unexpected labels
     assert all([label in clf_config.label_list for label in source_true_labels])
@@ -157,9 +167,12 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
     logging.info('target prediction: ' + str(target_pred))
     logging.info('target ground truth: ' + str(target_true_labels))
 
-    scores[clf_config.source_field_strength] = clf_GAN_test.evaluate_scores(source_true_labels, source_pred, score_functions)
-    scores[clf_config.target_field_strength] = clf_GAN_test.evaluate_scores(target_true_labels, target_pred, score_functions)
-    scores['all data'] = clf_GAN_test.evaluate_scores(labels_test, all_predictions, score_functions)
+    scores[clf_config.source_field_strength] = test_utils.evaluate_scores(source_true_labels, source_pred, score_functions)
+    scores[clf_config.target_field_strength] = test_utils.evaluate_scores(target_true_labels, target_pred, score_functions)
+    scores['all data'] = test_utils.evaluate_scores(labels_test, all_predictions, score_functions)
+
+    # dictionary sorted by key
+    sorted_scores = OrderedDict(sorted(scores.items(), key=lambda t: t[0]))
 
     return scores, latest_step
 
@@ -179,11 +192,15 @@ def test_multiple_classifiers(classifier_exp_list, joint):
         logging.info('Classifier used: ' + clf_experiment_name)
 
         # what is scored for source, target and generated images
-        score_functions = {'f1': lambda y_true, y_pred: sklearn.metrics.f1_score(y_true, y_pred, pos_label=2, average='binary'),
-                           'recall':  lambda y_true, y_pred: sklearn.metrics.recall_score(y_true, y_pred, pos_label=2, average='binary'),
-                           'precision': lambda y_true, y_pred: sklearn.metrics.precision_score(y_true, y_pred, pos_label=2, average='binary'),
-                           'confusion matrix': lambda y_true, y_pred: sklearn.metrics.confusion_matrix(y_true, y_pred, labels=[0, 2])
-        }
+        score_functions = OrderedDict([
+            ('f1', lambda y_true, y_pred: sklearn.metrics.f1_score(y_true, y_pred, pos_label=2, average='binary')),
+            ('recall',
+             lambda y_true, y_pred: sklearn.metrics.recall_score(y_true, y_pred, pos_label=2, average='binary')),
+            ('precision',
+             lambda y_true, y_pred: sklearn.metrics.precision_score(y_true, y_pred, pos_label=2, average='binary')),
+            ('confusion matrix',
+             lambda y_true, y_pred: sklearn.metrics.confusion_matrix(y_true, y_pred, labels=[0, 2]))])
+
         # confusion matrix = [[tn, fp], [fn, tp]]
 
         clf_scores, latest_step = classifier_test(clf_experiment_path=clf_log_path,
@@ -225,7 +242,7 @@ if __name__ == '__main__':
     ]
     all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3
 
-    test_multiple_classifiers(classifier_experiment_list3, joint=False)
+    test_multiple_classifiers(all_clf_list, joint=False)
 
 
 
