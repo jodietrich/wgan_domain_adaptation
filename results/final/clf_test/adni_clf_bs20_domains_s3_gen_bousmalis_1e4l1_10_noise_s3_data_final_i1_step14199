@@ -1,0 +1,25 @@
+adni_clf_bs20_domains_s3_gen_bousmalis_1e4l1_10_noise_s3_data_final_i1
+step: 14199
+1.5:
+f1: 0.853556485356
+recall: 0.962264150943
+precision: 0.766917293233
+confusion matrix: [[227  62]
+ [  8 204]]
+
+
+3.0:
+f1: 0.845878136201
+recall: 0.900763358779
+precision: 0.797297297297
+confusion matrix: [[222  30]
+ [ 13 118]]
+
+
+all data:
+f1: 0.85072655218
+recall: 0.938775510204
+precision: 0.777777777778
+confusion matrix: [[449  92]
+ [ 21 322]]
+

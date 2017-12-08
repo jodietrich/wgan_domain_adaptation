@@ -259,7 +259,7 @@ if __name__ == '__main__':
     ]
     all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3
 
-    test_multiple_classifiers(all_clf_list, joint=False)
+    test_multiple_classifiers(joint_list1, joint=True)
 
 
 

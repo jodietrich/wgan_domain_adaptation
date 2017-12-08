@@ -1,0 +1,25 @@
+adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_both_domains_s3_data_final_i1
+step: 23199
+1.5:
+f1: 0.856540084388
+recall: 0.957547169811
+precision: 0.774809160305
+confusion matrix: [[230  59]
+ [  9 203]]
+
+
+3.0:
+f1: 0.890566037736
+recall: 0.900763358779
+precision: 0.880597014925
+confusion matrix: [[236  16]
+ [ 13 118]]
+
+
+all data:
+f1: 0.868741542625
+recall: 0.935860058309
+precision: 0.810606060606
+confusion matrix: [[466  75]
+ [ 22 321]]
+

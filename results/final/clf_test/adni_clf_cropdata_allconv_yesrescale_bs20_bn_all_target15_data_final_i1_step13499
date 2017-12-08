@@ -1,0 +1,25 @@
+adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_target15_data_final_i1
+step: 13499
+1.5:
+f1: 0.817248459959
+recall: 0.938679245283
+precision: 0.723636363636
+confusion matrix: [[213  76]
+ [ 13 199]]
+
+
+3.0:
+f1: 0.8
+recall: 0.900763358779
+precision: 0.719512195122
+confusion matrix: [[206  46]
+ [ 13 118]]
+
+
+all data:
+f1: 0.81074168798
+recall: 0.924198250729
+precision: 0.722095671982
+confusion matrix: [[419 122]
+ [ 26 317]]
+
