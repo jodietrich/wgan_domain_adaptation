@@ -10,6 +10,7 @@ from importlib.machinery import SourceFileLoader
 import config.system as sys_config
 import logging
 import tensorflow as tf
+from collections import Counter
 
 def fstr_to_label(fieldstrengths, field_strength_list, label_list):
     # input fieldstrenghts hdf5 list
@@ -206,6 +207,86 @@ def get_session_memory_config():
     config.gpu_options.allow_growth = True  # Do not assign whole gpu memory, just use it on the go
     config.allow_soft_placement = True  # If a operation is not defined in the default device, let it execute in another.
     return config
+
+def tuple_of_lists_to_list_of_tuples(tuple_in):
+    return list(zip(*tuple_in))
+
+def list_of_tuples_to_tuple_of_lists(list_in):
+    return tuple(zip(*list_in))
+
+def remove_count(list_of_tuples, remove_counter):
+    # remove tuples with labels specified by remove_counter from the front of the list in place
+    # tuples (something, label)
+    # remove_counter is a Counter or dict of with labels as keys and how many of each label should get removed
+    # as the corresponding value
+    # assuming only nonnegative counts
+    assert all([item[1] >= 0 for item in remove_counter.items()])
+    for ind, tup in enumerate(list_of_tuples):
+        if sum(remove_counter.values()) == 0:
+            break
+        else:
+            if remove_counter[tup[1]] > 0:
+                list_of_tuples.pop(ind)
+                remove_counter[tup[1]] -= 1
+
+
+def stratify_source_target(source, target, random_seed=None):
+    # source and target are tuples with (indices, labels corresponding to the indices) where indices and labels are lists
+    # the returned data has the same structure but the source and target data have the same cardinality and label distribution
+
+    # make sure there are an equal number of labels and indices
+    if len(source[0]) != len(source[1]):
+        raise ValueError('The number of source indices %d and source labels %d is not equal' % (len(source[0]),len(source[1])))
+    if len(target[0]) != len(target[1]):
+        raise ValueError('The number of target indices %d and target labels %d is not equal' % (len(target[0]),len(target[1])))
+
+    # count the labels
+    source_counter = Counter(source[1])
+    target_counter = Counter(target[1])
+    # only nonnegative counts remain, so just what needs to be removed
+    s_to_remove = source_counter - target_counter
+    t_to_remove = target_counter - source_counter
+
+    # change to a representation with a list of tuples [(index1, label1), ...]
+    source_samples = tuple_of_lists_to_list_of_tuples(source)
+    target_samples = tuple_of_lists_to_list_of_tuples(target)
+
+    # shuffle data
+    np.random.seed(random_seed)
+    np.random.shuffle(source_samples)
+    np.random.shuffle(source_samples)
+
+    # remove tuples
+    remove_count(source_samples, s_to_remove)
+    remove_count(target_samples, t_to_remove)
+
+    # sort by index
+    sort_key = lambda t: t[0]
+    source_samples.sort(key=sort_key)
+    target_samples.sort(key=sort_key)
+
+    # change back to a representation with a tuple of lists of tuples ([index1, index2, ...], [label1, label2, ...])
+    reduced_source = list_of_tuples_to_tuple_of_lists(source_samples)
+    reduced_target = list_of_tuples_to_tuple_of_lists(target_samples)
+
+    reduced_source_count = Counter(reduced_source[1])
+    reduced_target_count = Counter(reduced_target[1])
+    logging.info('source label count after reduction' + str(reduced_source_count))
+    logging.info('target label count after reduction' + str(reduced_target_count))
+    # check whether the label counts of source and target domain are now equal
+    assert reduced_source_count == reduced_target_count
+
+    return reduced_source, reduced_target
+
+
+if __name__ == '__main__':
+    source_indices1 = [0, 2, 3]
+    source_labels1 = [0, 2, 0]
+    target_indices1 = [1, 4, 5]
+    target_labels1 = [2, 2, 0]
+    source, target = stratify_source_target((source_indices1, source_labels1), (target_indices1, target_labels1))
+    print(source)
+    print(target)
 
 
 

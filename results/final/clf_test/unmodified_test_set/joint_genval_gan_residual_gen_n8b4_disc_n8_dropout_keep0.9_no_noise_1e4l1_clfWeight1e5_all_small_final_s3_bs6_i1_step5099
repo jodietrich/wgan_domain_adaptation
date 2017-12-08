@@ -1,0 +1,25 @@
+joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1
+step: 5099
+1.5:
+f1: 0.844036697248
+recall: 0.867924528302
+precision: 0.821428571429
+confusion matrix: [[249  40]
+ [ 28 184]]
+
+
+3.0:
+f1: 0.877323420074
+recall: 0.900763358779
+precision: 0.855072463768
+confusion matrix: [[232  20]
+ [ 13 118]]
+
+
+all data:
+f1: 0.856737588652
+recall: 0.880466472303
+precision: 0.834254143646
+confusion matrix: [[481  60]
+ [ 41 302]]
+

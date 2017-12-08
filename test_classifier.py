@@ -114,16 +114,23 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
         if field_strength == clf_config.source_field_strength:
             source_indices.append(i)
             source_true_labels.append(labels_test[i])
-            source_pred.append(all_predictions[i])
         elif field_strength == clf_config.target_field_strength:
             target_indices.append(i)
             target_true_labels.append(labels_test[i])
-            target_pred.append(all_predictions[i])
 
     # check that the source and target images together are all images
     all_indices = source_indices + target_indices
     all_indices.sort()
     assert np.array_equal(all_indices, range(images_test.shape[0]))
+
+    # throw away some data from source and target such that they have the same AD/normal ratio
+    # this stratified test dataset should make comparisons between the scores with the different test sets more meaningful
+    # the seed makes sure that the new test data are always the same
+    (source_indices, source_true_labels), (target_indices, target_true_labels) = stratify_source_target(
+        (source_indices, source_true_labels), (target_indices, target_true_labels), random_seed=0)
+
+    source_pred = [all_predictions[ind] for ind in source_indices]
+    target_pred = [all_predictions[ind] for ind in target_indices]
 
     # no unexpected labels
     assert all([label in clf_config.label_list for label in source_true_labels])
@@ -214,7 +221,7 @@ def test_multiple_classifiers(classifier_exp_list, joint):
 
         # write results to a file
         experiment_file_name = clf_experiment_name + '_step%d' % latest_step
-        result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test', experiment_file_name)
+        result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test/stratified_test_set', experiment_file_name)
         # overwrites the old file if there is already a file with this name
         with open(result_file_path, "w") as result_file:
             result_file.write(clf_experiment_name + '\n')
@@ -249,6 +256,12 @@ if __name__ == '__main__':
         'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
         'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1'
     ]
+    joint_list2 = [
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1',
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s15_bs6_i1',
+        'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
+        'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1'
+    ]
     classifier_experiment_list2 = [
         'adni_clf_bs20_domains_t15_data_final_i1'
     ]
@@ -259,7 +272,7 @@ if __name__ == '__main__':
     ]
     all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3
 
-    test_multiple_classifiers(joint_list1, joint=True)
+    test_multiple_classifiers(joint_list2, joint=True)
 
 
 
