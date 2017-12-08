@@ -212,7 +212,8 @@ def tuple_of_lists_to_list_of_tuples(tuple_in):
     return list(zip(*tuple_in))
 
 def list_of_tuples_to_tuple_of_lists(list_in):
-    return tuple(zip(*list_in))
+    # zip(*list_in) is a tuple of tuples
+    return tuple(list(element) for element in zip(*list_in))
 
 def remove_count(list_of_tuples, remove_counter):
     # remove tuples with labels specified by remove_counter from the front of the list in place
@@ -220,14 +221,23 @@ def remove_count(list_of_tuples, remove_counter):
     # remove_counter is a Counter or dict of with labels as keys and how many of each label should get removed
     # as the corresponding value
     # assuming only nonnegative counts
-    assert all([item[1] >= 0 for item in remove_counter.items()])
+    if not all([item[1] >= 0 for item in remove_counter.items()]):
+        raise ValueError('There are negative counts in remove_counter %s' % str(remove_counter))
+
+    remove_counter_copy = remove_counter.copy()
+    remove_indices = set()
     for ind, tup in enumerate(list_of_tuples):
         if sum(remove_counter.values()) == 0:
             break
         else:
-            if remove_counter[tup[1]] > 0:
-                list_of_tuples.pop(ind)
-                remove_counter[tup[1]] -= 1
+            if remove_counter_copy[tup[1]] > 0:
+                remove_counter_copy[tup[1]] -= 1
+                remove_indices.add(ind)
+    # make a list with only the tuples that have an index in keep_indices
+    all_indices = set(range(len(list_of_tuples)))
+    keep_indices = all_indices - remove_indices
+    reduced_list = [element for ind, element in enumerate(list_of_tuples) if ind in keep_indices]
+    return reduced_list
 
 
 def stratify_source_target(source, target, random_seed=None):
@@ -257,8 +267,8 @@ def stratify_source_target(source, target, random_seed=None):
     np.random.shuffle(source_samples)
 
     # remove tuples
-    remove_count(source_samples, s_to_remove)
-    remove_count(target_samples, t_to_remove)
+    source_samples = remove_count(source_samples, s_to_remove)
+    target_samples = remove_count(target_samples, t_to_remove)
 
     # sort by index
     sort_key = lambda t: t[0]
@@ -271,8 +281,8 @@ def stratify_source_target(source, target, random_seed=None):
 
     reduced_source_count = Counter(reduced_source[1])
     reduced_target_count = Counter(reduced_target[1])
-    logging.info('source label count after reduction' + str(reduced_source_count))
-    logging.info('target label count after reduction' + str(reduced_target_count))
+    logging.info('source label count after reduction ' + str(reduced_source_count))
+    logging.info('target label count after reduction ' + str(reduced_target_count))
     # check whether the label counts of source and target domain are now equal
     assert reduced_source_count == reduced_target_count
 
@@ -284,7 +294,14 @@ if __name__ == '__main__':
     source_labels1 = [0, 2, 0]
     target_indices1 = [1, 4, 5]
     target_labels1 = [2, 2, 0]
-    source, target = stratify_source_target((source_indices1, source_labels1), (target_indices1, target_labels1))
+    source_labels2 = [0, 0, 0]
+    target_indices2 = [1, 4, 5, 6, 7]
+    target_labels2 = [2, 2, 0, 0, 2]
+    source = (source_indices1, source_labels2)
+    target = (target_indices2, target_labels2)
+    print(source)
+    print(target)
+    source, target = stratify_source_target(source, target, random_seed=0)
     print(source)
     print(target)
 
