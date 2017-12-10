@@ -1,0 +1,25 @@
+adni_clf_bs20_domains_t15_data_final_i1
+step: 30799
+1.5:
+f1: 0.747663551402
+recall: 0.916030534351
+precision: 0.631578947368
+confusion matrix: [[182  70]
+ [ 11 120]]
+
+
+3.0:
+f1: 0.858156028369
+recall: 0.923664122137
+precision: 0.801324503311
+confusion matrix: [[222  30]
+ [ 10 121]]
+
+
+all data:
+f1: 0.799336650083
+recall: 0.919847328244
+precision: 0.706744868035
+confusion matrix: [[404 100]
+ [ 21 241]]
+
