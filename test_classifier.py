@@ -132,6 +132,8 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
         all_indices = source_indices + target_indices
         all_indices.sort()
         labels_test = [label for ind, label in enumerate(labels_test) if ind in all_indices]
+        all_predictions_reduced = [pred for ind, pred in enumerate(all_predictions) if ind in all_indices]
+        all_predictions = all_predictions_reduced
 
     source_pred = [all_predictions[ind] for ind in source_indices]
     target_pred = [all_predictions[ind] for ind in target_indices]
