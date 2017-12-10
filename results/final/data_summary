@@ -14,6 +14,22 @@ TEST DATA
 2017-11-09 10:07:35,071 number of target images: 435
 2017-11-09 10:07:35,071 target label distribution {0: 292, 2: 143}
 
+BALANCED TEST DATA
+23435572017-12-10 16:00:38,730 Data summary:
+2017-12-10 16:00:38,731  - Images (before reduction):
+2017-12-10 16:00:38,731 (884, 64, 80, 64)
+2017-12-10 16:00:38,731 float32
+2017-12-10 16:00:38,731  - Labels:
+2017-12-10 16:00:38,731 766
+2017-12-10 16:00:38,731 number of images for each label
+2017-12-10 16:00:38,731 {0: 504, 2: 262}
+2017-12-10 16:00:38,731  - Domains:
+2017-12-10 16:00:38,731 number of source images: 383
+2017-12-10 16:00:38,731 source label distribution {0: 252, 2: 131}
+2017-12-10 16:00:38,731 number of target images: 383
+2017-12-10 16:00:38,731 target label distribution {0: 252, 2: 131}
+
+
 TRAINING AND VALIDATION DATA
 
 2017-12-01 19:55:52,175 TRAINING

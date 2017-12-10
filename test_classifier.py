@@ -165,7 +165,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
         target_label_count[label] += 1
 
     logging.info('Data summary:')
-    logging.info(' - Images:')
+    logging.info(' - Images (before reduction):')
     logging.info(images_test.shape)
     logging.info(images_test.dtype)
     logging.info(' - Labels:')
@@ -286,7 +286,7 @@ if __name__ == '__main__':
     all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3
     all_joint_list = joint_list1 + joint_list2
 
-    test_multiple_classifiers(all_clf_list, joint=False)
+    test_multiple_classifiers(all_joint_list, joint=True)
 
 
 
