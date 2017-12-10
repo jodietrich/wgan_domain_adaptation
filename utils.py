@@ -240,7 +240,7 @@ def remove_count(list_of_tuples, remove_counter):
     return reduced_list
 
 
-def stratify_source_target(source, target, random_seed=None):
+def balance_source_target(source, target, random_seed=None):
     # source and target are tuples with (indices, labels corresponding to the indices) where indices and labels are lists
     # the returned data has the same structure but the source and target data have the same cardinality and label distribution
 
@@ -301,7 +301,7 @@ if __name__ == '__main__':
     target = (target_indices2, target_labels2)
     print(source)
     print(target)
-    source, target = stratify_source_target(source, target, random_seed=0)
+    source, target = balance_source_target(source, target, random_seed=0)
     print(source)
     print(target)
 

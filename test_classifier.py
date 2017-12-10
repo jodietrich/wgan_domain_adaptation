@@ -30,7 +30,7 @@ import clf_GAN_test
 from collections import OrderedDict
 
 
-def classifier_test(clf_experiment_path, score_functions, batch_size=1, stratified_test=True):
+def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced_test=True):
     """
 
     :param clf_experiment_path: AD classifier used
@@ -126,9 +126,12 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, stratifi
     # throw away some data from source and target such that they have the same AD/normal ratio
     # this stratified test dataset should make comparisons between the scores with the different test sets more meaningful
     # the seed makes sure that the new test data are always the same
-    if stratified_test:
-        (source_indices, source_true_labels), (target_indices, target_true_labels) = utils.stratify_source_target(
+    if balanced_test:
+        (source_indices, source_true_labels), (target_indices, target_true_labels) = utils.balance_source_target(
             (source_indices, source_true_labels), (target_indices, target_true_labels), random_seed=0)
+        all_indices = source_indices + target_indices
+        all_indices.sort()
+        labels_test = [label for ind, label in enumerate(labels_test) if ind in all_indices]
 
     source_pred = [all_predictions[ind] for ind in source_indices]
     target_pred = [all_predictions[ind] for ind in target_indices]
@@ -141,6 +144,14 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, stratifi
 
     num_source_images = len(source_indices)
     num_target_images = len(target_indices)
+
+    assert set(source_indices).isdisjoint(target_indices)
+    assert num_source_images == len(source_true_labels)
+    assert num_source_images == len(source_true_labels)
+    assert num_target_images == len(target_true_labels)
+    assert num_target_images == len(target_true_labels)
+    assert num_target_images + num_source_images == len(labels_test)
+
 
     # count how many there are of each label
     label_count = {label: 0 for label in clf_config.label_list}
@@ -214,7 +225,7 @@ def test_multiple_classifiers(classifier_exp_list, joint):
         clf_scores, latest_step = classifier_test(clf_experiment_path=clf_log_path,
                                                   score_functions=score_functions,
                                                   batch_size=20,
-                                                  stratified_test=True)
+                                                  balanced_test=True)
 
         logging.info('results for ' + str(clf_experiment_name))
         logging.info(clf_scores)
