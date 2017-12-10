@@ -30,7 +30,7 @@ import clf_GAN_test
 from collections import OrderedDict
 
 
-def classifier_test(clf_experiment_path, score_functions, batch_size=1):
+def classifier_test(clf_experiment_path, score_functions, batch_size=1, stratified_test=True):
     """
 
     :param clf_experiment_path: AD classifier used
@@ -126,8 +126,9 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1):
     # throw away some data from source and target such that they have the same AD/normal ratio
     # this stratified test dataset should make comparisons between the scores with the different test sets more meaningful
     # the seed makes sure that the new test data are always the same
-    (source_indices, source_true_labels), (target_indices, target_true_labels) = stratify_source_target(
-        (source_indices, source_true_labels), (target_indices, target_true_labels), random_seed=0)
+    if stratified_test:
+        (source_indices, source_true_labels), (target_indices, target_true_labels) = utils.stratify_source_target(
+            (source_indices, source_true_labels), (target_indices, target_true_labels), random_seed=0)
 
     source_pred = [all_predictions[ind] for ind in source_indices]
     target_pred = [all_predictions[ind] for ind in target_indices]
@@ -211,8 +212,9 @@ def test_multiple_classifiers(classifier_exp_list, joint):
         # confusion matrix = [[tn, fp], [fn, tp]]
 
         clf_scores, latest_step = classifier_test(clf_experiment_path=clf_log_path,
-                                     score_functions=score_functions,
-                                     batch_size=20)
+                                                  score_functions=score_functions,
+                                                  batch_size=20,
+                                                  stratified_test=True)
 
         logging.info('results for ' + str(clf_experiment_name))
         logging.info(clf_scores)
@@ -271,8 +273,9 @@ if __name__ == '__main__':
         'adni_clf_bs20_domains_s3_gen_bousmalis_1e4l1_10_noise_s3_data_final_i1'
     ]
     all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3
+    all_joint_list = joint_list1 + joint_list2
 
-    test_multiple_classifiers(joint_list2, joint=True)
+    test_multiple_classifiers(all_clf_list, joint=False)
 
 
 
