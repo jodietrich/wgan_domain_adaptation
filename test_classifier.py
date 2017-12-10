@@ -132,8 +132,6 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
         all_indices = source_indices + target_indices
         all_indices.sort()
         labels_test = [label for ind, label in enumerate(labels_test) if ind in all_indices]
-        all_predictions_reduced = [pred for ind, pred in enumerate(all_predictions) if ind in all_indices]
-        all_predictions = all_predictions_reduced
 
     source_pred = [all_predictions[ind] for ind in source_indices]
     target_pred = [all_predictions[ind] for ind in target_indices]
@@ -189,8 +187,9 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
 
     scores[clf_config.source_field_strength] = test_utils.evaluate_scores(source_true_labels, source_pred, score_functions)
     scores[clf_config.target_field_strength] = test_utils.evaluate_scores(target_true_labels, target_pred, score_functions)
-    scores['all data'] = test_utils.evaluate_scores(labels_test, all_predictions, score_functions)
-
+    true_labels_together = source_true_labels + target_true_labels
+    pred_together = source_pred + target_pred
+    scores['all data'] = test_utils.evaluate_scores(true_labels_together, pred_together, score_functions)
     # dictionary sorted by key
     sorted_scores = OrderedDict(sorted(scores.items(), key=lambda t: str(t[0])))
 
