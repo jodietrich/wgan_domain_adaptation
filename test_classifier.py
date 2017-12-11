@@ -152,6 +152,9 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
     assert num_target_images == len(target_true_labels)
     assert num_target_images + num_source_images == len(labels_test)
 
+    if balanced_test:
+        assert num_source_images == num_target_images
+
 
     # count how many there are of each label
     label_count = {label: 0 for label in clf_config.label_list}
@@ -234,7 +237,7 @@ def test_multiple_classifiers(classifier_exp_list, joint):
 
         # write results to a file
         experiment_file_name = clf_experiment_name + '_step%d' % latest_step
-        result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test/stratified_test_set', experiment_file_name)
+        result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test/balanced_test_set', experiment_file_name)
         # overwrites the old file if there is already a file with this name
         with open(result_file_path, "w") as result_file:
             result_file.write(clf_experiment_name + '\n')
