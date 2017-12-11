@@ -4,7 +4,7 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1'
+experiment_name = 'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1'
 
 # paths
 log_folder = 'joint/final'
@@ -25,12 +25,12 @@ preproc_folder = os.path.join(sys_config.project_root, 'data/adni/preprocessed/f
 rescale_to_one = True
 use_sigmoid = False
 # standard setting <---------------------------------------------------------------------------------
-source_field_strength = 3.0  # magnetic field strength in T of pictures in the source-domain
-target_field_strength = 1.5  # magnetic field strength in T of pictures in the target-domain
+# source_field_strength = 3.0  # magnetic field strength in T of pictures in the source-domain
+# target_field_strength = 1.5  # magnetic field strength in T of pictures in the target-domain
 
 # reverse setting  # <---------------------------------------------------------------------------------
-# source_field_strength = 1.5  # magnetic field strength in T of pictures in the source-domain
-# target_field_strength = 3.0  # magnetic field strength in T of pictures in the target-domain
+source_field_strength = 1.5  # magnetic field strength in T of pictures in the source-domain
+target_field_strength = 3.0  # magnetic field strength in T of pictures in the target-domain
 
 # Cost function
 # Interaction of losses (alpha, beta in pixelDA)
@@ -104,7 +104,7 @@ update_tensorboard_frequency = 10
 batch_normalization = True
 
 # noise settings
-use_generator_input_noise = True  # <---------------------------------------------------------------------------------
+use_generator_input_noise = False  # <---------------------------------------------------------------------------------
 generator_input_noise_shape = [batch_size, 10]
 
 # model to use  # <---------------------------------------------------------------------------------

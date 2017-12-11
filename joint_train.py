@@ -273,9 +273,9 @@ def run_training(continue_run):
         # Create a savers for writing training checkpoints.
         saver_latest = tf.train.Saver(max_to_keep=2)
         saver_best_disc = tf.train.Saver(max_to_keep=2)  # disc loss is scaled negative EM distance
-        saver_best_diag_f1 = tf.train.Saver(max_to_keep=2)
-        saver_best_ages_f1 = tf.train.Saver(max_to_keep=2)
-        saver_best_xent = tf.train.Saver(max_to_keep=2)
+        saver_best_diag_f1 = tf.train.Saver(max_to_keep=5)
+        saver_best_ages_f1 = tf.train.Saver(max_to_keep=1)
+        saver_best_xent = tf.train.Saver(max_to_keep=5)
 
         # validation summaries gan
         val_disc_loss_pl = tf.placeholder(tf.float32, shape=[], name='disc_val_loss')

@@ -258,9 +258,9 @@ def run_training(continue_run):
 
         # Create a saver for writing training checkpoints.
         saver = tf.train.Saver(max_to_keep=3)
-        saver_best_diag_f1 = tf.train.Saver(max_to_keep=2)
+        saver_best_diag_f1 = tf.train.Saver(max_to_keep=5)
         saver_best_ages_f1 = tf.train.Saver(max_to_keep=2)
-        saver_best_xent = tf.train.Saver(max_to_keep=2)
+        saver_best_xent = tf.train.Saver(max_to_keep=5)
 
         # build generator graph if generator is used
         if exp_config.use_generator:
