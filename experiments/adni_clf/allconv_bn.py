@@ -4,13 +4,13 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'adni_clf_bs20_domains_s15_gen_bousmalis_no_noise_final_i1'
+experiment_name = 'adni_clf_bs20_domains_s3_gen_residual_10_noise_final_i1'
 
 # paths
 log_folder = 'adni_clf/final'
 # <------------------------------------------------------------------------
 generator_path = '/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt/log_dir/gan/final/' \
-                 + 'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s15_final_i1'
+                 + 'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1'
 
 # Model settings
 clf_model_handle = model_zoo.FCN_multitask_ordinal_bn
@@ -28,12 +28,12 @@ preproc_folder = os.path.join(sys_config.project_root,'data/adni/preprocessed/fi
 rescale_to_one = True
 use_sigmoid = False
 # standard setting  # <------------------------------------------------------------------------
-# source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
-# target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
+source_field_strength = 3.0 # magnetic field strength in T of pictures in the source-domain
+target_field_strength = 1.5 # magnetic field strength in T of pictures in the target-domain
 
 # reverse setting # <------------------------------------------------------------------------
-source_field_strength = 1.5 # magnetic field strength in T of pictures in the source-domain
-target_field_strength = 3.0 # magnetic field strength in T of pictures in the target-domain
+# source_field_strength = 1.5 # magnetic field strength in T of pictures in the source-domain
+# target_field_strength = 3.0 # magnetic field strength in T of pictures in the target-domain
 
 # <------------------------------------------------------------------------
 training_domain = 'source' # from {'source', 'target', 'all'}. From which domain are the training and validation images.
