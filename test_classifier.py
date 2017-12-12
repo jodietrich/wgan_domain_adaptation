@@ -278,6 +278,12 @@ if __name__ == '__main__':
         'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
         'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1'
     ]
+    joint_list3 = [
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1',
+        'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1'
+    ]
+
     classifier_experiment_list2 = [
         'adni_clf_bs20_domains_t15_data_final_i1'
     ]
@@ -286,10 +292,13 @@ if __name__ == '__main__':
         'adni_clf_bs20_domains_s3_data_final_i1',
         'adni_clf_bs20_domains_s3_gen_bousmalis_1e4l1_10_noise_s3_data_final_i1'
     ]
-    all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3
-    all_joint_list = joint_list1 + joint_list2
+    classifier_experiment_list4 = [
+        'adni_clf_bs20_domains_s15_gen_bousmalis_no_noise_final_i1'
+    ]
+    all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3 + classifier_experiment_list4
+    all_joint_list = joint_list1 + joint_list2 + joint_list3
 
-    test_multiple_classifiers(all_joint_list, joint=True)
+    test_multiple_classifiers(classifier_experiment_list4, joint=False)
 
 
 
