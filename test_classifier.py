@@ -30,7 +30,8 @@ import clf_GAN_test
 from collections import OrderedDict
 
 
-def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced_test=True):
+def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced_test=True,
+                    checkpoint_file_name='model_best_xent.ckpt'):
     """
 
     :param clf_experiment_path: AD classifier used
@@ -67,10 +68,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
     # open field strength classifier save file from the selected experiment
     logging.info("loading Alzheimer's disease classifier")
     graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = test_utils.build_clf_graph(img_tensor_shape, clf_config)
-    logging.info("getting savepoint with the best f1 score")
-    checkpoint_file_name = 'model_best_diag_f1.ckpt'
-    # logging.info("getting savepoint with the best cross entropy")
-    # checkpoint_file_name = 'model_best_xent'
+    logging.info("getting savepoint %s" % checkpoint_file_name)
     init_checkpoint_path_clf, latest_step = utils.get_latest_checkpoint_and_step(logdir_clf, checkpoint_file_name)
     # logging.info("getting savepoint with the best f1 score")
     # init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_diag_f1.ckpt')
@@ -200,7 +198,18 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
 
 
 
-def test_multiple_classifiers(classifier_exp_list, joint):
+def test_multiple_classifiers(classifier_exp_list, joint, checkpoint_file_name):
+    #options
+    selection_criterion = 'xent'
+    #selection_criterion = 'f1'
+
+    if selection_criterion == 'xent':
+        checkpoint_file_name = 'model_best_xent.ckpt'
+    elif selection_criterion == 'f1':
+        checkpoint_file_name = 'model_best_diag_f1.ckpt'
+    else:
+        raise ValueError("%s is not a valid selection criterion. Must be in {'xent', 'f1'}" % str(selection_criterion))
+
     for clf_experiment_name in classifier_exp_list:
         if joint:
             clf_log_root = os.path.join(sys_config.log_root, 'joint/final')
@@ -228,7 +237,8 @@ def test_multiple_classifiers(classifier_exp_list, joint):
         clf_scores, latest_step = classifier_test(clf_experiment_path=clf_log_path,
                                                   score_functions=score_functions,
                                                   batch_size=20,
-                                                  balanced_test=True)
+                                                  balanced_test=True,
+                                                  checkpoint_file_name=checkpoint_file_name)
 
         logging.info('results for ' + str(clf_experiment_name))
         logging.info(clf_scores)
@@ -236,7 +246,8 @@ def test_multiple_classifiers(classifier_exp_list, joint):
         clf_score_string = nested_dict_multi_line_string(clf_scores)
 
         # write results to a file
-        experiment_file_name = clf_experiment_name + '_step%d' % latest_step
+        experiment_file_name = clf_experiment_name + '_' + selection_criterion + '_step%d' % latest_step
+        middle_path = os.path.join('results/final/clf_test', selection_criterion, 'balanced_test_set')
         result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test/balanced_test_set', experiment_file_name)
         # overwrites the old file if there is already a file with this name
         with open(result_file_path, "w") as result_file:
@@ -295,10 +306,19 @@ if __name__ == '__main__':
     classifier_experiment_list4 = [
         'adni_clf_bs20_domains_s15_gen_bousmalis_no_noise_final_i1'
     ]
-    all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3 + classifier_experiment_list4
-    all_joint_list = joint_list1 + joint_list2 + joint_list3
+    classifier_experiment_list5 = [
+        'adni_clf_bs20_domains_s3_gen_residual_10_noise_final_i1',
+        'adni_clf_bs20_domains_s3_gen_residual_no_noise_final_i1',
+    ]
 
-    test_multiple_classifiers(classifier_experiment_list4, joint=False)
+    joint_list4 = [
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1'
+    ]
+    all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3 + classifier_experiment_list4 \
+                   + classifier_experiment_list5
+    all_joint_list = joint_list1 + joint_list2 + joint_list3 + joint_list4
+
+    test_multiple_classifiers(joint_list4, joint=True)
 
 
 
