@@ -1,0 +1,26 @@
+joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1
+selection criterion: xent
+step: 2599
+1.5:
+f1: 0.754237288136
+recall: 0.679389312977
+precision: 0.847619047619
+confusion matrix: [[236  16]
+ [ 42  89]]
+
+
+3.0:
+f1: 0.82905982906
+recall: 0.740458015267
+precision: 0.941747572816
+confusion matrix: [[246   6]
+ [ 34  97]]
+
+
+all data:
+f1: 0.791489361702
+recall: 0.709923664122
+precision: 0.894230769231
+confusion matrix: [[482  22]
+ [ 76 186]]
+

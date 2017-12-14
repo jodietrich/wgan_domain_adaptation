@@ -1,0 +1,26 @@
+adni_clf_bs20_domains_t15_data_final_i1
+selection criterion: xent
+step: 2499
+1.5:
+f1: 0.797101449275
+recall: 0.839694656489
+precision: 0.758620689655
+confusion matrix: [[217  35]
+ [ 21 110]]
+
+
+3.0:
+f1: 0.831460674157
+recall: 0.847328244275
+precision: 0.816176470588
+confusion matrix: [[227  25]
+ [ 20 111]]
+
+
+all data:
+f1: 0.813996316759
+recall: 0.843511450382
+precision: 0.786476868327
+confusion matrix: [[444  60]
+ [ 41 221]]
+

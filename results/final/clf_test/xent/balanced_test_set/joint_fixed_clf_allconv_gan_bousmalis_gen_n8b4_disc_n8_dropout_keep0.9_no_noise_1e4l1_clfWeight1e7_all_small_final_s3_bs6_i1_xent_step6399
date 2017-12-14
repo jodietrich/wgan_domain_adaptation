@@ -1,0 +1,26 @@
+joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1
+selection criterion: xent
+step: 6399
+1.5:
+f1: 0.68202764977
+recall: 0.564885496183
+precision: 0.860465116279
+confusion matrix: [[240  12]
+ [ 57  74]]
+
+
+3.0:
+f1: 0.8
+recall: 0.671755725191
+precision: 0.988764044944
+confusion matrix: [[251   1]
+ [ 43  88]]
+
+
+all data:
+f1: 0.741418764302
+recall: 0.618320610687
+precision: 0.925714285714
+confusion matrix: [[491  13]
+ [100 162]]
+

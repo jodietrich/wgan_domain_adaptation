@@ -198,7 +198,7 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
 
 
 
-def test_multiple_classifiers(classifier_exp_list, joint, checkpoint_file_name):
+def test_multiple_classifiers(classifier_exp_list, joint):
     #options
     selection_criterion = 'xent'
     #selection_criterion = 'f1'
@@ -248,10 +248,11 @@ def test_multiple_classifiers(classifier_exp_list, joint, checkpoint_file_name):
         # write results to a file
         experiment_file_name = clf_experiment_name + '_' + selection_criterion + '_step%d' % latest_step
         middle_path = os.path.join('results/final/clf_test', selection_criterion, 'balanced_test_set')
-        result_file_path = os.path.join(sys_config.project_root, 'results/final/clf_test/balanced_test_set', experiment_file_name)
+        result_file_path = os.path.join(sys_config.project_root, middle_path, experiment_file_name)
         # overwrites the old file if there is already a file with this name
         with open(result_file_path, "w") as result_file:
             result_file.write(clf_experiment_name + '\n')
+            result_file.write('selection criterion: %s\n' % selection_criterion)
             result_file.write('step: %d\n' % latest_step)
             result_file.write(clf_score_string)
 
@@ -272,12 +273,16 @@ def nested_dict_multi_line_string(dict):
 
 
 if __name__ == '__main__':
-    classifier_experiment_list1 = [
-        'adni_clf_bs20_domains_s_bousmalis_gen_1e4l1_no_noise_s3_data_final_i1',
+    classifier_experiment_list_mistakes = [
         'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_both_domains_s3_data_final_i1',
         'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_source3_data_final_i1',
         'adni_clf_cropdata_allconv_yesrescale_bs20_bn_all_target15_data_final_i1'
     ]
+
+    classifier_experiment_list1 = [
+        'adni_clf_bs20_domains_s_bousmalis_gen_1e4l1_no_noise_s3_data_final_i1',
+    ]
+
     joint_list1 = [
         'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e3_all_small_final_s3_bs6_i1',
         'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1',
@@ -318,7 +323,7 @@ if __name__ == '__main__':
                    + classifier_experiment_list5
     all_joint_list = joint_list1 + joint_list2 + joint_list3 + joint_list4
 
-    test_multiple_classifiers(joint_list4, joint=True)
+    test_multiple_classifiers(all_clf_list, joint=False)
 
 
 
