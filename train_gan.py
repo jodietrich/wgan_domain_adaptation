@@ -33,7 +33,7 @@ from experiments.gan import standard_parameters
 log_dir = os.path.join(sys_config.log_root, exp_config.log_folder, exp_config.experiment_name)
 
 
-def run_training(continue_run):
+def run_training(continue_run, log_dir):
 
     logging.info('===== RUNNING EXPERIMENT ========')
     logging.info(exp_config.experiment_name)
@@ -48,6 +48,8 @@ def run_training(continue_run):
             logging.info('Checkpoint path: %s' % init_checkpoint_path)
             init_step = int(init_checkpoint_path.split('/')[-1].split('-')[-1]) + 1  # plus 1 b/c otherwise starts with eval
             logging.info('Latest step was: %d' % init_step)
+            log_dir += '_cont'
+
         except:
             logging.warning('!!! Didnt find init checkpoint. Maybe first run failed. Disabling continue mode...')
             continue_run = False
@@ -306,11 +308,20 @@ def main():
         continue_run = False
 
     # Copy experiment config file and standard_parameters file
-    shutil.copy(exp_config.__file__, log_dir)
-    shutil.copy(standard_parameters.__file__, log_dir)
+    if continue_run:
+        tf.gfile.MakeDirs(log_dir + '_cont')
+        used_log_dir = log_dir + '_cont'
+    else:
+        used_log_dir = log_dir
+
+    run_training(continue_run, log_dir=log_dir)
+
+    # Copy experiment config file and standard_parameters file
+    shutil.copy(exp_config.__file__, used_log_dir)
+    shutil.copy(standard_parameters.__file__, used_log_dir)
 
 
-    run_training(continue_run)
+    run_training(continue_run, log_dir=log_dir)
 
 
 if __name__ == '__main__':
