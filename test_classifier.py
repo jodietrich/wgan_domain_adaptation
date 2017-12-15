@@ -223,8 +223,8 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
 
 def test_multiple_classifiers(classifier_exp_list, joint):
     #options
-    selection_criterion = 'xent'
-    #selection_criterion = 'f1'
+    # selection_criterion = 'xent'
+    selection_criterion = 'f1'
 
     if selection_criterion == 'xent':
         checkpoint_file_name = 'model_best_xent.ckpt'
