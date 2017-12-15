@@ -27,7 +27,7 @@ from clf_model_multitask import predict
 import experiments.gan.standard_parameters as std_params
 from batch_generator_list import iterate_minibatches
 import clf_GAN_test
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 
 
 def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced_test=True,
@@ -121,15 +121,47 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
     all_indices.sort()
     assert np.array_equal(all_indices, range(images_test.shape[0]))
 
+    source_label_count = Counter(source_true_labels)
+    target_label_count = Counter(target_true_labels)
+    logging.info('before balancing')
+    logging.info('source labels count: ' + str(source_label_count))
+    logging.info('target labels count: ' + str(target_label_count))
+
     # throw away some data from source and target such that they have the same AD/normal ratio
     # this stratified test dataset should make comparisons between the scores with the different test sets more meaningful
     # the seed makes sure that the new test data are always the same
     if balanced_test:
-        (source_indices, source_true_labels), (target_indices, target_true_labels) = utils.balance_source_target(
+        (source_indices_new, source_true_labels_new), (target_indices_new, target_true_labels_new) = utils.balance_source_target(
             (source_indices, source_true_labels), (target_indices, target_true_labels), random_seed=0)
-        all_indices = source_indices + target_indices
+        all_indices = source_indices_new + target_indices_new
         all_indices.sort()
         labels_test = [label for ind, label in enumerate(labels_test) if ind in all_indices]
+
+        # to make sure the new indices and labels are subsets of the old ones
+        source_label_count = Counter(source_true_labels_new)
+        target_label_count = Counter(target_true_labels_new)
+        logging.info('balanced the test set')
+        logging.info('source labels count: ' + str(source_label_count))
+        logging.info('target labels count: ' + str(target_label_count))
+
+        source_set_new = set(source_indices_new)
+        target_set_new = set(target_indices_new)
+        # check if the new indices are a subset of the old ones
+        assert source_set_new <= set(source_indices)
+        assert target_set_new <= set(target_indices)
+        # check for duplicates
+        assert len(source_set_new) == len(source_indices_new)
+        assert len(target_set_new) == len(target_indices_new)
+        # make tuples of (index, label) to check if the new index label pairs are a subset of the old ones
+        source_tuples = utils.tuple_of_lists_to_list_of_tuples((source_indices, source_true_labels))
+        target_tuples = utils.tuple_of_lists_to_list_of_tuples((target_indices, target_true_labels))
+        source_tuples_new = utils.tuple_of_lists_to_list_of_tuples((source_indices_new, source_true_labels_new))
+        target_tuples_new = utils.tuple_of_lists_to_list_of_tuples((target_indices_new, target_true_labels_new))
+        assert set(source_tuples_new) <= set(source_tuples)
+        assert set(target_tuples_new) <= set(target_tuples)
+
+        [(source_indices, source_true_labels), (target_indices, target_true_labels)] = \
+            [(source_indices_new, source_true_labels_new), (target_indices_new, target_true_labels_new)]
 
     source_pred = [all_predictions[ind] for ind in source_indices]
     target_pred = [all_predictions[ind] for ind in target_indices]
@@ -153,17 +185,8 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
     if balanced_test:
         assert num_source_images == num_target_images
 
-
-    # count how many there are of each label
-    label_count = {label: 0 for label in clf_config.label_list}
-    source_label_count = label_count.copy()
-    target_label_count = label_count.copy()
-    for label in labels_test:
-        label_count[label] += 1
-    for label in source_true_labels:
-        source_label_count[label] += 1
-    for label in target_true_labels:
-        target_label_count[label] += 1
+    label_count = Counter(labels_test)
+    assert label_count == source_label_count + target_label_count
 
     logging.info('Data summary:')
     logging.info(' - Images (before reduction):')
@@ -323,7 +346,7 @@ if __name__ == '__main__':
                    + classifier_experiment_list5
     all_joint_list = joint_list1 + joint_list2 + joint_list3 + joint_list4
 
-    test_multiple_classifiers(all_clf_list, joint=False)
+    test_multiple_classifiers(classifier_experiment_list1, joint=False)
 
 
 

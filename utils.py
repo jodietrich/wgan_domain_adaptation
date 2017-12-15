@@ -299,11 +299,21 @@ if __name__ == '__main__':
     target_labels2 = [2, 2, 0, 0, 2]
     source = (source_indices1, source_labels2)
     target = (target_indices2, target_labels2)
+    source_tuples = tuple_of_lists_to_list_of_tuples(source)
+    target_tuples = tuple_of_lists_to_list_of_tuples(target)
     print(source)
     print(target)
-    source, target = balance_source_target(source, target, random_seed=0)
-    print(source)
-    print(target)
+    print(source_tuples)
+    print(target_tuples)
+    source2, target2 = balance_source_target(source, target, random_seed=0)
+    print(source2)
+    print(target2)
+    source_tuples2 = tuple_of_lists_to_list_of_tuples(source2)
+    target_tuples2 = tuple_of_lists_to_list_of_tuples(target2)
+    print(source_tuples2)
+    print(target_tuples2)
+    assert set(source_tuples2) <= set(source_tuples)
+    assert set(target_tuples2) <= set(target_tuples)
 
 
 
