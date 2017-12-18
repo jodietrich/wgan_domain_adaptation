@@ -4,13 +4,13 @@ import tensorflow as tf
 import os.path
 import batch_augmentors
 
-experiment_name = 'adni_clf_bs20_domains_s3_gen_residual_10_noise_final_i1'
+experiment_name = 'adni_clf_bs20_domains_s15_gen_residual_no_noise_final_i1'
 
 # paths
 log_folder = 'adni_clf/final'
 # <------------------------------------------------------------------------
 generator_path = '/scratch_net/brossa/jdietric/PycharmProjects/mri_domain_adapt/log_dir/gan/final/' \
-                 + 'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1'
+                 + 'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s15_final_i1'
 
 # Model settings
 clf_model_handle = model_zoo.FCN_multitask_ordinal_bn
