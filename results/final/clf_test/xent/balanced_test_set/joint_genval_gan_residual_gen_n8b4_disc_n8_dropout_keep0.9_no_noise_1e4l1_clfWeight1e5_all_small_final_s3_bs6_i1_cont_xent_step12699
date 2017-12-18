@@ -1,0 +1,26 @@
+joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1_cont
+selection criterion: xent
+step: 12699
+1.5:
+f1: 0.825938566553
+recall: 0.923664122137
+precision: 0.746913580247
+confusion matrix: [[211  41]
+ [ 10 121]]
+
+
+3.0:
+f1: 0.878228782288
+recall: 0.908396946565
+precision: 0.85
+confusion matrix: [[231  21]
+ [ 12 119]]
+
+
+all data:
+f1: 0.851063829787
+recall: 0.916030534351
+precision: 0.794701986755
+confusion matrix: [[442  62]
+ [ 22 240]]
+

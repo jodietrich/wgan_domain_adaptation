@@ -1,0 +1,26 @@
+adni_clf_bs20_domains_s3_gen_residual_10_noise_final_i1
+selection criterion: f1
+step: 34099
+1.5:
+f1: 0.812080536913
+recall: 0.923664122137
+precision: 0.724550898204
+confusion matrix: [[206  46]
+ [ 10 121]]
+
+
+3.0:
+f1: 0.882129277567
+recall: 0.885496183206
+precision: 0.878787878788
+confusion matrix: [[236  16]
+ [ 15 116]]
+
+
+all data:
+f1: 0.844919786096
+recall: 0.904580152672
+precision: 0.792642140468
+confusion matrix: [[442  62]
+ [ 25 237]]
+

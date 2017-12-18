@@ -1,0 +1,26 @@
+adni_clf_bs20_domains_s3_data_final_i1
+selection criterion: f1
+step: 9799
+1.5:
+f1: 0.786885245902
+recall: 0.916030534351
+precision: 0.689655172414
+confusion matrix: [[198  54]
+ [ 11 120]]
+
+
+3.0:
+f1: 0.833922261484
+recall: 0.900763358779
+precision: 0.776315789474
+confusion matrix: [[218  34]
+ [ 13 118]]
+
+
+all data:
+f1: 0.809523809524
+recall: 0.908396946565
+precision: 0.730061349693
+confusion matrix: [[416  88]
+ [ 24 238]]
+
