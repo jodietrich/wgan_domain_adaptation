@@ -342,11 +342,21 @@ if __name__ == '__main__':
     joint_list4 = [
         'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1'
     ]
+    # 48 hours trained joint
+    joint_list5 = [
+        'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1_cont',
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1_cont',
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1_cont',
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1_cont',
+        'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1_cont',
+        'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1_cont',
+        'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1_cont'
+    ]
     all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3 + classifier_experiment_list4 \
                    + classifier_experiment_list5
-    all_joint_list = joint_list1 + joint_list2 + joint_list3 + joint_list4
+    all_joint_list = joint_list1 + joint_list2 + joint_list3 + joint_list4 + joint_list5
 
-    test_multiple_classifiers(classifier_experiment_list1, joint=False)
+    test_multiple_classifiers(joint_list5, joint=True)
 
 
 
