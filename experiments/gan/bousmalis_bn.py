@@ -1,6 +1,6 @@
 from experiments.gan.standard_parameters import *
 
-experiment_name = 'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s15_final_i1'
+experiment_name = 'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1'
 
 # Model settings
 batch_normalization = True
@@ -13,7 +13,7 @@ source_field_strength = 1.5  # magnetic field strength in T of pictures in the s
 target_field_strength = 3.0  # magnetic field strength in T of pictures in the target-domain
 
 # noise settings
-use_generator_input_noise = False
+use_generator_input_noise = True
 
 
 # model to use
