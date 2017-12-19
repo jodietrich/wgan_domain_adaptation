@@ -58,5 +58,7 @@ target 1.5 T: 371
 Unique subjects:
 train: 751
 test (unbalanced): 241
+test (balanced): 224
 val: 199
 total (unbalanced): 1191
+total (balanced): 1174
