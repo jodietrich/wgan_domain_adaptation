@@ -54,3 +54,9 @@ target 1.5 T: 371
 
 {'val': {'source': Counter({2: 208, 0: 172}), 'target': Counter({0: 242, 2: 129})},
 'train': {'source': Counter({0: 837, 2: 751}), 'target': Counter({0: 831, 2: 433})}}
+
+Unique subjects:
+train: 751
+test (unbalanced): 241
+val: 199
+total (unbalanced): 1191

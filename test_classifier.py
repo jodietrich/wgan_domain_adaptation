@@ -202,6 +202,11 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
     logging.info('number of target images: ' + str(num_target_images))
     logging.info('target label distribution ' + str(target_label_count))
 
+    # find out how many unique subjects there are in the test set
+    rid_numbers = data['rid_test']
+    reduced_rid_numbers = [number for ind, number in enumerate(rid_numbers) if ind in all_indices]
+    logging.info('number of unique subjects: %d' % len(np.unique(reduced_rid_numbers)))
+
     scores = {}
 
     logging.info('source prediction: ' + str(source_pred))
