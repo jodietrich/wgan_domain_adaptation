@@ -228,8 +228,8 @@ def classifier_test(clf_experiment_path, score_functions, batch_size=1, balanced
 
 def test_multiple_classifiers(classifier_exp_list, joint):
     #options
-    selection_criterion = 'xent'
-    # selection_criterion = 'f1'
+    # selection_criterion = 'xent'
+    selection_criterion = 'f1'
 
     if selection_criterion == 'xent':
         checkpoint_file_name = 'model_best_xent.ckpt'
@@ -344,6 +344,11 @@ if __name__ == '__main__':
         'adni_clf_bs20_domains_s3_gen_residual_no_noise_final_i1',
     ]
 
+    classifier_experiment_list6 = [
+        'adni_clf_bs20_domains_s15_gen_residual_10_noise_final_i1',
+        'adni_clf_bs20_domains_s15_gen_residual_no_noise_final_i1'
+    ]
+
     joint_list4 = [
         'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1'
     ]
@@ -358,10 +363,10 @@ if __name__ == '__main__':
         'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1_cont'
     ]
     all_clf_list = classifier_experiment_list1 + classifier_experiment_list2 + classifier_experiment_list3 + classifier_experiment_list4 \
-                   + classifier_experiment_list5
+                   + classifier_experiment_list5 + classifier_experiment_list6
     all_joint_list = joint_list1 + joint_list2 + joint_list3 + joint_list4 + joint_list5
 
-    test_multiple_classifiers(all_joint_list, joint=True)
+    test_multiple_classifiers(classifier_experiment_list6, joint=False)
 
 
 
