@@ -58,6 +58,11 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
 
         gan_experiment_name = gan_config.experiment_name
 
+        log_dir_ending = logdir_gan.split('_')[-1]
+        continued_experiment = (log_dir_ending == 'cont')
+        if continued_experiment:
+            gan_experiment_name += '_cont'
+
         # make sure the noise has the right dimension
         assert gan_config.use_generator_input_noise
         assert gan_config.generator_input_noise_shape[1:] == std_params.generator_input_noise_shape[1:]
@@ -126,6 +131,8 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
         logging.info('loading GAN')
         # open the latest GAN savepoint
         init_checkpoint_path_gan, last_gan_step = utils.get_latest_checkpoint_and_step(logdir_gan, 'model.ckpt')
+
+        logging.info(init_checkpoint_path_gan)
 
         # build a separate graph for the generator
         graph_generator, generator_img_pl, z_noise_pl, x_fake_op, init_gan_op, saver_gan = build_gen_graph(img_tensor_shape, gan_config)
@@ -201,11 +208,14 @@ if __name__ == '__main__':
     # experiment lists to choose from
     gan_experiment_list1 = [
         'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1',
+        'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1',
         'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1',
         'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1'
     ]
     joint_experiment_list1 = [
         'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1_cont',
+        'joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1_cont',
+        'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1_cont'
     ]
 
     experiment_list = joint_experiment_list1
