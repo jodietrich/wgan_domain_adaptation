@@ -317,6 +317,7 @@ def main():
     run_training(continue_run, log_dir=log_dir)
 
     # Copy experiment config file and standard_parameters file
+    # TODO: Somehow this did not copy the files to the log directory
     shutil.copy(exp_config.__file__, used_log_dir)
     shutil.copy(standard_parameters.__file__, used_log_dir)
 

@@ -14,7 +14,6 @@ import adni_data_loader_all
 import experiments.gan.standard_parameters as std_params
 
 
-
 def build_gen_graph(img_tensor_shape, gan_config):
     # noise_shape
     generator = gan_config.generator
@@ -40,7 +39,7 @@ def build_gen_graph(img_tensor_shape, gan_config):
 
 
 def generate_with_noise(gan_experiment_path_list, noise_list,
-                        image_saving_indices=set(), image_saving_path=None):
+                        image_saving_indices=set(), image_saving_path3d=None, image_saving_path2d=None):
     """
 
     :param gan_experiment_path_list: list of GAN experiment paths to be evaluated. They must all have the same image settings and source/target field strengths as the classifier
@@ -116,7 +115,7 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
         logging.info('number of target images: ' + str(num_target_images))
 
         # save real images
-        source_image_path = os.path.join(image_saving_path, 'source')
+        source_image_path = os.path.join(image_saving_path3d, 'source')
         utils.makefolder(source_image_path)
         sorted_saving_indices = sorted(image_saving_indices)
 
@@ -145,9 +144,15 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
         saver_gan.restore(sess_gan, init_checkpoint_path_gan)
 
         # path where the generated images are saved
-        experiment_generate_path = os.path.join(image_saving_path, gan_experiment_name + ('_%.1fT_source' % gan_config.source_field_strength))
+        experiment_generate_path_3d = os.path.join(image_saving_path_3d, gan_experiment_name + ('_%.1fT_source' % gan_config.source_field_strength))
         # make a folder for the generated images
-        utils.makefolder(experiment_generate_path)
+        utils.makefolder(experiment_generate_path_3d)
+
+        # path where the generated image 2d cuts are saved
+        experiment_generate_path_2d = os.path.join(image_saving_path_2d, gan_experiment_name + (
+        '_%.1fT_source' % gan_config.source_field_strength))
+        # make a folder for the generated images
+        utils.makefolder(experiment_generate_path_2d)
 
         logging.info('image generation begins')
         generated_pred = []
@@ -155,11 +160,13 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
         # loops through all images from the source domain
         for image_index, curr_img in zip(source_saving_indices, itertools.compress(images_test, source_saving_indices)):
             img_folder_name = 'image_test%d' % image_index
-            curr_img_path = os.path.join(experiment_generate_path, img_folder_name)
-            utils.makefolder(curr_img_path)
+            curr_img_path_3d = os.path.join(experiment_generate_path_3d, img_folder_name)
+            utils.makefolder(curr_img_path_3d)
+            curr_img_path_2d = os.path.join(experiment_generate_path_2d, img_folder_name)
+            utils.makefolder(curr_img_path_2d)
             # save source image
-            source_img_name = 'source_img.nii.gz'
-            utils.create_and_save_nii(np.squeeze(curr_img), os.path.join(curr_img_path, source_img_name))
+            source_img_name = 'source_img'
+            utils.save_image_and_cut(np.squeeze(curr_img), source_img_name, curr_img_path_3d, curr_img_path_2d)
             logging.info(source_img_name + ' saved')
             img_list = []
             for noise_index, noise in enumerate(noise_list):
@@ -171,24 +178,25 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
 
                 img_list.append(fake_img)
 
-                generated_img_name = 'generated_img_noise_%d.nii.gz' % (noise_index)
-                utils.create_and_save_nii(np.squeeze(fake_img), os.path.join(curr_img_path, generated_img_name))
+                generated_img_name = 'generated_img_noise_%d' % (noise_index)
+                utils.save_image_and_cut(np.squeeze(fake_img), generated_img_name, curr_img_path_3d, curr_img_path_2d)
                 logging.info(generated_img_name + ' saved')
 
                 # save the difference g(xs)-xs
                 difference_image_gs = np.squeeze(fake_img) - curr_img
-                difference_img_name = 'difference_img_noise_%d.nii.gz' % (noise_index)
-                utils.create_and_save_nii(difference_image_gs, os.path.join(curr_img_path, difference_img_name))
+                difference_img_name = 'difference_img_noise_%d' % (noise_index)
+                utils.save_image_and_cut(difference_image_gs, difference_img_name, curr_img_path_3d, curr_img_path_2d)
                 logging.info(difference_img_name + ' saved')
 
             # works because axis 0
             all_imgs = np.stack(img_list, axis=0)
             std_img = np.std(all_imgs, axis=0)
-            std_img_name = 'std_img.nii.gz'
-            utils.create_and_save_nii(std_img, os.path.join(curr_img_path, std_img_name))
+            std_img_name = 'std_img'
+            utils.save_image_and_cut(std_img, std_img_name, curr_img_path_3d, curr_img_path_2d)
             logging.info(std_img_name + ' saved')
 
         logging.info('generated all images for %s' % (gan_experiment_name))
+
 
 
 def generate_noise_list(noise_shape, seed_list=range(10), noise_function=lambda shape: np.random.uniform(low=-1.0, high=1.0, size=shape)):
@@ -202,13 +210,21 @@ def generate_noise_list(noise_shape, seed_list=range(10), noise_function=lambda 
         logging.info('noise: ' + str(noise))
     return noise_list
 
+def generate_points_on_line(total_points):
+    noise_dimension = 10
+    start = np.array([-1] * noise_dimension)
+    end = np.array([1] * noise_dimension)
+    place_parameter_list = np.linspace(0, 1, num=total_points, endpoint=True)
+    points = [np.expand_dims(start*(1-r) + end*r, axis=0) for r in place_parameter_list]
+    logging.info(points)
+    return points
+
 
 if __name__ == '__main__':
     # settings
     # experiment lists to choose from
     gan_experiment_list1 = [
         'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1',
-        'bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1',
         'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1',
         'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1'
     ]
@@ -224,16 +240,20 @@ if __name__ == '__main__':
         gan_log_root = os.path.join(sys_config.log_root, 'joint/final')
     else:
         gan_log_root = os.path.join(sys_config.log_root, 'gan/final')
-    image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/const_noise')
-    image_saving_indices = set(range(0, 120, 20))
+    # image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/const_noise')
+    image_saving_path_3d = os.path.join(sys_config.project_root, 'data/generated_images/final/interpolated')
+    image_saving_path_2d = os.path.join(sys_config.project_root, 'data/generated_images/final/interpolated/coronal_2d')
+    image_saving_indices = set(range(0, 220, 20))
     seed_list = range(10)
 
     # put paths for experiments together
     log_path_list = [os.path.join(gan_log_root, gan_name) for gan_name in experiment_list]
 
-    noise_list = generate_noise_list(noise_shape=(1, std_params.generator_input_noise_shape[1]), seed_list=seed_list)
+    # noise_list = generate_noise_list(noise_shape=(1, std_params.generator_input_noise_shape[1]), seed_list=seed_list)
+    noise_list = generate_points_on_line(10)
 
     generate_with_noise(gan_experiment_path_list=log_path_list,
                         noise_list=noise_list,
                         image_saving_indices=image_saving_indices,
-                        image_saving_path=image_saving_path)
+                        image_saving_path3d=image_saving_path_3d,
+                        image_saving_path2d=image_saving_path_2d)

@@ -11,6 +11,8 @@ import config.system as sys_config
 import logging
 import tensorflow as tf
 from collections import Counter
+from scipy.misc import imsave
+
 
 def fstr_to_label(fieldstrengths, field_strength_list, label_list):
     # input fieldstrenghts hdf5 list
@@ -287,6 +289,17 @@ def balance_source_target(source, target, random_seed=None):
     assert reduced_source_count == reduced_target_count
 
     return reduced_source, reduced_target
+
+
+def save_image_and_cut(image, img_name, path_3d, path_2d):
+    # image is 3d numpy array
+    # path with image name at the end but without the ending .nii.gz
+    create_and_save_nii(image, os.path.join(path_3d, img_name) + '.nii.gz')
+    # coronal cut through the hippocampy
+    image_cut = image[:, 38, :]
+    # rotate the image by 90 degree counterclockwise
+    image_cut = np.rot90(image_cut)
+    imsave(os.path.join(path_2d, img_name) + '.png', image_cut)
 
 
 if __name__ == '__main__':
