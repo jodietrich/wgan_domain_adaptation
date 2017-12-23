@@ -12,6 +12,8 @@ import utils
 from batch_generator_list import iterate_minibatches
 import data_utils
 import gan_model
+from collections import OrderedDict
+import csv
 
 
 from experiments.adni_clf import allconv_bn as exp_config
@@ -31,3 +33,14 @@ data = adni_data_loader_all.load_and_maybe_process_data(
 
 for tt in ['train','test','val']:
     print(len(np.unique(data['rid_%s' % tt])))
+
+# make list of index, label, rid
+test_labels = data['diagnosis_test']
+logging.info(test_labels)
+with open('results/final/label_list.csv', 'w+', newline='') as csvfile:
+    fieldnames = ['rid', 'index', 'label']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+    writer.writeheader()
+    for ind, label in enumerate(test_labels):
+        writer.writerow({'index': ind, 'rid': data['rid_test'][ind], 'label': label})
