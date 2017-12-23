@@ -1,5 +1,6 @@
 
 log_dir
 preproc_data
+data
 .idea
 *.pyc
