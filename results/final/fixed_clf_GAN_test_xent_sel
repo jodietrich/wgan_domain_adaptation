@@ -1,4 +1,5 @@
-SELECTED WITH BEST CROSS ENTROPY
+CLASSIFIERS SELECTED WITH BEST CROSS ENTROPY
+There are two classifiers
 
 GAN source 3 target 1.5 tested with Classifier trained on 1.5 T
 
