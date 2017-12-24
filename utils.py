@@ -291,7 +291,7 @@ def balance_source_target(source, target, random_seed=None):
     return reduced_source, reduced_target
 
 
-def save_image_and_cut(image, img_name, path_3d, path_2d, vmin=0.5, vmax=0.5):
+def save_image_and_cut(image, img_name, path_3d, path_2d, vmin=-0.5, vmax=0.5):
     # image is 3d numpy array
     # path with image name at the end but without the ending .nii.gz
     create_and_save_nii(image, os.path.join(path_3d, img_name) + '.nii.gz')
