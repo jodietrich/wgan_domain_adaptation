@@ -166,7 +166,7 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
             utils.makefolder(curr_img_path_2d)
             # save source image
             source_img_name = 'source_img'
-            utils.save_image_and_cut(np.squeeze(curr_img), source_img_name, curr_img_path_3d, curr_img_path_2d)
+            utils.save_image_and_cut(np.squeeze(curr_img), source_img_name, curr_img_path_3d, curr_img_path_2d, vmin=-1, vmax=1)
             logging.info(source_img_name + ' saved')
             img_list = []
             for noise_index, noise in enumerate(noise_list):
@@ -179,20 +179,20 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
                 img_list.append(fake_img)
 
                 generated_img_name = 'generated_img_noise_%d' % (noise_index)
-                utils.save_image_and_cut(np.squeeze(fake_img), generated_img_name, curr_img_path_3d, curr_img_path_2d)
+                utils.save_image_and_cut(np.squeeze(fake_img), generated_img_name, curr_img_path_3d, curr_img_path_2d, vmin=-1, vmax=1)
                 logging.info(generated_img_name + ' saved')
 
                 # save the difference g(xs)-xs
                 difference_image_gs = np.squeeze(fake_img) - curr_img
                 difference_img_name = 'difference_img_noise_%d' % (noise_index)
-                utils.save_image_and_cut(difference_image_gs, difference_img_name, curr_img_path_3d, curr_img_path_2d)
+                utils.save_image_and_cut(difference_image_gs, difference_img_name, curr_img_path_3d, curr_img_path_2d, vmin=-1, vmax=1)
                 logging.info(difference_img_name + ' saved')
 
             # works because axis 0
             all_imgs = np.stack(img_list, axis=0)
             std_img = np.std(all_imgs, axis=0)
             std_img_name = 'std_img'
-            utils.save_image_and_cut(std_img, std_img_name, curr_img_path_3d, curr_img_path_2d)
+            utils.save_image_and_cut(std_img, std_img_name, curr_img_path_3d, curr_img_path_2d, vmin=0, vmax=2)
             logging.info(std_img_name + ' saved')
 
         logging.info('generated all images for %s' % (gan_experiment_name))
