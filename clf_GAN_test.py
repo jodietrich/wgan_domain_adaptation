@@ -554,7 +554,7 @@ if __name__ == '__main__':
     exp_keys = list(source_key) + exp_keys + list(target_key)
 
     # save the result as a csv file
-    with open(results_save_path, 'w', newline='') as csvfile:
+    with open(results_save_path, 'w+', newline='') as csvfile:
         fieldnames = ['experiment name', 'f1', 'recall', 'precision']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
