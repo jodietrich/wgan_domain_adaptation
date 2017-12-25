@@ -500,7 +500,7 @@ if __name__ == '__main__':
     results_save_file_name = 'gan_experiments_s3_clf_test.csv'  # <---------------------------------
     results_save_folder = 'results/final/gan_test_target_clf'
 
-    results_save_path = os.path.join(results_save_folder, results_save_file_name)
+    results_save_path = os.path.join(sys_config.project_root, results_save_folder, results_save_file_name)
 
     clf_experiment_name = 'adni_clf_bs20_domains_t15_data_final_i1'  # <---------------------------------
     # clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'
