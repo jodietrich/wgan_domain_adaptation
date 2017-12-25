@@ -496,16 +496,16 @@ if __name__ == '__main__':
         'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1_cont'
     ]
 
-    gan_experiment_list = gan_experiment_list_s3
-    results_save_file_name = 'gan_experiments_s3_clf_test.csv'
+    gan_experiment_list = gan_experiment_list_s3  # <---------------------------------
+    results_save_file_name = 'gan_experiments_s3_clf_test.csv'  # <---------------------------------
     results_save_folder = 'results/final/gan_test_target_clf'
 
     results_save_path = os.path.join(results_save_folder, results_save_file_name)
 
-    # clf_experiment_name = 'adni_clf_bs20_domains_t15_data_final_i1'
-    clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'
+    clf_experiment_name = 'adni_clf_bs20_domains_t15_data_final_i1'  # <---------------------------------
+    # clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'
     clf_log_root = os.path.join(sys_config.log_root, 'adni_clf/final')
-    gan_log_root = os.path.join(sys_config.log_root, 'joint/final')
+    gan_log_root = os.path.join(sys_config.log_root, 'gan/final')  # <---------------------------------
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/all_experiments')
     image_saving_indices = set(range(0, 220, 20))
 
@@ -543,14 +543,24 @@ if __name__ == '__main__':
     best_score = get_f1_score(best_experiment)
     logging.info('The best experiment was %s with f1 score %f for the generated images' % (best_experiment, best_score))
 
+    # get scores ordered in the right way
+    source_key = set(key for key in clf_scores if key.startswith('source'))
+    target_key = set(key for key in clf_scores if key.startswith('target'))
+
+    assert len(source_key) == 1
+    assert len(target_key) == 1
+
+    exp_keys = sorted([key for key in clf_scores if key not in source_key.union(target_key)])
+    exp_keys = list(source_key) + exp_keys + list(target_key)
+
     # save the result as a csv file
     with open(results_save_path, 'w', newline='') as csvfile:
         fieldnames = ['experiment name', 'f1', 'recall', 'precision']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         writer.writeheader()
-        for curr_exp_name, curr_scores in clf_scores.items():
-            writer.writerow({'experiment name': curr_exp_name}.update(curr_scores))
+        for curr_exp_name in exp_keys:
+            writer.writerow({'experiment name': curr_exp_name}.update(clf_scores[curr_exp_name]))
 
 
 
