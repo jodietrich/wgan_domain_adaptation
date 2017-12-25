@@ -299,7 +299,7 @@ def save_image_and_cut(image, img_name, path_3d, path_2d, vmin=-1, vmax=1):
     image_cut = image[:, 38, :]
     # rotate the image by 90 degree counterclockwise
     image_cut = np.rot90(image_cut)
-    imsave(os.path.join(path_2d, img_name) + '.png', image_cut, vmin=vmin, vmax=vmax)
+    imsave(os.path.join(path_2d, img_name) + '.png', image_cut, vmin=vmin, vmax=vmax, cmap='gray')
 
 
 if __name__ == '__main__':

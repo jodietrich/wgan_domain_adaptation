@@ -192,7 +192,7 @@ def generate_with_noise(gan_experiment_path_list, noise_list,
             all_imgs = np.stack(img_list, axis=0)
             std_img = np.std(all_imgs, axis=0)
             std_img_name = 'std_img'
-            utils.save_image_and_cut(std_img, std_img_name, curr_img_path_3d, curr_img_path_2d, vmin=0, vmax=2)
+            utils.save_image_and_cut(std_img, std_img_name, curr_img_path_3d, curr_img_path_2d, vmin=0, vmax=1)
             logging.info(std_img_name + ' saved')
 
         logging.info('generated all images for %s' % (gan_experiment_name))

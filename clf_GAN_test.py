@@ -8,6 +8,7 @@ import numpy as np
 import os
 import tensorflow as tf
 from sklearn.metrics import f1_score, recall_score, precision_score
+import csv
 
 import config.system as sys_config
 import utils
@@ -342,8 +343,8 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     logging.info('target prediction: ' + str(target_pred))
     logging.info('target ground truth: ' + str(target_true_labels))
 
-    scores['source'] = evaluate_scores(source_true_labels, source_pred, score_functions)
-    scores['target'] = evaluate_scores(target_true_labels, target_pred, score_functions)
+    scores['source_%fT' % gan_config0.source_field_strength] = evaluate_scores(source_true_labels, source_pred, score_functions)
+    scores['target_%fT' % gan_config0.target_field_strength] = evaluate_scores(target_true_labels, target_pred, score_functions)
 
     return scores
 
@@ -495,7 +496,11 @@ if __name__ == '__main__':
         'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1_cont'
     ]
 
-    gan_experiment_list = joint_experiment_list_s15
+    gan_experiment_list = gan_experiment_list_s3
+    results_save_file_name = 'gan_experiments_s3_clf_test.csv'
+    results_save_folder = 'results/final/gan_test_target_clf'
+
+    results_save_path = os.path.join(results_save_folder, results_save_file_name)
 
     # clf_experiment_name = 'adni_clf_bs20_domains_t15_data_final_i1'
     clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'
@@ -538,6 +543,14 @@ if __name__ == '__main__':
     best_score = get_f1_score(best_experiment)
     logging.info('The best experiment was %s with f1 score %f for the generated images' % (best_experiment, best_score))
 
+    # save the result as a csv file
+    with open(results_save_path, 'w', newline='') as csvfile:
+        fieldnames = ['experiment name', 'f1', 'recall', 'precision']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for curr_exp_name, curr_scores in clf_scores.items():
+            writer.writerow({'experiment name': curr_exp_name}.update(curr_scores))
 
 
 

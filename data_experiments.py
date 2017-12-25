@@ -37,7 +37,7 @@ for tt in ['train','test','val']:
 # make list of index, label, rid
 test_labels = data['diagnosis_test']
 logging.info(test_labels)
-with open('results/final/label_list.csv', 'w+', newline='') as csvfile:
+with open('results/final/label_list.csv', 'w', newline='') as csvfile:
     fieldnames = ['rid', 'index', 'label']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
