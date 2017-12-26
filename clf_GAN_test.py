@@ -157,23 +157,24 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     source_indices = []
     target_indices = []
     source_true_labels = []
-    source_pred = []
     target_true_labels = []
-    target_pred = []
     for i, field_strength in enumerate(data['field_strength_test']):
         if field_strength == gan_config0.source_field_strength:
             source_indices.append(i)
             source_true_labels.append(labels_test[i])
-            source_pred.append(real_pred[i])
         elif field_strength == gan_config0.target_field_strength:
             target_indices.append(i)
             target_true_labels.append(labels_test[i])
-            target_pred.append(real_pred[i])
 
     # balance the test set
     (source_indices, source_true_labels), (
     target_indices, target_true_labels) = utils.balance_source_target(
         (source_indices, source_true_labels), (target_indices, target_true_labels), random_seed=0)
+    source_pred = [pred for ind, pred in enumerate(real_pred) if ind in source_indices]
+    target_pred = [pred for ind, pred in enumerate(real_pred) if ind in target_indices]
+
+    assert len(source_pred) == len(source_true_labels)
+    assert len(target_pred) == len(target_true_labels)
 
     # no unexpected labels
     assert all([label in clf_config.label_list for label in source_true_labels])
