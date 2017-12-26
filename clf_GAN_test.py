@@ -204,6 +204,9 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     logging.info('number of target images: ' + str(num_target_images))
     logging.info('target label distribution ' + str(target_label_count))
 
+    #2d image saving folder
+    folder_2d = 'coronal_2d'
+
     # save real images
     target_image_path = os.path.join(image_saving_path, 'target')
     source_image_path = os.path.join(image_saving_path, 'source')
@@ -212,14 +215,15 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     sorted_saving_indices = sorted(image_saving_indices)
     target_saving_indices = [target_indices[index] for index in sorted_saving_indices]
     for target_index in target_saving_indices:
-        target_img_name = 'target_img_%.1fT_%d.nii.gz' % (gan_config0.target_field_strength, target_index)
-        utils.create_and_save_nii(images_test[target_index], os.path.join(target_image_path, target_img_name))
+        target_img_name = 'target_img_%.1fT_diag%d_ind%d' % (gan_config0.target_field_strength, labels_test[target_index], target_index)
+        utils.save_image_and_cut(images_test[target_index], target_img_name, target_image_path, os.path.join(target_image_path, folder_2d))
         logging.info(target_img_name + ' saved')
 
     source_saving_indices = [source_indices[index] for index in sorted_saving_indices]
     for source_index in source_saving_indices:
-        source_img_name = 'source_img_%.1fT_%d.nii.gz' % (gan_config0.source_field_strength, source_index)
-        utils.create_and_save_nii(images_test[source_index], os.path.join(source_image_path, source_img_name))
+        source_img_name = 'source_img_%.1fT_diag%d_ind%d' % (gan_config0.source_field_strength, labels_test[source_index], source_index)
+        utils.save_image_and_cut(images_test[source_index], source_img_name, source_image_path,
+                                 os.path.join(source_image_path, folder_2d))
         logging.info(source_img_name + ' saved')
 
     logging.info('source and target images saved')
@@ -259,8 +263,10 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
 
         # path where the generated images are saved
         experiment_generate_path = os.path.join(image_saving_path, gan_experiment_name)
+        experiment_generate_path2d = os.path.join(image_saving_path, folder_2d, gan_experiment_name)
         # make a folder for the generated images
         utils.makefolder(experiment_generate_path)
+        utils.makefolder(experiment_generate_path2d)
 
         # make separate graphs for the last batch where the batchsize is smaller
         if clf_remainder_batch_size > 0:
@@ -318,14 +324,15 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
                 batch_index = source_index - batch_beginning_index
                 # index of the image in the complete test data
                 global_index = source_indices[source_index]
-                generated_img_name = 'generated_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, global_index)
-                utils.create_and_save_nii(np.squeeze(fake_img[batch_index]), os.path.join(experiment_generate_path, generated_img_name))
+                generated_img_name = 'generated_img_%.1fT_diag%d_ind%d' % (gan_config.target_field_strength, labels_test[global_index], global_index)
+                utils.save_image_and_cut(np.squeeze(fake_img[batch_index]), generated_img_name, experiment_generate_path, experiment_generate_path2d)
                 logging.info(generated_img_name + ' saved')
                 # save the difference g(xs)-xs
                 corresponding_source_img = images_test[global_index]
                 difference_image_gs = np.squeeze(fake_img[batch_index]) - corresponding_source_img
-                difference_img_name = 'difference_img_%.1fT_%d.nii.gz' % (gan_config.target_field_strength, global_index)
-                utils.create_and_save_nii(difference_image_gs, os.path.join(experiment_generate_path, difference_img_name))
+                difference_img_name = 'difference_img_%.1fT_diag%d_ind%d' % (gan_config.target_field_strength, labels_test[global_index], global_index)
+                utils.save_image_and_cut(difference_image_gs, difference_img_name,
+                                         experiment_generate_path, experiment_generate_path2d)
                 logging.info(difference_img_name + ' saved')
 
             logging.info('new image batch')
@@ -507,7 +514,7 @@ if __name__ == '__main__':
     clf_log_root = os.path.join(sys_config.log_root, 'adni_clf/final')
     gan_log_root = os.path.join(sys_config.log_root, 'gan/final')  # <---------------------------------
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/all_experiments')
-    image_saving_indices = set(range(0, 220, 20))
+    image_saving_indices = set(range(0, 220, 5))
 
     # put paths for experiments together
     clf_log_path = os.path.join(clf_log_root, clf_experiment_name)
@@ -552,6 +559,7 @@ if __name__ == '__main__':
 
     exp_keys = sorted([key for key in clf_scores if key not in source_key.union(target_key)])
     exp_keys = list(source_key) + exp_keys + list(target_key)
+    logging.info(exp_keys)
 
     # save the result as a csv file
     with open(results_save_path, 'w+', newline='') as csvfile:
@@ -560,7 +568,11 @@ if __name__ == '__main__':
 
         writer.writeheader()
         for curr_exp_name in exp_keys:
-            writer.writerow({'experiment name': curr_exp_name}.update(clf_scores[curr_exp_name]))
+            logging.info(curr_exp_name)
+            logging.info(clf_scores[curr_exp_name])
+            row_dict = {'experiment name': curr_exp_name}
+            row_dict.update(clf_scores[curr_exp_name])
+            writer.writerow(row_dict)
 
 
 
