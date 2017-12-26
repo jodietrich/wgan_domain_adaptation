@@ -9,6 +9,7 @@ import os
 import tensorflow as tf
 from sklearn.metrics import f1_score, recall_score, precision_score
 import csv
+from collections import OrderedDict, Counter
 
 import config.system as sys_config
 import utils
@@ -169,6 +170,11 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
             target_true_labels.append(labels_test[i])
             target_pred.append(real_pred[i])
 
+    # balance the test set
+    (source_indices, source_true_labels), (
+    target_indices, target_true_labels) = utils.balance_source_target(
+        (source_indices, source_true_labels), (target_indices, target_true_labels), random_seed=0)
+
     # no unexpected labels
     assert all([label in clf_config.label_list for label in source_true_labels])
     assert all([label in clf_config.label_list for label in target_true_labels])
@@ -178,31 +184,18 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     num_source_images = len(source_indices)
     num_target_images = len(target_indices)
 
-    # count how many there are of each label
-    label_count = {label: 0 for label in clf_config.label_list}
-    source_label_count = label_count.copy()
-    target_label_count = label_count.copy()
-    for label in labels_test:
-        label_count[label] += 1
-    for label in source_true_labels:
-        source_label_count[label] += 1
-    for label in target_true_labels:
-        target_label_count[label] += 1
+    source_label_count = Counter(source_true_labels)
+    target_label_count = Counter(target_true_labels)
 
     logging.info('Data summary:')
-    logging.info(' - Images:')
-    logging.info(images_test.shape)
-    logging.info(images_test.dtype)
-    logging.info(' - Labels:')
-    logging.info(labels_test.shape)
-    logging.info(labels_test.dtype)
-    logging.info('number of images for each label')
-    logging.info(label_count)
     logging.info(' - Domains:')
     logging.info('number of source images: ' + str(num_source_images))
     logging.info('source label distribution ' + str(source_label_count))
     logging.info('number of target images: ' + str(num_target_images))
     logging.info('target label distribution ' + str(target_label_count))
+
+    assert num_source_images == num_target_images
+    assert source_label_count == target_label_count
 
     #2d image saving folder
     folder_2d = 'coronal_2d'
@@ -365,7 +358,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
 
 def generate_and_evaluate_fieldstrength_classification(gan_experiment_path_list, fclf_experiment_path, verbose=True,
                                                        num_saved_images=0, image_saving_path=None):
-    """
+    """Old function without the balanced test set
 
     :param gan_experiment_path_list:
     :param fclf_experiment_path:
@@ -516,7 +509,7 @@ if __name__ == '__main__':
     results_save_path = os.path.join(sys_config.project_root, results_save_folder, results_save_file_name)
 
     # clf_experiment_name = 'adni_clf_bs20_domains_t15_data_final_i1'  # <---------------------------------
-    clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'
+    clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'  # <---------------------------------
     clf_log_root = os.path.join(sys_config.log_root, 'adni_clf/final')
     gan_log_root = os.path.join(sys_config.log_root, 'gan/final')  # <---------------------------------
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/all_experiments')
@@ -579,6 +572,9 @@ if __name__ == '__main__':
             row_dict = {'experiment name': curr_exp_name}
             row_dict.update(clf_scores[curr_exp_name])
             writer.writerow(row_dict)
+
+        # write classifier experiment name at the last row
+        writer.writerow({'experiment name': clf_experiment_name})
 
 
 
