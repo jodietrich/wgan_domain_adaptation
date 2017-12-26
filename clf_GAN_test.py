@@ -206,24 +206,30 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
 
     #2d image saving folder
     folder_2d = 'coronal_2d'
+    image_saving_path2d = os.path.join(image_saving_path, folder_2d)
+    utils.makefolder(image_saving_path2d)
 
     # save real images
     target_image_path = os.path.join(image_saving_path, 'target')
     source_image_path = os.path.join(image_saving_path, 'source')
     utils.makefolder(target_image_path)
     utils.makefolder(source_image_path)
+    target_image_path2d = os.path.join(image_saving_path2d, 'target')
+    source_image_path2d = os.path.join(image_saving_path2d, 'source')
+    utils.makefolder(target_image_path2d)
+    utils.makefolder(source_image_path2d)
     sorted_saving_indices = sorted(image_saving_indices)
     target_saving_indices = [target_indices[index] for index in sorted_saving_indices]
     for target_index in target_saving_indices:
         target_img_name = 'target_img_%.1fT_diag%d_ind%d' % (gan_config0.target_field_strength, labels_test[target_index], target_index)
-        utils.save_image_and_cut(images_test[target_index], target_img_name, target_image_path, os.path.join(target_image_path, folder_2d))
+        utils.save_image_and_cut(images_test[target_index], target_img_name, target_image_path, target_image_path2d)
         logging.info(target_img_name + ' saved')
 
     source_saving_indices = [source_indices[index] for index in sorted_saving_indices]
     for source_index in source_saving_indices:
         source_img_name = 'source_img_%.1fT_diag%d_ind%d' % (gan_config0.source_field_strength, labels_test[source_index], source_index)
         utils.save_image_and_cut(images_test[source_index], source_img_name, source_image_path,
-                                 os.path.join(source_image_path, folder_2d))
+                                 source_image_path2d)
         logging.info(source_img_name + ' saved')
 
     logging.info('source and target images saved')
@@ -263,7 +269,7 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
 
         # path where the generated images are saved
         experiment_generate_path = os.path.join(image_saving_path, gan_experiment_name)
-        experiment_generate_path2d = os.path.join(image_saving_path, folder_2d, gan_experiment_name)
+        experiment_generate_path2d = os.path.join(image_saving_path2d, gan_experiment_name)
         # make a folder for the generated images
         utils.makefolder(experiment_generate_path)
         utils.makefolder(experiment_generate_path2d)
