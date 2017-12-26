@@ -356,8 +356,8 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     logging.info('target prediction: ' + str(target_pred))
     logging.info('target ground truth: ' + str(target_true_labels))
 
-    scores['source_%fT' % gan_config0.source_field_strength] = evaluate_scores(source_true_labels, source_pred, score_functions)
-    scores['target_%fT' % gan_config0.target_field_strength] = evaluate_scores(target_true_labels, target_pred, score_functions)
+    scores['source_%.1fT' % gan_config0.source_field_strength] = evaluate_scores(source_true_labels, source_pred, score_functions)
+    scores['target_%.1fT' % gan_config0.target_field_strength] = evaluate_scores(target_true_labels, target_pred, score_functions)
 
     return scores
 
@@ -509,14 +509,14 @@ if __name__ == '__main__':
         'joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1_cont'
     ]
 
-    gan_experiment_list = gan_experiment_list_s3  # <---------------------------------
-    results_save_file_name = 'gan_experiments_s3_clf_test.csv'  # <---------------------------------
+    gan_experiment_list = gan_experiment_list_s15  # <---------------------------------
+    results_save_file_name = 'gan_experiments_s15_clf_test.csv'  # <---------------------------------
     results_save_folder = 'results/final/gan_test_target_clf'
 
     results_save_path = os.path.join(sys_config.project_root, results_save_folder, results_save_file_name)
 
-    clf_experiment_name = 'adni_clf_bs20_domains_t15_data_final_i1'  # <---------------------------------
-    # clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'
+    # clf_experiment_name = 'adni_clf_bs20_domains_t15_data_final_i1'  # <---------------------------------
+    clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'
     clf_log_root = os.path.join(sys_config.log_root, 'adni_clf/final')
     gan_log_root = os.path.join(sys_config.log_root, 'gan/final')  # <---------------------------------
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/all_experiments')
