@@ -1,0 +1,8 @@
+experiment name,f1,recall,precision
+source_3.0T,0.831460674157,0.847328244275,0.816176470588
+bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1,0.81228668942,0.908396946565,0.734567901235
+bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s3_final_i1,0.763636363636,0.961832061069,0.633165829146
+residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1,0.802919708029,0.839694656489,0.769230769231
+residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s3_final_i1,0.831541218638,0.885496183206,0.783783783784
+target_1.5T,0.797101449275,0.839694656489,0.758620689655
+adni_clf_bs20_domains_t15_data_final_i1,,,

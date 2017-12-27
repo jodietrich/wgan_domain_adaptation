@@ -1,0 +1,54 @@
+CLASSIFIERS SELECTED WITH BEST CROSS ENTROPY
+There are two classifiers
+
+GAN source 3 target 1.5 tested with Classifier trained on 1.5 T
+
+2017-12-22 19:41:49,129 FINAL SUMMARY:
+ordered by f1 score in descending order
+residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1 OrderedDict([('f1', 0.83453237410071934), ('recall', 0.8854961832061069), ('precision', 0.78911564625850339)])
+residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s3_final_i1 OrderedDict([('f1', 0.8315412186379928), ('recall', 0.8854961832061069), ('precision', 0.78378378378378377)])
+source OrderedDict([('f1', 0.83146067415730329), ('recall', 0.84732824427480913), ('precision', 0.81617647058823528)])
+target OrderedDict([('f1', 0.81395348837209291), ('recall', 0.82547169811320753), ('precision', 0.80275229357798161)])
+bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1 OrderedDict([('f1', 0.8122866894197952), ('recall', 0.90839694656488545), ('precision', 0.73456790123456794)])
+bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s3_final_i1 OrderedDict([('f1', 0.76363636363636367), ('recall', 0.96183206106870234), ('precision', 0.63316582914572861)])
+2017-12-22 19:41:49,130 The best experiment was residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1 with f1 score 0.834532 for the generated images
+
+
+GAN source 1.5 target 3 tested with Classifier trained on 3 T
+
+2017-12-22 19:48:38,759 FINAL SUMMARY:
+ordered by f1 score in descending order
+source OrderedDict([('f1', 0.85209713024282563), ('precision', 0.80082987551867224), ('recall', 0.910377358490566)])
+residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s15_final_i1 OrderedDict([('f1', 0.84955752212389379), ('precision', 0.80000000000000004), ('recall', 0.90566037735849059)])
+target OrderedDict([('f1', 0.84172661870503596), ('precision', 0.79591836734693877), ('recall', 0.89312977099236646)])
+bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1 OrderedDict([('f1', 0.81818181818181812), ('precision', 0.88043478260869568), ('recall', 0.76415094339622647)])
+residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s15_final_i1 OrderedDict([('f1', 0.815347721822542), ('precision', 0.82926829268292679), ('recall', 0.80188679245283023)])
+bousmalis_gen_n8b4_disc_n8_bn_dropout_keep0.9_no_noise_all_small_data_1e4l1_s15_final_i1 OrderedDict([('f1', 0.77120822622107965), ('precision', 0.84745762711864403), ('recall', 0.70754716981132071)])
+2017-12-22 19:48:38,760 The best experiment was source with f1 score 0.852097 for the generated images
+
+
+joint source 3 target 1.5 tested with Classifier trained on 1.5 T
+
+2017-12-22 19:57:01,392 FINAL SUMMARY:
+ordered by f1 score in descending order
+source OrderedDict([('f1', 0.83146067415730329), ('recall', 0.84732824427480913), ('precision', 0.81617647058823528)])
+joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1 OrderedDict([('f1', 0.83018867924528295), ('recall', 0.83969465648854957), ('precision', 0.82089552238805974)])
+target OrderedDict([('f1', 0.81395348837209291), ('recall', 0.82547169811320753), ('precision', 0.80275229357798161)])
+joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1 OrderedDict([('f1', 0.80586080586080588), ('recall', 0.83969465648854957), ('precision', 0.77464788732394363)])
+joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1 OrderedDict([('f1', 0.79734219269102991), ('recall', 0.91603053435114501), ('precision', 0.70588235294117652)])
+joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s3_bs6_i1 OrderedDict([('f1', 0.62944162436548223), ('recall', 0.47328244274809161), ('precision', 0.93939393939393945)])
+2017-12-22 19:57:01,392 The best experiment was source with f1 score 0.831461 for the generated images
+
+
+joint source 1.5 target 3 tested with Classifier trained on 3 T
+
+2017-12-22 19:58:03,513 FINAL SUMMARY:
+ordered by f1 score in descending order
+source OrderedDict([('recall', 0.910377358490566), ('f1', 0.85209713024282563), ('precision', 0.80082987551867224)])
+joint_genval_gan_residual_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1 OrderedDict([('recall', 0.95754716981132071), ('f1', 0.84937238493723843), ('precision', 0.76315789473684215)])
+joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1 OrderedDict([('recall', 0.89622641509433965), ('f1', 0.8482142857142857), ('precision', 0.80508474576271183)])
+target OrderedDict([('recall', 0.89312977099236646), ('f1', 0.84172661870503596), ('precision', 0.79591836734693877)])
+joint_genval_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_10_noise_1e4l1_clfWeight1e5_all_small_final_s15_bs6_i1 OrderedDict([('recall', 0.83490566037735847), ('f1', 0.83098591549295775), ('precision', 0.82710280373831779)])
+2017-12-22 19:58:03,514 The best experiment was source with f1 score 0.852097 for the generated images
+
+
