@@ -2,5 +2,6 @@
 log_dir
 preproc_data
 data
+data/generated_images/final/interpolated
 .idea
 *.pyc
