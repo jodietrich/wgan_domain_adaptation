@@ -56,3 +56,30 @@ def build_clf_graph(img_tensor_shape, clf_config, joint=False):
         saver = tf.train.Saver()  # disc loss is scaled negative EM distance
         predictions = {'label': predicted_labels_mapped, 'diag_softmax': softmax, 'age_softmaxs': age_softmaxs}
         return graph_classifier, x_clf_pl, predictions, init, saver
+
+
+def build_gen_graph(img_tensor_shape, gan_config):
+    # noise_shape
+    generator = gan_config.generator
+    graph_generator = tf.Graph()
+    with graph_generator.as_default():
+        # source image (batch size = 1)
+        xs_pl = tf.placeholder(tf.float32, img_tensor_shape, name='xs_pl')
+
+        if gan_config.use_generator_input_noise:
+            noise_shape = gan_config.generator_input_noise_shape.copy()
+            # adjust batch size
+            noise_shape[0] = img_tensor_shape[0]
+            noise_in_gen_pl = tf.random_uniform(shape=noise_shape, minval=-1, maxval=1)
+        else:
+            noise_in_gen_pl = None
+
+        # generated fake image batch
+        xf = generator(xs=xs_pl, z_noise=noise_in_gen_pl, training=False)
+
+        # Add the variable initializer Op.
+        init = tf.global_variables_initializer()
+
+        # Create a savers for writing training checkpoints.
+        saver = tf.train.Saver()
+        return graph_generator, xs_pl, xf, init, saver
