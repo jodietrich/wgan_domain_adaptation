@@ -112,10 +112,10 @@ def generate_and_evaluate_ad_classification(gan_experiment_path_list, clf_experi
     # open field strength classifier save file from the selected experiment
     logging.info("loading Alzheimer's disease classifier")
     graph_clf, image_pl, predictions_clf_op, init_clf_op, saver_clf = build_clf_graph(img_tensor_shape, clf_config)
-    logging.info("getting savepoint with the best cross entropy")
-    init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_xent.ckpt')
-    # logging.info("getting savepoint with the best f1 score")
-    # init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_diag_f1.ckpt')
+    # logging.info("getting savepoint with the best cross entropy")
+    # init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_xent.ckpt')
+    logging.info("getting savepoint with the best f1 score")
+    init_checkpoint_path_clf = get_latest_checkpoint_and_log(logdir_clf, 'model_best_diag_f1.ckpt')
     sess_clf = tf.Session(config=config, graph=graph_clf)
     sess_clf.run(init_clf_op)
     saver_clf.restore(sess_clf, init_checkpoint_path_clf)
@@ -384,7 +384,7 @@ def generate_and_evaluate_fieldstrength_classification(gan_experiment_path_list,
     # open field strength classifier save file from the selected experiment
     logging.info('loading field strength classifier')
     graph_fclf, fclf_pl, predictions_fclf_op, init_fclf_op, saver_fclf = build_clf_graph(img_tensor_shape, fclf_config)
-    init_checkpoint_path_fclf = get_latest_checkpoint_and_log(logdir_fclf, 'model_best_xent.ckpt')
+    init_checkpoint_path_fclf = get_latest_checkpoint_and_log(logdir_fclf, 'model_best_diag_f1.ckpt')
     sess_fclf = tf.Session(config=config, graph=graph_fclf)
     sess_fclf.run(init_fclf_op)
     saver_fclf.restore(sess_fclf, init_checkpoint_path_fclf)
@@ -509,8 +509,8 @@ if __name__ == '__main__':
         'joint_fixed_clf_allconv_gan_bousmalis_gen_n8b4_disc_n8_dropout_keep0.9_no_noise_1e4l1_clfWeight1e7_all_small_final_s3_bs6_i1'
     ]
 
-    gan_experiment_list = joint_experiment_list_s3  # <---------------------------------
-    results_save_file_name = 'joint_experiments_s3_clf_test.csv'  # <---------------------------------
+    gan_experiment_list = gan_experiment_list_s3  # <---------------------------------
+    results_save_file_name = 'gan_experiments_s3_clf_test_f1_sel.csv'  # <---------------------------------
     results_save_folder = 'results/final/gan_test_target_clf'
 
     results_save_path = os.path.join(sys_config.project_root, results_save_folder, results_save_file_name)
@@ -518,7 +518,7 @@ if __name__ == '__main__':
     clf_experiment_name = 'adni_clf_bs20_domains_t15_data_final_i1'  # <---------------------------------
     # clf_experiment_name = 'adni_clf_bs20_domains_s3_data_final_i1'  # <---------------------------------
     clf_log_root = os.path.join(sys_config.log_root, 'adni_clf/final')
-    gan_log_root = os.path.join(sys_config.log_root, 'joint/final')  # <---------------------------------
+    gan_log_root = os.path.join(sys_config.log_root, 'gan/final')  # <---------------------------------
     image_saving_path = os.path.join(sys_config.project_root,'data/generated_images/final/all_experiments')
     image_saving_indices = set(range(0, 220, 5))
 
