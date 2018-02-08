@@ -3,6 +3,7 @@ import os.path
 import utils
 import numpy as np
 import matplotlib.pyplot as plt
+from pylab import savefig
 
 
 # make histograms to compare 1.5 T and 3 T images and generated images
@@ -29,23 +30,40 @@ def pixel_difference_gradients(image):
     pixel_dif3 = image[:-1, :-1, 1:] - image[:-1, :-1, :-1]
     return np.stack((pixel_dif1, pixel_dif2, pixel_dif3), axis=-1)
 
-def plot_histograms(hist_vectors, plot_title, n_bins='auto'):
+def plot_histograms(hist_vectors, fig_name, saving_folder, n_bins='auto', cutoff_left=0.01, show_figure=False):
     # plots the intensity and gradient norm histograms
-    fig, axs = plt.subplots(1, 2, sharey=False, tight_layout=True)
-    # We can set the number of bins with the `bins` kwarg
-    axs[0].hist(hist_vectors['intensity'], bins=n_bins)
-    axs[1].hist(hist_vectors['gradient_norm'], bins=n_bins)
-    plt.show()
-    # TODO: save plot
+    fig = plt.figure(fig_name)
+    plt.subplot(121)
+    plt.hist(hist_vectors['intensity'], bins=n_bins, range=(-1 + cutoff_left, 1))
+    plt.xlabel('intensity')
+    plt.ylabel('number of pixels')
+
+    plt.subplot(122)
+    plt.hist(hist_vectors['gradient_norm'], bins=n_bins, range=(cutoff_left, 2))
+    plt.xlabel('gradient norm')
+    plt.ylabel('number of pixels')
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    save_path = os.path.join(saving_folder, fig_name + '.svg')
+    print('saving figure as: ' + save_path)
+    savefig(save_path, bbox_inches='tight')
+    if show_figure:
+        plt.show()
 
 
 if __name__ == '__main__':
     # images path
     img_folder = os.path.join(sys_config.project_root, 'data/generated_images/final/all_experiments')
-    sub_folder = 'source'
-    img_name = 'source_img_1.5T_0.nii.gz'
+    sub_folder = 'residual_gen_n8b4_disc_n8_bn_dropout_keep0.9_10_noise_all_small_data_1e4l1_s3_final_i1'
+    img_num = 468
+    field_str = '1.5'
+    label = 2
+    img_name = 'generated_img_%sT_diag%d_ind%d.nii.gz' % (field_str, label, img_num)
+    saving_folder = '/scratch_net/brossa/jdietric/Documents/thesis/figures/histograms'
+    field_str = field_str.replace('.', '')
+    plot_name = 'separate_residual_no_noise_target' + field_str + 'T_' + str(img_num)
     img_path = os.path.join(img_folder, sub_folder, img_name)
     # load image
     img_array, _, _ = utils.load_nii(img_path)
     hist_vectors = make_histogram_vectors(img_array)
-    plot_histograms(hist_vectors, img_name)
+    plot_histograms(hist_vectors, plot_name, saving_folder)
