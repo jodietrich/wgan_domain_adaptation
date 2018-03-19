@@ -1,3 +1,9 @@
+# Authors:
+# Jonathan Dietrich
+# Christian F. Baumgartner (c.f.baumgartner@gmail.com)
+
+# augmentation functions for the MR images.
+
 import numpy as np
 
 import adni_data_loader
@@ -30,6 +36,7 @@ def flip_augment(X, y_list=None, do_fliplr=True):
     else:
         return X_, y_list
 
+# translate the fraction generate_fraction of the given image batch with generator (class Generator)
 def generator_augment(generator, X, y_list=None, generate_fraction=0.5):
 
     if generate_fraction < 0 or generate_fraction > 1:
