@@ -1,7 +1,9 @@
 # Authors:
+# Jonathan Dietrich
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
 
-# used for GAN
+# functions for GAN training like losses and training operations.
+# Class definition of a generator class used for training a classifier with translated images
 
 import tensorflow as tf
 import logging
