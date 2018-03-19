@@ -1,6 +1,9 @@
 # Authors:
+# Jonathan Dietrich
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
 # Lisa M. Koch (lisa.margret.koch@gmail.com)
+
+# functions for things to do with images
 
 import numpy as np
 from skimage import measure
