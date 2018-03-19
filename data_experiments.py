@@ -1,3 +1,8 @@
+# Authors:
+# Jonathan Dietrich
+
+# Write details (index, RID, AD label) about the test set into a csv file 
+
 import logging
 import time
 
