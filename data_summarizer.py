@@ -1,3 +1,8 @@
+# Authors:
+# Jonathan Dietrich
+
+# summarize MRI data set
+
 import logging
 import time
 
