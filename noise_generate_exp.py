@@ -1,6 +1,7 @@
+# Authors:
+# Jonathan Dietrich
 
-
-__author__ = 'jdietric'
+# experiment to test the output of the WGAN image translator for different noise vectors
 
 import itertools
 import logging
