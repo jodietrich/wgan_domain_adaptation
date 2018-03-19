@@ -1,3 +1,8 @@
+# Authors:
+# Jonathan Dietrich
+
+# functions for minibatch iteration
+
 import numpy as np
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
