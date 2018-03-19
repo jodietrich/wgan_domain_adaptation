@@ -1,3 +1,8 @@
+# Authors:
+# Jonathan Dietrich
+
+# Test cases for functions to do with image display and code for summarizing image statistics of the MRI data set
+
 from experiments.gan import residual_gen_bs2_bn as exp_config
 
 __author__ = 'jdietric'
