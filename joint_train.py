@@ -1,5 +1,8 @@
 # Authors:
+# Jonathan Dietrich
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
+
+# train WGAN image-to-image translator and AD classifier jointly
 
 
 import logging
