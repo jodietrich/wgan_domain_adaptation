@@ -1,5 +1,8 @@
 # Authors:
+# Jonathan Dietrich
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
+
+# train classifier for MRI field strength of the image scanner
 
 import logging
 import time
