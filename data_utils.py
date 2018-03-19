@@ -1,3 +1,8 @@
+# Authors:
+# Jonathan Dietrich
+
+# functions for the MRI data set and a data sampler for WGAN training
+
 __author__ = 'jdietric'
 
 from train_gan import exp_config
