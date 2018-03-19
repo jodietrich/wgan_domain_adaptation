@@ -1,5 +1,8 @@
 # Authors:
+# Jonathan Dietrich
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
+
+# definitions of different DNN architectures
 
 import tensorflow as tf
 from tfwrapper import layers
@@ -9,7 +12,6 @@ import numpy as np
 
 
 # ---------------stand alone functions for discriminator and generator------------------------------
-# TODO: noise input
 def only_conv_generator(z, training, residual=True, batch_normalization=False, hidden_layers=2, filters=16, input_noise_dim=0,
                         scope_name='generator', scope_reuse=False):
     # batch size 2: hidden_layers=2, filters=16
