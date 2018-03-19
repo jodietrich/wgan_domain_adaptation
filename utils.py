@@ -1,6 +1,9 @@
 # Authors:
+# Jonathan Dietrich (jonathan.dietrich1@gmail.com)
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
 # Lisa M. Koch (lisa.margret.koch@gmail.com)
+
+# Useful functions
 
 import nibabel as nib
 import numpy as np
