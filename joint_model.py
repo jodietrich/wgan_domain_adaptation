@@ -1,3 +1,9 @@
+# Authors:
+# Jonathan Dietrich
+
+# training operation for joint training of translator and classifier
+
+
 import tensorflow as tf
 from tfwrapper import losses
 from math import sqrt
