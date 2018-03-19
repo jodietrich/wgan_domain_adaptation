@@ -1,3 +1,8 @@
+# Authors:
+# Jonathan Dietrich
+
+# Make histograms of image intensity and intensity gradient
+
 import config.system as sys_config
 import os
 import utils
