@@ -1,5 +1,8 @@
 # Authors:
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
+# Jonathan Dietrich
+
+# training of the AD classifier
 
 import logging
 import time
