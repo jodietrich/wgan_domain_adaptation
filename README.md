@@ -5,6 +5,7 @@ Basic code for converting domains of MNIST digits. Two toy examples implemented
 2) From scaled MNIST to normal MNIST
 
 Authors:
+- Jonathan Dietrich ([email](mailto:jonathan.dietrich1@gmail.com))
 - Christian F. Baumgartner ([email](mailto:baumgartner@vision.ee.ethz.ch))
 
 
