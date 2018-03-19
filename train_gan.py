@@ -1,6 +1,8 @@
 # Authors:
+# Jonathan Dietrich
 # Christian F. Baumgartner (c.f.baumgartner@gmail.com)
 
+# train the WGAN for image-to-image translation
 
 import logging
 import time
