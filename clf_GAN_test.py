@@ -1,3 +1,8 @@
+# Authors:
+# Jonathan Dietrich
+
+# Test Classifiers using the test set
+
 from test_utils import get_latest_checkpoint_and_log, evaluate_scores, build_clf_graph
 
 __author__ = 'jdietric'
