@@ -1,12 +1,12 @@
 Bridging the Gap Between 1.5 T and 3 T MRI Data Using Generative Adversarial Networks
 
-Semester Project of the autumn semester 2017 by Jonathan Dietrich.
+Semester Project of the autumn semester 2017 by Jonathan Dietrich advised by Dr. Christian F. Baumgartner.
 
 Authors:
 - Jonathan Dietrich ([email](mailto:jonathan.dietrich1@gmail.com))
 - Christian F. Baumgartner ([email](mailto:baumgartner@vision.ee.ethz.ch))
 
-Abstract
+Abstract:
 Medical image analysis using machine learning techniques suffers from a lack of labeled data sets. Specifically,
 while some large annotated datasets exist, there are many datasets that have been acquired with different
 protocols for which no annotations are available. Training machine learning algorithms on a source
